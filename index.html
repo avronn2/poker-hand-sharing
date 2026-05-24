@@ -1382,11 +1382,10 @@
       <button type="button" class="closebtn" id="menuClose" aria-label="Close">×</button>
     </header>
     <ul class="menu-list">
+      <li><button type="button" data-menu="profile">Profile</button></li>
       <li><button type="button" data-menu="newhand">New hand</button></li>
       <li><button type="button" data-menu="myhands">My hands</button></li>
-      <li><button type="button" data-menu="welcome">How it works</button></li>
       <li><button type="button" data-menu="tour">Example walkthrough</button></li>
-      <li><button type="button" data-menu="profile">Profile</button></li>
     </ul>
     <!-- Build/version marker so we can confirm production is on the latest deploy -->
     <div id="appVersion" style="margin-top:auto;padding:14px 18px 18px;font-size:11px;color:rgba(255,255,255,0.35);"></div>
@@ -1623,7 +1622,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "2026-05-24·h";
+const APP_VERSION = "2026-05-24·j";
 
 /* Parse a chip amount string (may contain commas). Returns NaN if invalid. */
 const parseChips = s => parseFloat(String(s == null ? "" : s).replace(/,/g, ""));
@@ -4688,14 +4687,82 @@ function sdDrawAvatar(ctx, cx, cy, r, img) {
   ctx.lineWidth = 3; ctx.strokeStyle = "#5ae5c8"; ctx.stroke();
 }
 // Preset avatar drawn purely with canvas ops (no image) so export never taints on iOS.
+// Poker-themed avatar icons, drawn procedurally so they paint onto the export canvas
+// (no external/SVG images → no iOS taint) and scale to any size. `r` = circle radius.
 function sdDrawAvatarPreset(ctx, cx, cy, r, p) {
   if (!p) return;
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.closePath();
-  ctx.fillStyle = p.bg; ctx.fill();
-  ctx.fillStyle = p.fg;
-  ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.font = `${Math.round(r * 1.1)}px -apple-system, "Segoe UI", sans-serif`;
-  ctx.fillText(p.glyph, cx, cy + r * 0.04);
+  const FF = `-apple-system, "Segoe UI", sans-serif`;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.closePath(); ctx.clip();
+  // Background gradient (diagonal) — each preset can override bg0/bg1.
+  const bgg = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+  bgg.addColorStop(0, p.bg0 || "#2b2f44"); bgg.addColorStop(1, p.bg1 || "#171a2e");
+  ctx.fillStyle = bgg; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+
+  const T = p.type;
+  if (T === "spade" || T === "heart" || T === "club") {
+    ctx.fillStyle = p.fg || "#fff";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = `${Math.round(r * 1.15)}px ${FF}`;
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = r * 0.14; ctx.shadowOffsetY = r * 0.05;
+    ctx.fillText(p.glyph, cx, cy + r * 0.06);
+    ctx.restore();
+  } else if (T === "chip") {
+    ctx.fillStyle = p.base; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = p.spot;
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 + Math.PI / 12;
+      const sx = cx + Math.cos(a) * r * 0.82, sy = cy + Math.sin(a) * r * 0.82;
+      sdRoundRect(ctx, sx - r * 0.14, sy - r * 0.10, r * 0.28, r * 0.20, r * 0.06, p.spot, null, 0);
+    }
+    ctx.beginPath(); ctx.arc(cx, cy, r * 0.60, 0, Math.PI*2);
+    ctx.lineWidth = r * 0.10; ctx.strokeStyle = p.ring; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, r * 0.46, 0, Math.PI*2); ctx.fillStyle = p.base; ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = `${Math.round(r * 0.5)}px ${FF}`; ctx.fillText("♠", cx, cy + r * 0.03);
+  } else if (T === "button") {
+    const g2 = ctx.createLinearGradient(cx, cy - r, cx, cy + r);
+    g2.addColorStop(0, "#fffdf5"); g2.addColorStop(1, "#d8cfae");
+    ctx.beginPath(); ctx.arc(cx, cy, r * 0.96, 0, Math.PI*2); ctx.fillStyle = g2; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, r * 0.78, 0, Math.PI*2);
+    ctx.lineWidth = r * 0.1; ctx.strokeStyle = "#caa83c"; ctx.stroke();
+    ctx.fillStyle = "#2a2440"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = `800 ${Math.round(r * 0.92)}px ${FF}`; ctx.fillText("D", cx, cy + r * 0.04);
+  } else if (T === "dice") {
+    const s = r * 1.35;
+    sdRoundRect(ctx, cx - s/2, cy - s/2, s, s, s * 0.18, "#f6f4ee", "rgba(0,0,0,0.25)", Math.max(1, r*0.04));
+    ctx.fillStyle = "#2a2440";
+    const o = r * 0.42, pip = (px, py) => { ctx.beginPath(); ctx.arc(cx + px, cy + py, r * 0.12, 0, Math.PI*2); ctx.fill(); };
+    pip(-o, -o); pip(o, -o); pip(0, 0); pip(-o, o); pip(o, o);
+  } else if (T === "cardback") {
+    const cw = r * 1.2, ch = r * 1.62;
+    const g3 = ctx.createLinearGradient(cx, cy - ch/2, cx, cy + ch/2);
+    g3.addColorStop(0, "#f07cb4"); g3.addColorStop(1, "#846cd4");
+    sdRoundRect(ctx, cx - cw/2, cy - ch/2, cw, ch, r * 0.16, g3, "#231e37", Math.max(1, r * 0.06));
+    ctx.save();
+    _sdRRPath(ctx, cx - cw/2, cy - ch/2, cw, ch, r * 0.16); ctx.clip();
+    ctx.strokeStyle = "rgba(255,255,255,0.32)"; ctx.lineWidth = Math.max(1, r * 0.05);
+    for (let i = -3; i <= 3; i++) {
+      ctx.beginPath(); ctx.moveTo(cx - cw/2 + i * r * 0.32, cy - ch/2);
+      ctx.lineTo(cx - cw/2 + i * r * 0.32 + ch, cy + ch/2); ctx.stroke();
+    }
+    ctx.restore();
+  } else if (T === "aces") {
+    const drawCard = (angle, dx, suit, suitColor) => {
+      ctx.save(); ctx.translate(cx + dx, cy + r * 0.05); ctx.rotate(angle);
+      const cw = r * 0.98, ch = r * 1.4;
+      sdRoundRect(ctx, -cw/2, -ch/2, cw, ch, r * 0.12, "#fbf8f1", "rgba(20,16,40,0.4)", Math.max(1, r * 0.04));
+      ctx.fillStyle = suitColor; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = `800 ${Math.round(r * 0.5)}px ${FF}`; ctx.fillText("A", 0, -ch * 0.18);
+      ctx.font = `${Math.round(r * 0.5)}px ${FF}`; ctx.fillText(suit, 0, ch * 0.2);
+      ctx.restore();
+    };
+    drawCard(-0.22, -r * 0.30, "♠", "#1a1830");
+    drawCard(0.22, r * 0.30, "♥", "#d23b52");
+  }
+  ctx.restore();
+  // Cyan hero ring
   ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
   ctx.lineWidth = 3; ctx.strokeStyle = "#5ae5c8"; ctx.stroke();
 }
@@ -6336,18 +6403,25 @@ const PROFILE_KEY = "showdown_profile";
 // canvas draws them procedurally (sdDrawAvatarPreset) — drawing an SVG image on a canvas
 // taints it on WebKit/iOS and blocks toBlob/toDataURL (the "can't export" bug).
 const PRESET_DEFS = [
-  { bg: "#2b2f44", glyph: "♠", fg: "#f2eff8" },
-  { bg: "#c0392b", glyph: "♥", fg: "#ffffff" },
-  { bg: "#2e86de", glyph: "♦", fg: "#ffffff" },
-  { bg: "#27ae60", glyph: "♣", fg: "#ffffff" },
-  { bg: "#f1c40f", glyph: "★", fg: "#3a2d00" },
-  { bg: "#7a5cff", glyph: "♛", fg: "#ffffff" },
+  { type: "chip",     base: "#d6435a", spot: "#fdfdfd", ring: "#8e1f30", bg0: "#d6435a", bg1: "#a32536" },
+  { type: "aces",     bg0: "#1f7a52", bg1: "#0c4a30" },
+  { type: "cardback", bg0: "#181527", bg1: "#0c0a18" },
+  { type: "spade",    bg0: "#33375c", bg1: "#181b32", glyph: "♠", fg: "#f2eff8" },
+  { type: "heart",    bg0: "#cf4150", bg1: "#7c1f24", glyph: "♥", fg: "#ffffff" },
+  { type: "club",     bg0: "#2a8a5c", bg1: "#124a30", glyph: "♣", fg: "#ffffff" },
+  { type: "dice",     bg0: "#3a3460", bg1: "#1f1b38" },
+  { type: "button",   bg0: "#2e2a4a", bg1: "#17142a" },
 ];
-function _avatarSvg(bg, glyph, fg) {
-  return "data:image/svg+xml;utf8," + encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="${bg}"/><text x="50" y="50" font-size="54" text-anchor="middle" dominant-baseline="central" fill="${fg}" font-family="Arial, sans-serif">${glyph}</text></svg>`);
+// Picker thumbnail: render the SAME procedural avatar onto a small canvas → data URL.
+// (No SVG, so it matches the export exactly and never taints anything.)
+function _presetSvg(i) {
+  const def = PRESET_DEFS[i];
+  if (!def) return "";
+  const S = 96, c = document.createElement("canvas");
+  c.width = c.height = S;
+  sdDrawAvatarPreset(c.getContext("2d"), S / 2, S / 2, S / 2 - 3, def);
+  try { return c.toDataURL(); } catch (_) { return ""; }
 }
-function _presetSvg(i) { const p = PRESET_DEFS[i]; return p ? _avatarSvg(p.bg, p.glyph, p.fg) : ""; }
 function _isPreset(v) { return typeof v === "string" && v.indexOf("preset:") === 0; }
 function loadProfile() { try { return JSON.parse(localStorage.getItem(PROFILE_KEY)) || {}; } catch (_) { return {}; } }
 function saveProfileObj(p) { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch (_) {} }
