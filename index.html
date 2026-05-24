@@ -1020,19 +1020,30 @@
     padding: 13px 10px; cursor: pointer; white-space: nowrap;
     display: flex; align-items: center; justify-content: center;
   }
+  /* Custom amount is a TEXT FIELD, styled distinctly from the cyan preset buttons so it
+     clearly reads as "type here": recessed well, muted border, pencil cue, filled submit. */
   .wiz-prompt .ropt.amount {
     flex: 1; min-width: 0; padding: 0; overflow: hidden;
+    background: var(--bg); border: 1px solid var(--line);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.40);
+  }
+  .wiz-prompt .ropt.amount .amt-icon {
+    flex: 0 0 auto; display: flex; align-items: center;
+    padding-left: 12px; color: var(--ink-dim); font-size: 15px;
   }
   .wiz-prompt .ropt.amount input {
     flex: 1; min-width: 0; background: transparent; border: 0; outline: none;
     color: var(--ink); font-family: inherit; font-size: 15px; font-weight: 700;
-    text-align: center; padding: 13px 6px;
+    text-align: left; padding: 13px 8px;
   }
+  .wiz-prompt .ropt.amount input::placeholder { color: var(--ink-dim); font-weight: 500; }
   .wiz-prompt .ropt.amount button {
-    flex: 0 0 auto; background: transparent; border: 0; border-left: 1px solid var(--accent);
-    color: var(--accent); font-family: inherit; font-size: 15px; font-weight: 700;
-    padding: 0 14px; cursor: pointer; align-self: stretch;
+    flex: 0 0 auto; background: var(--accent); color: var(--accent-ink); border: 0;
+    font-family: inherit; font-size: 15px; font-weight: 700;
+    padding: 0 16px; cursor: pointer; align-self: stretch;
   }
+  /* All-in sits on its own row now → make it span the full width. */
+  .wiz-prompt .raise-row .ropt.allin { flex: 1; }
   .wiz-done {
     padding: 14px 16px;
     background: var(--panel);
@@ -1306,9 +1317,6 @@
   </div>
 </div>
 
-<!-- Slim build/version marker (to confirm the live site is on the latest deploy) -->
-<div id="appVersion" style="position:fixed;bottom:4px;right:6px;font-size:9px;line-height:1;color:rgba(255,255,255,0.30);z-index:5;pointer-events:none;font-family:-apple-system,'Segoe UI',sans-serif;"></div>
-
 <!-- BOARD CARD PICKER OVERLAY (bottom sheet) -->
 <div class="overlay" id="cardOverlay">
   <div class="sheet picker-sheet">
@@ -1379,6 +1387,8 @@
       <li><button type="button" data-menu="tour">Example walkthrough</button></li>
       <li><button type="button" data-menu="profile">Profile</button></li>
     </ul>
+    <!-- Build/version marker so we can confirm production is on the latest deploy -->
+    <div id="appVersion" style="margin-top:auto;padding:14px 18px 18px;font-size:11px;color:rgba(255,255,255,0.35);"></div>
   </div>
 </div>
 
@@ -1612,7 +1622,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "2026-05-24·b";
+const APP_VERSION = "2026-05-24·d";
 
 /* Parse a chip amount string (may contain commas). Returns NaN if invalid. */
 const parseChips = s => parseFloat(String(s == null ? "" : s).replace(/,/g, ""));
@@ -3358,9 +3368,12 @@ function renderInlinePrompt(player, rt) {
       ${presets.length ? `<div class="raise-row presets">${presets.map((p, i) => `<button type="button" class="ropt" data-preset="${i}">${p.label}</button>`).join("")}</div>` : ""}
       <div class="raise-row">
         <div class="ropt amount">
-          <input type="text" inputmode="numeric" autocomplete="off" id="raiseAmt" placeholder="choose amount">
+          <span class="amt-icon" aria-hidden="true">✎</span>
+          <input type="text" inputmode="numeric" autocomplete="off" id="raiseAmt" placeholder="Custom — tap to type">
           <button type="button" id="raiseGo">${canCheck ? "Bet" : "Raise"}</button>
         </div>
+      </div>
+      <div class="raise-row">
         <button type="button" class="ropt allin" id="actJam">All-in (${fmtUnit(allInTotal)})</button>
       </div>
     </div>` : ""}
@@ -6216,7 +6229,7 @@ const COACH_STEPS = [
   { sel: "#sectionGame",  title: "1 · The game",   text: "Stakes go here — pick cash or tournament, then your blinds. This example is an MTT at 500/1,000." },
   { sel: "#sectionHero",  title: "2 · You (Hero)", text: "Your seat, stack and hole cards. Here you're on the Button with pocket Aces." },
   { sel: "#sectionVillains", title: "3 · The villains", text: "Everyone else in the hand. This one's the Big Blind, holding Kings." },
-  { sel: ".street[data-street='preflop']", title: "4 · The action", text: "Record each street, bet by bet. We filled in the preflop — all-in for 100bb. The flop, turn and river work exactly the same way.", preflop: true },
+  { sel: ".street[data-street='preflop']", title: "4 · The action", text: "Record each street, bet by bet — for any bet, tap a quick size or type your own in the amount field. We filled in the preflop here (all-in for 100bb); the flop, turn and river work the same way.", preflop: true },
   { sel: "#generateBtn",  title: "5 · Make the picture", text: "When the hand's done, this turns it into a clean image. Let's see it.", cta: "Generate it →", generate: true },
   { result: true, title: "That's your hand story", text: "Your whole hand in one image. Add a title or note, then Share — it sends the picture with a link so friends can make their own. Ready to make yours?", cta: "Input my hand →" },
 ];
