@@ -1612,7 +1612,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "2026-05-24·a";
+const APP_VERSION = "2026-05-24·b";
 
 /* Parse a chip amount string (may contain commas). Returns NaN if invalid. */
 const parseChips = s => parseFloat(String(s == null ? "" : s).replace(/,/g, ""));
@@ -5020,7 +5020,10 @@ function sdBuildRenderData(upTo) {
   function fmtAmt(chips) {
     if (!isFinite(chips)) return "";
     if (isCash) return sym + fmtCompactNum(chips);
-    return fmtCompactNum(chips / bbForFmt) + "bb";
+    const v = fmtCompactNum(chips / bbForFmt);
+    // Add a space before "bb" only when there's a K/M/B/T suffix ("558.9K bb"); keep the
+    // standard compact form for plain amounts ("100bb").
+    return v + (/[KMBT]$/.test(v) ? " bb" : "bb");
   }
   function fmtAmtSigned(chips) {
     if (!isFinite(chips)) return "";
