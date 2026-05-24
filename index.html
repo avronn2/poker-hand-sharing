@@ -1038,9 +1038,9 @@
   }
   .wiz-prompt .ropt.amount input::placeholder { color: var(--ink-dim); font-weight: 500; }
   .wiz-prompt .ropt.amount button {
-    flex: 0 0 auto; background: var(--accent); color: var(--accent-ink); border: 0;
-    font-family: inherit; font-size: 15px; font-weight: 700;
-    padding: 0 16px; cursor: pointer; align-self: stretch;
+    flex: 0 0 auto; min-width: 92px; background: var(--accent); color: var(--accent-ink); border: 0;
+    font-family: inherit; font-size: 16px; font-weight: 800; letter-spacing: 0.3px;
+    padding: 0 18px; cursor: pointer; align-self: stretch;
   }
   /* All-in sits on its own row now → make it span the full width. */
   .wiz-prompt .raise-row .ropt.allin { flex: 1; }
@@ -1622,7 +1622,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "2026-05-24·d";
+const APP_VERSION = "2026-05-24·e";
 
 /* Parse a chip amount string (may contain commas). Returns NaN if invalid. */
 const parseChips = s => parseFloat(String(s == null ? "" : s).replace(/,/g, ""));
