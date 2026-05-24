@@ -1590,6 +1590,23 @@ const fmt = n => {
   return parts.join(".");
 };
 
+// Compact large numbers for the GENERATED PICTURE only, so big tournament stacks/pots don't
+// overflow or overlap. Under 10,000 → full number with commas (e.g. 9,999). 10,000 and up →
+// 12.6K / 18.3M / 4.2B / 1.1T (one decimal, trailing .0 trimmed).
+function fmtCompactNum(n) {
+  const num = Number(n);
+  if (!isFinite(num)) return String(n);
+  if (Math.abs(num) < 10000) return fmt(num);
+  const sign = num < 0 ? "-" : "";
+  let a = Math.abs(num), u = -1;
+  const units = ["K", "M", "B", "T"];
+  while (a >= 1000 && u < units.length - 1) { a /= 1000; u++; }
+  let r = Math.round(a * 10) / 10;
+  if (r >= 1000 && u < units.length - 1) { r = Math.round((r / 1000) * 10) / 10; u++; }  // 999,999 → 1M, not 1000K
+  const s = Number.isInteger(r) ? String(r) : r.toFixed(1);
+  return sign + s + units[u];
+}
+
 /* Parse a chip amount string (may contain commas). Returns NaN if invalid. */
 const parseChips = s => parseFloat(String(s == null ? "" : s).replace(/,/g, ""));
 
@@ -4995,8 +5012,8 @@ function sdBuildRenderData(upTo) {
   // get the right denomination even if the DOM input is in flux.
   function fmtAmt(chips) {
     if (!isFinite(chips)) return "";
-    if (isCash) return sym + fmt(chips);
-    return fmt(chips / bbForFmt) + "bb";
+    if (isCash) return sym + fmtCompactNum(chips);
+    return fmtCompactNum(chips / bbForFmt) + "bb";
   }
   function fmtAmtSigned(chips) {
     if (!isFinite(chips)) return "";
