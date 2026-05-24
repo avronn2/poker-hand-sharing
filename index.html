@@ -1306,6 +1306,9 @@
   </div>
 </div>
 
+<!-- Slim build/version marker (to confirm the live site is on the latest deploy) -->
+<div id="appVersion" style="position:fixed;bottom:4px;right:6px;font-size:9px;line-height:1;color:rgba(255,255,255,0.30);z-index:5;pointer-events:none;font-family:-apple-system,'Segoe UI',sans-serif;"></div>
+
 <!-- BOARD CARD PICKER OVERLAY (bottom sheet) -->
 <div class="overlay" id="cardOverlay">
   <div class="sheet picker-sheet">
@@ -1606,6 +1609,10 @@ function fmtCompactNum(n) {
   const s = Number.isInteger(r) ? String(r) : r.toFixed(1);
   return sign + s + units[u];
 }
+
+// Build/version marker — bump on each deploy so we can confirm the live site is up to date.
+// Shown tiny on the input screen (bottom corner) and on the generated picture.
+const APP_VERSION = "2026-05-24·a";
 
 /* Parse a chip amount string (may contain commas). Returns NaN if invalid. */
 const parseChips = s => parseFloat(String(s == null ? "" : s).replace(/,/g, ""));
@@ -5990,6 +5997,14 @@ async function renderHandToCanvas(upTo) {
   }
 
   ctx.restore();   // undo the title/caption band shift
+
+  // Tiny version stamp (bottom-right) so we can confirm which build produced a picture.
+  ctx.font = `500 9px -apple-system, "Segoe UI", sans-serif`;
+  ctx.fillStyle = "rgba(255,255,255,0.22)";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "bottom";
+  ctx.fillText(APP_VERSION, W - 8, totalH - 5);
+
   return canvas;
 }
 
@@ -6794,6 +6809,8 @@ bindSaveHandBtn();
 bindOutputCopyShareImage();
 // Always land at the top on load (e.g. after the tour's Skip/Input-my-hand reload).
 window.scrollTo(0, 0);
+// Populate the slim build/version marker.
+(() => { const _v = document.getElementById("appVersion"); if (_v) _v.textContent = APP_VERSION; })();
 // First-open welcome — runs once per browser
 maybeShowWelcome();
 // Auto-scroll the next-to-act area into view when a setup section just collapsed.
