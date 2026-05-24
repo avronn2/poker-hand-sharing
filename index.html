@@ -1165,6 +1165,17 @@
     box-shadow: 0 0 0 3px rgba(94,234,212,0.3), 0 4px 10px rgba(0,0,0,0.3);
   }
 </style>
+<!-- PostHog analytics — initialised only on the live domain so local/dev testing never pollutes the data. -->
+<script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog && window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="Mi Ri init Vi Gi Rr Wi Ji Bi capture calculateEventProperties tn register register_once register_for_session unregister unregister_for_session an getFeatureFlag getFeatureFlagPayload getFeatureFlagResult isFeatureEnabled reloadFeatureFlags updateFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey displaySurvey cancelPendingSurvey canRenderSurvey canRenderSurveyAsync un identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset setIdentity clearIdentity get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException addExceptionStep captureLog startExceptionAutocapture stopExceptionAutocapture loadToolbar get_property getSessionProperty nn Xi createPersonProfile setInternalOrTestUser sn Hi cn opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing get_explicit_consent_status is_capturing clear_opt_in_out_capturing Ki debug Lr rn getPageViewId captureTraceFeedback captureTraceMetric Di".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+    if (/showdown\.cards$/.test(location.hostname)) {
+        posthog.init('phc_pVgvh4wNyQVjXyKXNwfMZap4YYBRZfJbHHMEbRwQGCgf', {
+            api_host: 'https://eu.i.posthog.com',
+            defaults: '2026-01-30',
+            person_profiles: 'identified_only',
+        });
+    }
+</script>
 </head>
 <body>
 
@@ -1622,7 +1633,9 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "2026-05-24·k";
+const APP_VERSION = "2026-05-24·m";
+// Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
+function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
 /* Parse a chip amount string (may contain commas). Returns NaN if invalid. */
 const parseChips = s => parseFloat(String(s == null ? "" : s).replace(/,/g, ""));
@@ -4134,6 +4147,7 @@ let currentUpTo = "full";  // tracks which stage the output is currently truncat
 
 $("#generateBtn").addEventListener("click", async () => {
   currentUpTo = "full";
+  track("hand_generated", { game: state.gameType });
   refreshStageToggleUI();
   // lastOutput is kept for saved-hand metadata only; the overlay shows the image only.
   lastOutput = buildOutput(currentUpTo);
@@ -4764,6 +4778,28 @@ function sdDrawAvatarPreset(ctx, cx, cy, r, p) {
       ctx.beginPath(); ctx.ellipse(cx, yy, cw/2, chh/2, 0, 0, Math.PI*2); ctx.fill();
       if (i === 2) { ctx.fillStyle = "rgba(255,255,255,0.18)"; ctx.beginPath(); ctx.ellipse(cx, yy - chh*0.12, cw/2*0.92, chh/2*0.8, 0, 0, Math.PI*2); ctx.fill(); }
     }
+  } else if (T === "tophat") {
+    const black = "#1c1c26";
+    ctx.fillStyle = black; ctx.beginPath(); ctx.ellipse(cx, cy + r*0.42, r*0.72, r*0.14, 0, 0, Math.PI*2); ctx.fill();
+    sdRoundRect(ctx, cx - r*0.34, cy - r*0.56, r*0.68, r*0.92, r*0.10, black, null, 0);
+    ctx.fillStyle = "#cf4150"; ctx.fillRect(cx - r*0.36, cy + r*0.12, r*0.72, r*0.15);
+  } else if (T === "bowtie") {
+    ctx.fillStyle = "#cf4150";
+    ctx.beginPath(); ctx.moveTo(cx - r*0.08, cy); ctx.lineTo(cx - r*0.62, cy - r*0.36); ctx.lineTo(cx - r*0.62, cy + r*0.36); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx + r*0.08, cy); ctx.lineTo(cx + r*0.62, cy - r*0.36); ctx.lineTo(cx + r*0.62, cy + r*0.36); ctx.closePath(); ctx.fill();
+    sdRoundRect(ctx, cx - r*0.13, cy - r*0.2, r*0.26, r*0.4, r*0.07, "#9e2c38", null, 0);
+  } else if (T === "visor") {
+    ctx.fillStyle = "#173d28"; sdRoundRect(ctx, cx - r*0.62, cy - r*0.5, r*1.24, r*0.16, r*0.08, "#173d28", null, 0);
+    ctx.fillStyle = "#2f9d57"; ctx.beginPath(); ctx.ellipse(cx, cy - r*0.34, r*0.74, r*0.6, 0, 0, Math.PI); ctx.fill();
+    ctx.strokeStyle = "#1f6b46"; ctx.lineWidth = r*0.08; ctx.beginPath(); ctx.ellipse(cx, cy - r*0.34, r*0.74, r*0.6, 0, 0, Math.PI); ctx.stroke();
+  } else if (T === "mustache") {
+    ctx.fillStyle = "#3a2a1c"; const my = cy + r*0.06;
+    ctx.beginPath(); ctx.moveTo(cx, my - r*0.12);
+    ctx.bezierCurveTo(cx + r*0.32, my - r*0.32, cx + r*0.78, my - r*0.46, cx + r*0.72, my + r*0.06);
+    ctx.bezierCurveTo(cx + r*0.68, my + r*0.32, cx + r*0.40, my + r*0.16, cx, my + r*0.10);
+    ctx.bezierCurveTo(cx - r*0.40, my + r*0.16, cx - r*0.68, my + r*0.32, cx - r*0.72, my + r*0.06);
+    ctx.bezierCurveTo(cx - r*0.78, my - r*0.46, cx - r*0.32, my - r*0.32, cx, my - r*0.12);
+    ctx.closePath(); ctx.fill();
   }
   ctx.restore();
   // Cyan hero ring
@@ -6312,6 +6348,7 @@ function startCoachTour() {
   if (typeof closeMyHands === "function") closeMyHands();
   $("#overlay").classList.remove("on");
   loadExampleHand();
+  track("walkthrough_started");
   _coachIdx = 0;
   const ov = $("#coachOverlay");
   if (!ov.dataset.wired) {
@@ -6350,6 +6387,7 @@ function showCoachStep() {
   // Centered steps with no target: intro (branded, dim backdrop) and result (top of screen,
   // no dim, so most of the generated picture stays visible below it).
   if (step.intro || step.result) {
+    if (step.result) track("walkthrough_completed");
     spot.style.display = "none";
     ov.style.background = step.intro ? "rgba(8,6,16,0.82)" : "transparent";
     _coachSetTip(step);
@@ -6411,6 +6449,10 @@ const PRESET_DEFS = [
   { type: "shades",    bg0: "#2b3550", bg1: "#141b2e" },
   { type: "crown",     bg0: "#3a2f12", bg1: "#1f1908" },
   { type: "hat",       bg0: "#2e2a24", bg1: "#171410" },
+  { type: "tophat",    bg0: "#2a2a3a", bg1: "#15151f" },
+  { type: "bowtie",    bg0: "#2e2440", bg1: "#171026" },
+  { type: "visor",     bg0: "#1f3a2c", bg1: "#0e1f16" },
+  { type: "mustache",  bg0: "#3a3024", bg1: "#1f1810" },
   { type: "chipstack", bg0: "#1d2440", bg1: "#0e1326" },
   { type: "spade",     bg0: "#33375c", bg1: "#181b32", glyph: "♠", fg: "#f2eff8" },
   { type: "heart",     bg0: "#cf4150", bg1: "#7c1f24", glyph: "♥", fg: "#ffffff" },
@@ -6486,6 +6528,7 @@ if (_avUploadBtn && _avFile) {
 }
 if ($("#profileSave")) $("#profileSave").onclick = () => {
   saveProfileObj({ name: $("#profileName").value.trim(), photo: _profilePhotoSel || null });
+  track("profile_saved", { hasPhoto: !!_profilePhotoSel, hasName: !!$("#profileName").value.trim() });
   $("#profileOverlay").classList.remove("on", "dialog-mode");
   if (typeof showToast === "function") showToast("Profile saved");
 };
@@ -6803,6 +6846,7 @@ $("#saveConfirm").onclick = async () => {
   const all = loadHands();
   all.push(hand);
   saveHands(all);
+  track("hand_saved", { game: state.gameType });
   $("#saveOverlay").classList.remove("on", "dialog-mode");
   showToast("Saved to My hands");
   haptic(12);
@@ -6859,6 +6903,7 @@ async function doShare() {
     showAlert("Tap Generate to build the hand first.", "Nothing to share");
     return;
   }
+  track("hand_shared", { game: state.gameType });
   // Caption sent alongside the image — the download link here IS tappable in the chat
   // (unlike text baked into the picture). This is the actual growth path.
   const shareText = `Made with Showdown — make your own at ${SHOWDOWN_SHARE_URL}`;
