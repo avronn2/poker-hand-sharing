@@ -1,0 +1,16 @@
+# Internal docs — kept locally, backed up separately if needed, NEVER published to the site
+ROADMAP.md
+Showdown-Beta-Survey.md
+EPISODE-AUTOMATION-IDEA.md
+Showdown-Roadmap.pdf
+
+# Dev mirror (kept in sync locally, not part of the live site)
+prototype.html
+
+# Design assets + stale build output (not served)
+mockups/
+dist/
+_preview_favicon.png
+
+# OS junk
+.DS_Store
