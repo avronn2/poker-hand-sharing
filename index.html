@@ -2230,14 +2230,15 @@ function isHandComplete() {
   if (!state.streets.preflop.complete) return { ok: false, reason: "Finish the preflop street first." };
   const all = getAllPlayers();
   if (all.length < 2) return { ok: false, reason: "Add at least one villain with a position and stack." };
-  const heroHole = getHeroHole();
-  if (heroHole.length !== 2) return { ok: false, reason: "Pick hero's two hole cards." };
-  // If the hero has folded, the hand is complete from the sharing standpoint — we don't need
-  // to play the remaining villains out or collect their showdown.
+  // Hand ended WITHOUT a showdown — the hero folded, or everyone else folded to the hero.
+  // Nobody showed, so we don't force hero's hole cards: any hand the hero acted in is shareable.
+  // (This is why a flop-raise that folds out the villain can be generated immediately.)
   if (foldedIdsFromSaved().has("hero")) return { ok: true };
   const live = liveEntered();
   if (live.length === 1) return { ok: true };  // hand ended by everyone else folding
-  // Multi-way → need full board and showdown decisions
+  // Multi-way to a showdown → now we DO need hero's cards, the full board, and each villain's result.
+  const heroHole = getHeroHole();
+  if (heroHole.length !== 2) return { ok: false, reason: "Pick hero's two hole cards." };
   const board = getFullBoard();
   if (board.length !== 5) return { ok: false, reason: "Play all streets through to the river." };
   const mttForceShow = state.gameType === "mtt" && anyoneAllIn();
@@ -3341,7 +3342,12 @@ function renderInlinePrompt(player, rt) {
     </div>` : ""}
   `;
 
-  const after = () => { renderInlineLog(); renderInlinePromptOrReview(); haptic(8); };
+  const after = () => {
+    renderInlineLog(); renderInlinePromptOrReview(); haptic(8);
+    // A fold that leaves only one player ends the hand. Finalize the street right away so the
+    // hand registers as complete and Generate appears — no "Confirm & continue" required.
+    if (rt.runtime.filter(p => !p.folded).length <= 1) saveActiveStreet();
+  };
   if (!hideFold) $("#actFold").onclick = () => { applyAction(rt, player, "fold"); after(); };
   if (canCheck) $("#actCheck").onclick = () => { applyAction(rt, player, "check"); after(); };
   else $("#actCall").onclick = () => { applyAction(rt, player, "call"); after(); };
@@ -5179,6 +5185,8 @@ function sdBuildRenderData(upTo) {
       if (c1 && c2 && c1.rank && c2.rank) {
         const suitMap = { s:"♠", h:"♥", d:"♦", c:"♣" };
         cards = [[c1.rank, suitMap[c1.suit]], [c2.rank, suitMap[c2.suit]]];
+      } else {
+        showBack = true;   // hero didn't enter cards (e.g. a fold-out where nobody showed) → face-down
       }
     } else {
       const vid = pl.id;  // "v1", "v2", etc.
