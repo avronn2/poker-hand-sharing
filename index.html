@@ -1008,8 +1008,9 @@
   }
   .wiz-prompt .raise-box .lbl {
     font-size: 14px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;
-    color: var(--accent); margin-bottom: 10px;
+    color: var(--ink-dim); margin-bottom: 10px;
   }
+  .wiz-prompt .raise-box .lbl .lbl-min { font-size: 11px; font-weight: 700; }
   /* All controls share the SAME cyan frame, background and text size, in one row. */
   .wiz-prompt .raise-row { display: flex; gap: 8px; align-items: stretch; }
   .wiz-prompt .raise-row.presets { margin-bottom: 8px; gap: 6px; }
@@ -1622,7 +1623,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "2026-05-24·g";
+const APP_VERSION = "2026-05-24·h";
 
 /* Parse a chip amount string (may contain commas). Returns NaN if invalid. */
 const parseChips = s => parseFloat(String(s == null ? "" : s).replace(/,/g, ""));
@@ -3364,7 +3365,7 @@ function renderInlinePrompt(player, rt) {
     </div>
     ${canRaise ? `
     <div class="raise-box">
-      <div class="lbl">${canCheck ? "Bet" : "Raise"} · min ${fmtMoney(minRaiseTo)}</div>
+      <div class="lbl">${canCheck ? "Bet" : "Raise"} <span class="lbl-min">· min ${fmtMoney(minRaiseTo)}</span></div>
       ${presets.length ? `<div class="raise-row presets">${presets.map((p, i) => `<button type="button" class="ropt" data-preset="${i}">${p.label}</button>`).join("")}</div>` : ""}
       <div class="raise-row">
         <div class="ropt amount">
