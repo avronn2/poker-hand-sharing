@@ -1622,7 +1622,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "2026-05-24·j";
+const APP_VERSION = "2026-05-24·k";
 
 /* Parse a chip amount string (may contain commas). Returns NaN if invalid. */
 const parseChips = s => parseFloat(String(s == null ? "" : s).replace(/,/g, ""));
@@ -4721,45 +4721,49 @@ function sdDrawAvatarPreset(ctx, cx, cy, r, p) {
     ctx.beginPath(); ctx.arc(cx, cy, r * 0.46, 0, Math.PI*2); ctx.fillStyle = p.base; ctx.fill();
     ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.font = `${Math.round(r * 0.5)}px ${FF}`; ctx.fillText("♠", cx, cy + r * 0.03);
-  } else if (T === "button") {
-    const g2 = ctx.createLinearGradient(cx, cy - r, cx, cy + r);
-    g2.addColorStop(0, "#fffdf5"); g2.addColorStop(1, "#d8cfae");
-    ctx.beginPath(); ctx.arc(cx, cy, r * 0.96, 0, Math.PI*2); ctx.fillStyle = g2; ctx.fill();
-    ctx.beginPath(); ctx.arc(cx, cy, r * 0.78, 0, Math.PI*2);
-    ctx.lineWidth = r * 0.1; ctx.strokeStyle = "#caa83c"; ctx.stroke();
-    ctx.fillStyle = "#2a2440"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.font = `800 ${Math.round(r * 0.92)}px ${FF}`; ctx.fillText("D", cx, cy + r * 0.04);
   } else if (T === "dice") {
     const s = r * 1.35;
     sdRoundRect(ctx, cx - s/2, cy - s/2, s, s, s * 0.18, "#f6f4ee", "rgba(0,0,0,0.25)", Math.max(1, r*0.04));
     ctx.fillStyle = "#2a2440";
     const o = r * 0.42, pip = (px, py) => { ctx.beginPath(); ctx.arc(cx + px, cy + py, r * 0.12, 0, Math.PI*2); ctx.fill(); };
     pip(-o, -o); pip(o, -o); pip(0, 0); pip(-o, o); pip(o, o);
-  } else if (T === "cardback") {
-    const cw = r * 1.2, ch = r * 1.62;
-    const g3 = ctx.createLinearGradient(cx, cy - ch/2, cx, cy + ch/2);
-    g3.addColorStop(0, "#f07cb4"); g3.addColorStop(1, "#846cd4");
-    sdRoundRect(ctx, cx - cw/2, cy - ch/2, cw, ch, r * 0.16, g3, "#231e37", Math.max(1, r * 0.06));
-    ctx.save();
-    _sdRRPath(ctx, cx - cw/2, cy - ch/2, cw, ch, r * 0.16); ctx.clip();
-    ctx.strokeStyle = "rgba(255,255,255,0.32)"; ctx.lineWidth = Math.max(1, r * 0.05);
-    for (let i = -3; i <= 3; i++) {
-      ctx.beginPath(); ctx.moveTo(cx - cw/2 + i * r * 0.32, cy - ch/2);
-      ctx.lineTo(cx - cw/2 + i * r * 0.32 + ch, cy + ch/2); ctx.stroke();
+  } else if (T === "shades") {
+    const lw = r * 0.6, lh = r * 0.5, gap = r * 0.18, by = cy + r * 0.04;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#0f0f17"; ctx.lineWidth = r * 0.13;
+    ctx.beginPath(); ctx.moveTo(cx - gap/2 - lw + r*0.05, by - lh*0.34); ctx.lineTo(cx - gap/2 - lw - r*0.28, by - lh*0.55); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + gap/2 + lw - r*0.05, by - lh*0.34); ctx.lineTo(cx + gap/2 + lw + r*0.28, by - lh*0.55); ctx.stroke();
+    ctx.fillStyle = "#0f0f17"; ctx.fillRect(cx - gap/2 - r*0.03, by - lh*0.30, gap + r*0.06, r*0.12);
+    sdRoundRect(ctx, cx - gap/2 - lw, by - lh/2, lw, lh, r*0.16, "#15151f", null, 0);
+    sdRoundRect(ctx, cx + gap/2, by - lh/2, lw, lh, r*0.16, "#15151f", null, 0);
+    ctx.fillStyle = "rgba(255,255,255,0.20)";
+    sdRoundRect(ctx, cx - gap/2 - lw + r*0.08, by - lh/2 + r*0.06, lw*0.46, lh*0.30, r*0.08, "rgba(255,255,255,0.20)", null, 0);
+    sdRoundRect(ctx, cx + gap/2 + r*0.08, by - lh/2 + r*0.06, lw*0.46, lh*0.30, r*0.08, "rgba(255,255,255,0.20)", null, 0);
+  } else if (T === "crown") {
+    const g = ctx.createLinearGradient(cx, cy - r*0.5, cx, cy + r*0.5);
+    g.addColorStop(0, "#ffe488"); g.addColorStop(1, "#d6a02a");
+    const L = cx - r*0.6, R = cx + r*0.6, baseY = cy + r*0.36, midY = cy + r*0.02, topY = cy - r*0.46;
+    ctx.fillStyle = g; ctx.beginPath();
+    ctx.moveTo(L, baseY); ctx.lineTo(L, midY); ctx.lineTo(cx - r*0.3, midY - r*0.04);
+    ctx.lineTo(cx - r*0.34, topY); ctx.lineTo(cx, midY - r*0.18); ctx.lineTo(cx + r*0.34, topY);
+    ctx.lineTo(cx + r*0.3, midY - r*0.04); ctx.lineTo(R, midY); ctx.lineTo(R, baseY);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#c4901f"; ctx.fillRect(L, baseY - r*0.18, R - L, r*0.18);
+    ctx.fillStyle = "#ff5b6e";
+    [[cx - r*0.34, topY + r*0.05], [cx, midY - r*0.12], [cx + r*0.34, topY + r*0.05]].forEach(([px, py]) => { ctx.beginPath(); ctx.arc(px, py, r*0.075, 0, Math.PI*2); ctx.fill(); });
+  } else if (T === "hat") {
+    const brown = "#704a2a", dark = "#4a3019";
+    ctx.fillStyle = brown; ctx.beginPath(); ctx.ellipse(cx, cy + r*0.3, r*0.84, r*0.2, 0, 0, Math.PI*2); ctx.fill();
+    sdRoundRect(ctx, cx - r*0.4, cy - r*0.52, r*0.8, r*0.78, r*0.24, brown, null, 0);
+    ctx.fillStyle = dark; ctx.fillRect(cx - r*0.42, cy + r*0.08, r*0.84, r*0.15);
+  } else if (T === "chipstack") {
+    const cols = ["#2a8a5c", "#3a78c9", "#d6435a"], cw = r * 1.0, chh = r * 0.3, step = chh * 0.62;
+    for (let i = 0; i < 3; i++) {
+      const yy = cy + r*0.3 - i * step;
+      ctx.fillStyle = cols[i];
+      ctx.beginPath(); ctx.ellipse(cx, yy, cw/2, chh/2, 0, 0, Math.PI*2); ctx.fill();
+      if (i === 2) { ctx.fillStyle = "rgba(255,255,255,0.18)"; ctx.beginPath(); ctx.ellipse(cx, yy - chh*0.12, cw/2*0.92, chh/2*0.8, 0, 0, Math.PI*2); ctx.fill(); }
     }
-    ctx.restore();
-  } else if (T === "aces") {
-    const drawCard = (angle, dx, suit, suitColor) => {
-      ctx.save(); ctx.translate(cx + dx, cy + r * 0.05); ctx.rotate(angle);
-      const cw = r * 0.98, ch = r * 1.4;
-      sdRoundRect(ctx, -cw/2, -ch/2, cw, ch, r * 0.12, "#fbf8f1", "rgba(20,16,40,0.4)", Math.max(1, r * 0.04));
-      ctx.fillStyle = suitColor; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.font = `800 ${Math.round(r * 0.5)}px ${FF}`; ctx.fillText("A", 0, -ch * 0.18);
-      ctx.font = `${Math.round(r * 0.5)}px ${FF}`; ctx.fillText(suit, 0, ch * 0.2);
-      ctx.restore();
-    };
-    drawCard(-0.22, -r * 0.30, "♠", "#1a1830");
-    drawCard(0.22, r * 0.30, "♥", "#d23b52");
   }
   ctx.restore();
   // Cyan hero ring
@@ -6403,14 +6407,15 @@ const PROFILE_KEY = "showdown_profile";
 // canvas draws them procedurally (sdDrawAvatarPreset) — drawing an SVG image on a canvas
 // taints it on WebKit/iOS and blocks toBlob/toDataURL (the "can't export" bug).
 const PRESET_DEFS = [
-  { type: "chip",     base: "#d6435a", spot: "#fdfdfd", ring: "#8e1f30", bg0: "#d6435a", bg1: "#a32536" },
-  { type: "aces",     bg0: "#1f7a52", bg1: "#0c4a30" },
-  { type: "cardback", bg0: "#181527", bg1: "#0c0a18" },
-  { type: "spade",    bg0: "#33375c", bg1: "#181b32", glyph: "♠", fg: "#f2eff8" },
-  { type: "heart",    bg0: "#cf4150", bg1: "#7c1f24", glyph: "♥", fg: "#ffffff" },
-  { type: "club",     bg0: "#2a8a5c", bg1: "#124a30", glyph: "♣", fg: "#ffffff" },
-  { type: "dice",     bg0: "#3a3460", bg1: "#1f1b38" },
-  { type: "button",   bg0: "#2e2a4a", bg1: "#17142a" },
+  { type: "chip",      base: "#d6435a", spot: "#fdfdfd", ring: "#8e1f30", bg0: "#d6435a", bg1: "#a32536" },
+  { type: "shades",    bg0: "#2b3550", bg1: "#141b2e" },
+  { type: "crown",     bg0: "#3a2f12", bg1: "#1f1908" },
+  { type: "hat",       bg0: "#2e2a24", bg1: "#171410" },
+  { type: "chipstack", bg0: "#1d2440", bg1: "#0e1326" },
+  { type: "spade",     bg0: "#33375c", bg1: "#181b32", glyph: "♠", fg: "#f2eff8" },
+  { type: "heart",     bg0: "#cf4150", bg1: "#7c1f24", glyph: "♥", fg: "#ffffff" },
+  { type: "club",      bg0: "#2a8a5c", bg1: "#124a30", glyph: "♣", fg: "#ffffff" },
+  { type: "dice",      bg0: "#3a3460", bg1: "#1f1b38" },
 ];
 // Picker thumbnail: render the SAME procedural avatar onto a small canvas → data URL.
 // (No SVG, so it matches the export exactly and never taints anything.)
