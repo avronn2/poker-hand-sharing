@@ -627,6 +627,20 @@
   .range-check .rc-note {
     margin-top: 10px; font-size: 11px; color: var(--ink-dim); line-height: 1.45; opacity: .85;
   }
+  .range-check .rc-stdlabel {
+    margin-top: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--ink-dim);
+  }
+  .range-check .rc-bar {
+    display: flex; width: 100%; height: 16px; margin: 6px 0 8px;
+    border-radius: 6px; overflow: hidden; background: var(--bg);
+  }
+  .range-check .rc-bar .rc-seg { height: 100%; min-width: 2px; }
+  .range-check .rc-bar .rc-seg.hero { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.85); }
+  .range-check .rc-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; font-size: 12px; }
+  .range-check .rc-legend .rc-leg { display: inline-flex; align-items: center; color: var(--ink-dim); }
+  .range-check .rc-legend .rc-leg.hero { color: var(--ink); font-weight: 800; }
+  .range-check .rc-legend .rc-leg i { width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; display: inline-block; }
   .sheet .body {
     padding: 16px 18px;
     overflow: auto;
@@ -1389,7 +1403,7 @@
     <header>
       <button type="button" id="headerTourneyBtn" class="header-tourney-btn" style="display:none;">+ Tournament Details</button>
       <button type="button" id="headerNoteBtn" class="header-tourney-btn" style="display:none;">+ Hand Title &amp; Notes</button>
-      <button type="button" id="headerCheckBtn" class="header-tourney-btn" style="display:none;">Range check</button>
+      <button type="button" id="headerCheckBtn" class="header-tourney-btn" style="display:none;">Check preflop GTO</button>
       <button type="button" class="closebtn" id="closeBtn">×</button>
     </header>
     <div class="stage-toggle" id="stageToggle" style="display:none">
@@ -1659,7 +1673,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "2026-05-24·n";
+const APP_VERSION = "2026-05-25·p";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -4430,46 +4444,66 @@ function rcExpandToken(tok) {
   return [tok];
 }
 
-// Expand a comma-separated range string to a Set of notations.
+// Expand a comma-separated range string to a Set of notations (weights ignored).
 function rcExpandRange(str) {
   const set = new Set();
   for (const tok of String(str || "").split(",")) {
-    for (const n of rcExpandToken(tok)) set.add(n);
+    const base = tok.split(":")[0];
+    for (const n of rcExpandToken(base)) set.add(n);
   }
   return set;
 }
 
-// Built-in MTT open-raise (RFI) ranges, ~40–60bb effective. Approximate, GTO-leaning.
-const RC_RFI = {
-  "UTG":   "55+, A9s+, KTs+, QTs+, JTs, T9s, AJo+, KQo",
-  "UTG+1": "44+, A8s+, KTs+, QTs+, J9s+, T9s, 98s, ATo+, KJo+",
-  "UTG+2": "33+, A7s+, K9s+, Q9s+, J9s+, T8s+, 98s, 87s, ATo+, KJo+, QJo",
-  "LJ":    "22+, A4s+, K9s+, Q9s+, J9s+, T8s+, 97s+, 87s, 76s, A9o+, KTo+, QJo",
-  "HJ":    "22+, A2s+, K8s+, Q9s+, J9s+, T8s+, 97s+, 86s+, 76s, 65s, A8o+, KTo+, QTo+, JTo",
-  "CO":    "22+, A2s+, K6s+, Q8s+, J8s+, T8s+, 97s+, 86s+, 75s+, 65s, 54s, A5o+, K9o+, Q9o+, JTo, T9o",
-  "BTN":   "22+, A2s+, K2s+, Q5s+, J7s+, T7s+, 96s+, 85s+, 75s+, 64s+, 54s, A2o+, K7o+, Q8o+, J8o+, T8o+, 98o",
-  "SB":    "22+, A2s+, K4s+, Q6s+, J7s+, T7s+, 96s+, 86s+, 75s+, 65s, 54s, A2o+, K8o+, Q9o+, J9o+, T9o",
+// Parse a WEIGHTED range string to Map(notation -> weight 0..1). A token may carry a
+// trailing ":w" weight (e.g. "AJo:.5", "55-22:.5"); absent weight defaults to 1.0.
+function rcParseWeighted(str) {
+  const m = new Map();
+  for (const raw of String(str || "").split(",")) {
+    const tok = raw.trim();
+    if (!tok) continue;
+    const parts = tok.split(":");
+    const base = parts[0].trim();
+    const w = parts.length > 1 ? parseFloat(parts[1]) : 1;
+    for (const n of rcExpandToken(base)) m.set(n, Math.max(m.get(n) || 0, isFinite(w) ? w : 1));
+  }
+  return m;
+}
+
+// Given a "spot" = ordered [[actionKey, weightedRange], ...] (highest-priority action
+// first) and a hand, return a normalised frequency distribution over actions + fold.
+// A hand's weight in each action is taken in priority order, capped so the total never
+// exceeds 1; whatever is left over becomes a fold.
+function rcStrategy(spot, notation) {
+  let remaining = 1;
+  const dist = {};
+  for (const [key, str] of spot) {
+    if (remaining <= 1e-9) break;
+    const w = Math.min(rcParseWeighted(str).get(notation) || 0, remaining);
+    if (w > 0) { dist[key] = (dist[key] || 0) + w; remaining -= w; }
+  }
+  if (remaining > 1e-9) dist.fold = (dist.fold || 0) + remaining;
+  return dist;
+}
+
+// Action display metadata (label + colour for the breakdown bar).
+const RC_ACT = {
+  raise:    { label: "Open",  color: "#3bd6c6" },
+  threeBet: { label: "3-bet", color: "#f0a35e" },
+  fourBet:  { label: "4-bet", color: "#e06b6b" },
+  jam:      { label: "Jam",   color: "#e06b6b" },
+  call:     { label: "Call",  color: "#6fb6ff" },
+  limp:     { label: "Limp",  color: "#6fb6ff" },
+  fold:     { label: "Fold",  color: "#8a86a0" },
 };
 
-// Built-in responses vs a single open, keyed by the raiser's position bucket.
-const RC_VS_OPEN = {
-  early: { // open from UTG / UTG+1 / UTG+2
-    threeBet: "TT+, AQs+, AKo, A5s",
-    call:     "22-99, AJs, ATs, KQs, KJs, QJs, JTs, T9s, AQo",
-  },
-  mid: {   // open from LJ / HJ
-    threeBet: "99+, AQs+, AKo, A5s, A4s, KQs",
-    call:     "22-88, AJs, ATs, KJs, KTs, QJs, QTs, JTs, T9s, 98s, AQo, AJo, KQo",
-  },
-  late: {  // open from CO / BTN
-    threeBet: "77+, ATs+, KTs+, QJs, A5s, A4s, AJo+, KQo",
-    call:     "22-66, A9s-A6s, K9s, Q9s, J9s, T9s, 98s, 87s, 76s, 65s, ATo, KJo, QJo, JTo",
-  },
-  sb: {    // open from SB (hero in BB)
-    threeBet: "55+, A8s+, A5s-A2s, KTs+, QTs+, JTs, AJo+, KQo",
-    call:     "22-44, A7s-A2s, K9s-K6s, Q8s+, J8s+, T8s+, 97s+, 86s+, 76s, 65s, 54s, A9o-A2o, KTo+, QTo+, JTo, T9o",
-  },
-};
+// Stack-depth bucket. ~≤22bb = short, ~≥65bb = deep, else mid (~40bb).
+function rcDepthBucket(bb) {
+  if (bb == null || !isFinite(bb)) return "mid";
+  if (bb <= 22) return "short";
+  if (bb >= 65) return "deep";
+  return "mid";
+}
+const RC_BUCKET_LABEL = { short: "≈15bb (short)", mid: "≈40bb (mid)", deep: "≈80bb (deep)" };
 
 function rcRaiserBucket(pos) {
   if (pos === "UTG" || pos === "UTG+1" || pos === "UTG+2") return "early";
@@ -4478,6 +4512,74 @@ function rcRaiserBucket(pos) {
   if (pos === "SB") return "sb";
   return "late"; // fallback
 }
+
+/* ----------------------------------------------------------------------------
+   HEURISTIC MTT CHARTS — approximate guidelines, NOT exact solver output.
+   Weights (":w") encode mixed frequencies; overlapping ranges across actions
+   produce a natural split (e.g. a hand at 3-bet:.5 that's also in the call
+   range resolves to 50% 3-bet / 50% call). Folds are the leftover.
+   --------------------------------------------------------------------------*/
+const RC_CHARTS = {
+  // RFI (folded to hero). spot = [["raise", range]].
+  rfi: {
+    mid: {
+      "UTG":   "66+, A9s+, KTs+, QTs+, JTs, AJo+, KQo, 55:.5, 44:.5, A8s:.5, A5s:.5, A4s:.5, T9s:.5, ATo:.5, KJo:.5",
+      "UTG+1": "55+, A8s+, KTs+, QTs+, JTs, T9s, ATo+, KQo, 44:.5, 33:.5, A7s:.5, A5s:.5, A4s:.5, K9s:.5, Q9s:.5, 98s:.5, KJo:.5",
+      "UTG+2": "44+, A7s+, K9s+, Q9s+, J9s+, T9s, ATo+, KJo+, QJo, 33:.5, 22:.5, A6s:.5, A5s:.5, A4s:.5, K8s:.5, Q8s:.5, J8s:.5, T8s:.5, 98s:.5, 87s:.5, KTo:.5, QTo:.5",
+      "LJ":    "33+, A4s+, K9s+, Q9s+, J9s+, T8s+, 98s, 87s, 76s, A9o+, KTo+, QJo, 22:.5, K8s:.5, Q8s:.5, J8s:.5, 97s:.5, 86s:.5, 65s:.5, A8o:.5, K9o:.5, QTo:.5, JTo:.5",
+      "HJ":    "22+, A2s+, K8s+, Q9s+, J9s+, T8s+, 97s+, 87s, 76s, 65s, A8o+, KTo+, QTo+, JTo, K7s:.5, K6s:.5, Q8s:.5, J8s:.5, T7s:.5, 86s:.5, 75s:.5, 54s:.5, A7o:.5, A5o:.5, K9o:.5, Q9o:.5, T9o:.5",
+      "CO":    "22+, A2s+, K6s+, Q8s+, J8s+, T8s+, 97s+, 86s+, 76s, 65s, 54s, A5o+, K9o+, Q9o+, JTo, T9o, K5s:.5, K4s:.5, Q7s:.5, J7s:.5, T7s:.5, 96s:.5, 85s:.5, 75s:.5, 64s:.5, A4o:.5, A3o:.5, A2o:.5, K8o:.5, Q8o:.5, J9o:.5, 98o:.5",
+      "BTN":   "22+, A2s+, K2s+, Q5s+, J7s+, T7s+, 96s+, 85s+, 75s+, 64s+, 54s, A2o+, K7o+, Q8o+, J8o+, T8o+, 98o, Q4s:.5, Q3s:.5, Q2s:.5, J6s:.5, J5s:.5, T6s:.5, 95s:.5, 84s:.5, 74s:.5, 63s:.5, 53s:.5, 43s:.5, K6o:.5, K5o:.5, Q7o:.5, J7o:.5, T7o:.5, 97o:.5, 87o:.5, 76o:.5",
+      "SB":    "22+, A2s+, K5s+, Q7s+, J7s+, T7s+, 96s+, 86s+, 75s+, 65s, 54s, A2o+, K8o+, Q9o+, J9o+, T9o, K4s:.5, K3s:.5, Q6s:.5, J6s:.5, T6s:.5, 95s:.5, 85s:.5, 64s:.5, 53s:.5, K7o:.5, Q8o:.5, J8o:.5, T8o:.5, 98o:.5, 87o:.5",
+    },
+    short: {
+      "UTG":   "77+, A9s+, KTs+, QJs, AJo+, KQo, 66:.5, A8s:.5, ATo:.5",
+      "UTG+1": "66+, A8s+, KTs+, QTs+, JTs, ATo+, KQo, 55:.5, A7s:.5, KJo:.5",
+      "UTG+2": "55+, A7s+, K9s+, QTs+, JTs, T9s, ATo+, KJo+, 44:.5, A6s:.5, QJo:.5",
+      "LJ":    "44+, A5s+, K9s+, QTs+, JTs, T9s, 98s, ATo+, KJo+, QJo, 33:.5, A4s:.5, KTo:.5",
+      "HJ":    "33+, A4s+, K9s+, Q9s+, JTs, T9s, 98s, A9o+, KJo+, QJo, 22:.5, K8s:.5, KTo:.5, JTo:.5",
+      "CO":    "22+, A2s+, K8s+, Q9s+, J9s+, T9s, 98s, 87s, A7o+, K9o+, QJo, JTo, 76s:.5, A5o:.5, KTo:.5",
+      "BTN":   "22+, A2s+, K5s+, Q8s+, J8s+, T8s+, 97s+, 87s, 76s, 65s, A2o+, K8o+, Q9o+, J9o+, T9o, 54s:.5, K7o:.5, Q8o:.5, 98o:.5",
+      "SB":    "22+, A2s+, K6s+, Q8s+, J8s+, T8s+, 97s+, 87s, 76s, 65s, A2o+, K8o+, Q9o+, J9o+, T9o, 54s:.5, Q7o:.5, J8o:.5",
+    },
+    // deep ≈ mid for opens (RFI ranges are fairly depth-stable 40–80bb); aliased below.
+  },
+  // Hero faces a single open. keyed by raiser bucket. spot = [["threeBet",..],["call",..]].
+  vsOpen: {
+    mid: {
+      early: { threeBet: "QQ+, AKs, AKo, JJ:.5, AQs:.5, A5s:.5", call: "22-JJ, AQs, AJs, ATs, KQs, KJs, QJs, JTs, T9s, AQo, KQo" },
+      mid:   { threeBet: "JJ+, AKs, AQs, AKo, TT:.5, AQo:.5, A5s:.5, A4s:.5, KQs:.5", call: "22-TT, AQs, AJs, ATs, KQs, KJs, KTs, QJs, QTs, JTs, T9s, 98s, AJo, KQo, AQo" },
+      late:  { threeBet: "TT+, AQs+, AKo, A5s, A4s, A3s:.5, KJs:.5, QJs:.5, KQo:.5, AJo:.5, 99:.5, 88:.5", call: "22-99, A9s-A2s, KTs+, QTs+, J9s+, T9s, 98s, 87s, 76s, 65s, ATo, AJo, KJo, QJo, JTo" },
+      sb:    { threeBet: "99+, AQs+, AKo, A5s-A2s, KJs:.5, QJs:.5, AJo:.5, KQo:.5, 88:.5, K5s:.5, K4s:.5", call: "22-88, A9s-A2s, K6s+, Q8s+, J8s+, T8s+, 97s+, 86s+, 76s, 65s, 54s, A9o-A2o, KTo+, QTo+, JTo, T9o" },
+    },
+    short: {
+      early: { threeBet: "99+, AQs+, AKo, A5s:.5", call: "88-66, AJs, KQs" },
+      mid:   { threeBet: "88+, AJs+, AQo+, A5s, KQs:.5", call: "77-55, ATs, KQs, QJs" },
+      late:  { threeBet: "66+, A9s+, KJs+, QJs, A5s-A2s, AJo+, KQo", call: "55-22, A8s-A6s, KTs, QTs, JTs, T9s, KJo:.5" },
+      sb:    { threeBet: "55+, A7s+, A5s-A2s, KTs+, QTs+, JTs, AJo+, KQo", call: "44-22, A6s-A2s, K6s+, Q8s+, J8s+, T8s+, 97s+, 86s+, 76s, 65s, A9o-A4o, KTo+, QTo+, JTo, T9o" },
+    },
+    deep: {
+      early: { threeBet: "QQ+, AKs, AKo, JJ:.5, AQs:.5, A5s:.4", call: "22-JJ, AQs, AJs, ATs, A9s, KQs, KJs, KTs, QJs, QTs, JTs, T9s, 98s, AQo, AJo, KQo" },
+      mid:   { threeBet: "JJ+, AKs, AQs, AKo, TT:.5, A5s:.5, A4s:.5, KQs:.4", call: "22-TT, AQs, AJs, ATs, A9s, KQs, KJs, KTs, QJs, QTs, JTs, T9s, 98s, 87s, AJo, ATo, KQo, AQo, KJo" },
+      late:  { threeBet: "TT+, AQs+, AKo, A5s, A4s, A3s:.5, KJs:.4, QJs:.4, KQo:.5, AJo:.5", call: "22-99, A9s-A2s, K9s+, Q9s+, J9s+, T8s+, 98s, 87s, 76s, 65s, 54s, ATo, AJo, KJo, QJo, JTo, T9o" },
+      sb:    { threeBet: "99+, AQs+, AKo, A5s-A2s, KJs:.5, QJs:.5, AJo:.5, KQo:.5, 88:.5", call: "22-88, A9s-A2s, K4s+, Q7s+, J7s+, T7s+, 96s+, 86s+, 75s+, 65s, 54s, A9o-A2o, K9o+, QTo+, JTo, T9o" },
+    },
+  },
+  // Hero opened and faces a 3-bet. spot = [["fourBet",..],["call",..]].
+  vs3bet: {
+    mid:   { fourBet: "KK+, AKo, A5s:.5, A4s:.5, QQ:.5, AKs:.5, AQs:.5", call: "QQ-66, AKs, AQs, AJs, ATs, KQs, KJs, QJs, JTs, T9s, AQo" },
+    short: { fourBet: "99+, AQs+, AKo, A5s:.5", call: "88-66, AJs, KQs, ATs:.5" },
+    deep:  { fourBet: "KK+, AKo, A5s:.5, A4s:.5, A3s:.5, AKs:.4, QQ:.4", call: "QQ-55, AKs, AQs, AJs, ATs, A9s, KQs, KJs, KTs, QJs, QTs, JTs, T9s, 98s, AQo, AJo, KQo" },
+  },
+  // Hero 3-bet and faces a 4-bet. spot = [["jam",..],["call",..]] (jam = 5-bet/all-in).
+  vs4bet: {
+    mid:   { jam: "KK+, A5s:.5, A4s:.5, AKo:.5", call: "QQ-TT, AKs, AKo:.5, AQs:.5, AJs:.5, KQs:.5" },
+    short: { jam: "TT+, AKs, AKo, A5s:.5", call: "99-88, AQs, KQs" },
+    deep:  { jam: "KK+, A5s:.5, AKo:.4", call: "QQ-JJ, AKs, AKo:.5, AQs:.4" },
+  },
+};
+// deep opens reuse the mid RFI chart (negligible difference 40–80bb).
+RC_CHARTS.rfi.deep = RC_CHARTS.rfi.mid;
 
 // Compute the preflop range-check result from current state. Returns an object the
 // panel renders, or { error } when the data isn't enough to judge.
@@ -4489,107 +4591,125 @@ function rcCompute() {
   if (!pos) return { error: "Set the hero's position to run the check." };
   const notation = rcNotation(hole[0], hole[1]);
   const bbDepth = (ss.bb && isFinite(ss.heroStack)) ? ss.heroStack / ss.bb : null;
+  const bucket = rcDepthBucket(bbDepth);
 
-  // Find the hero's first voluntary preflop action and what happened before it.
+  // Walk the preflop action sequence, tracking aggression depth and the hero's role.
+  // Preflop, the FIRST aggressive action over the blinds is recorded as verb "bet"
+  // (the engine only switches to "raise" once raiseCount > 0); treat all three as raises.
+  const isAggr = a => a.verb === "raise" || a.verb === "bet" || a.verb === "jam";
   const acts = (state.streets && state.streets.preflop && state.streets.preflop.actions) || [];
-  let heroAct = null, raisesBefore = 0, lastRaiserPos = null;
+  let aggr = 0, runningLastAggrPos = null;
+  let heroLast = null, raisesBeforeHeroLast = 0, raiserPos = null;
+  let heroOpened = false, heroThreeBet = false;
   for (const a of acts) {
-    if (a.player === "hero") { heroAct = a; break; }
-    // Preflop, the FIRST aggressive action over the blinds is recorded as verb "bet"
-    // (the engine only switches to "raise" once raiseCount > 0), so "bet" here = an open.
-    if (a.verb === "raise" || a.verb === "jam" || a.verb === "bet") { raisesBefore++; lastRaiserPos = a.pos; }
+    if (a.player === "hero") {
+      heroLast = a;
+      raisesBeforeHeroLast = aggr;
+      raiserPos = runningLastAggrPos;
+      if (isAggr(a)) { if (aggr === 0) heroOpened = true; else if (aggr === 1) heroThreeBet = true; }
+    }
+    if (isAggr(a)) { aggr++; runningLastAggrPos = a.pos; }
   }
-  const heroVerb = heroAct ? heroAct.verb : null; // raise|bet|jam|call|fold|check|null
+  const rb = raisesBeforeHeroLast;
+  const heroVerb = heroLast ? heroLast.verb : null;
+  const heroAggr = heroLast ? isAggr(heroLast) : false;
+  const heroFolded = heroVerb === "fold";
+  const heroChecked = heroVerb === "check";
+  const heroCalled = heroVerb === "call";
 
-  // Hero's action category.
-  let heroCat = "none";
-  if (heroVerb === "raise" || heroVerb === "jam" || heroVerb === "bet") heroCat = "aggressive";
-  else if (heroVerb === "call") heroCat = "passive";
-  else if (heroVerb === "fold") heroCat = "fold";
-  else if (heroVerb === "check") heroCat = "check";
+  const res = { notation, pos, bbDepth, bucket, dist: null, heroKey: null,
+                heroActionText: "", situation: "", verdict: "", verdictClass: "info" };
 
-  const heroActionText = ({
-    aggressive: heroVerb === "jam" ? "All-in" : (raisesBefore >= 1 ? "3-bet / raise" : "Open-raise"),
-    passive: raisesBefore >= 1 ? "Call" : "Limp / call",
-    fold: "Fold",
-    check: "Check",
-    none: "No preflop action recorded",
-  })[heroCat];
+  // Depth caveat for extreme stacks beyond our buckets.
+  if (bbDepth != null) {
+    if (bbDepth < 10) res.depthNote = `You're about ${Math.round(bbDepth)}bb — that's a pure jam/fold (push-fold) zone; treat the short-stack chart as a rough guide only.`;
+    else if (bbDepth > 120) res.depthNote = `You're about ${Math.round(bbDepth)}bb — deeper than these charts model; play a touch wider and flat more.`;
+  }
 
-  const res = {
-    notation, pos, bbDepth,
-    heroActionText,
-    situation: "", standard: "", verdict: "", verdictClass: "info",
+  // Helper: finish with a frequency spot.
+  const finishSpot = (spot, heroKey, actionText, situation) => {
+    res.dist = rcStrategy(spot, notation);
+    res.heroKey = heroKey;
+    res.heroActionText = actionText;
+    res.situation = situation;
+    const v = rcVerdict(res.dist, heroKey, notation);
+    res.verdictClass = v.cls; res.verdict = v.text;
+    return res;
   };
 
-  // Stack-depth caveat.
-  if (bbDepth != null) {
-    if (bbDepth < 25) res.depthNote = `You're about ${Math.round(bbDepth)}bb deep. Short stacks shift toward jam-or-fold — these charts assume roughly 40–60bb, so treat this as a rough guide.`;
-    else if (bbDepth > 100) res.depthNote = `You're about ${Math.round(bbDepth)}bb deep. Deeper stacks play a bit wider — these charts assume roughly 40–60bb.`;
-  }
-
-  // ---- Multi-raise pots are out of scope for v1. ----
-  if (raisesBefore >= 2) {
-    res.situation = `Facing multiple raises with <span class="rc-hand">${notation}</span> from <b>${pos}</b>.`;
-    res.standard = "—";
+  // ---- 5-bet+ / out-of-scope multiway raised pots. ----
+  if (rb >= 4 || (rb === 2 && !heroOpened) || (rb === 3 && !heroThreeBet)) {
+    res.situation = `Facing a ${rb >= 4 ? "5-bet+" : rb + "-raise"} pot with <span class="rc-hand">${notation}</span> from <b>${pos}</b>.`;
     res.verdictClass = "info";
-    res.verdict = "Multi-raise pots (4-bet+ spots) aren't covered yet. The preflop check currently handles unopened pots and single-raise spots.";
+    res.verdict = "This spot is outside the v1 tree (it covers opens, facing an open, facing a 3-bet after you opened, and facing a 4-bet after you 3-bet).";
     return res;
   }
 
-  // ---- Unopened pot (RFI). ----
-  if (raisesBefore === 0) {
+  // ---- RFI (unopened). ----
+  if (rb === 0) {
     if (pos === "BB") {
       res.situation = `Folded/limped to you in the <b>big blind</b> with <span class="rc-hand">${notation}</span>.`;
-      res.standard = "Check / option";
       res.verdictClass = "info";
-      res.verdict = "There's no standard “open” from the big blind — you can check your option, or raise to isolate limpers. The check focuses on opening and defending spots for now.";
+      res.verdict = "There's no standard “open” from the big blind — you can check your option, or raise to isolate limpers. The check focuses on opening and defending spots.";
       return res;
     }
-    const range = rcExpandRange(RC_RFI[pos] || "");
-    const inRange = range.has(notation);
-    res.situation = `Folded to you — first in from the <b>${pos}</b> with <span class="rc-hand">${notation}</span>.`;
-    res.standard = inRange ? "Open-raise" : "Fold";
-    if (inRange) {
-      if (heroCat === "aggressive") { res.verdictClass = "match"; res.verdict = `${notation} is a standard open from ${pos}. Your open-raise matches the chart.`; }
-      else if (heroCat === "fold") { res.verdictClass = "dev"; res.verdict = `${notation} is a standard open from ${pos} — folding here is tighter than the chart.`; }
-      else if (heroCat === "passive") { res.verdictClass = "dev"; res.verdict = `The standard line is to open-raise ${notation} from ${pos}, not limp.`; }
-      else { res.verdictClass = "info"; res.verdict = `${notation} is a standard open from ${pos}.`; }
-    } else {
-      if (heroCat === "fold") { res.verdictClass = "match"; res.verdict = `${notation} is below a standard opening range from ${pos}. Folding matches the chart.`; }
-      else if (heroCat === "aggressive") { res.verdictClass = "dev"; res.verdict = `${notation} is below a standard opening range from ${pos} — this open is on the loose side.`; }
-      else if (heroCat === "passive") { res.verdictClass = "dev"; res.verdict = `${notation} isn't a standard open from ${pos}; limping it is non-standard.`; }
-      else { res.verdictClass = "info"; res.verdict = `${notation} is below a standard opening range from ${pos}.`; }
-    }
-    return res;
+    const heroKey = heroAggr ? "raise" : (heroCalled ? "limp" : "fold");
+    const actionText = heroAggr ? (bucket === "short" ? "Open / jam" : "Open-raise")
+                                : (heroCalled ? "Limp" : (heroChecked ? "Check" : "Fold"));
+    const spot = [["raise", (RC_CHARTS.rfi[bucket] || RC_CHARTS.rfi.mid)[pos] || ""]];
+    return finishSpot(spot, heroKey,
+      actionText,
+      `Folded to you — first in from the <b>${pos}</b> with <span class="rc-hand">${notation}</span>.`);
   }
 
-  // ---- Facing a single open. ----
-  const bucket = rcRaiserBucket(lastRaiserPos);
-  const resp = RC_VS_OPEN[bucket];
-  const in3bet = rcExpandRange(resp.threeBet).has(notation);
-  const inCall = rcExpandRange(resp.call).has(notation);
-  const standard = in3bet ? "3-bet" : inCall ? "Call" : "Fold";
-  const raiserLabel = lastRaiserPos || "an earlier position";
-  res.situation = `<b>${raiserLabel}</b> opened — you're in the <b>${pos}</b> with <span class="rc-hand">${notation}</span>.`;
-  res.standard = standard;
-
-  if (heroCat === "aggressive") {
-    if (in3bet) { res.verdictClass = "match"; res.verdict = `${notation} is a standard 3-bet vs a ${raiserLabel} open. Matches the chart.`; }
-    else if (inCall) { res.verdictClass = "dev"; res.verdict = `Standard play is to call here — ${notation} is more of a flat than a 3-bet vs a ${raiserLabel} open.`; }
-    else { res.verdictClass = "dev"; res.verdict = `Standard play is to fold — ${notation} is below a normal 3-bet/call range vs a ${raiserLabel} open.`; }
-  } else if (heroCat === "passive") {
-    if (inCall) { res.verdictClass = "match"; res.verdict = `${notation} is a standard call vs a ${raiserLabel} open. Matches the chart.`; }
-    else if (in3bet) { res.verdictClass = "dev"; res.verdict = `${notation} is strong enough to 3-bet vs a ${raiserLabel} open, not just call.`; }
-    else { res.verdictClass = "dev"; res.verdict = `Standard play is to fold — ${notation} is below a normal defending range vs a ${raiserLabel} open, so calling is loose.`; }
-  } else if (heroCat === "fold") {
-    if (standard === "Fold") { res.verdictClass = "match"; res.verdict = `Folding matches the chart — ${notation} is below a normal defending range vs a ${raiserLabel} open.`; }
-    else if (in3bet) { res.verdictClass = "dev"; res.verdict = `${notation} is a standard 3-bet vs a ${raiserLabel} open — folding is too tight.`; }
-    else { res.verdictClass = "dev"; res.verdict = `${notation} is a standard call vs a ${raiserLabel} open — folding is tighter than the chart.`; }
-  } else {
-    res.verdictClass = "info"; res.verdict = `Standard play with ${notation} vs a ${raiserLabel} open is to ${standard.toLowerCase()}.`;
+  // ---- Hero faces a single open (vs-open). ----
+  if (rb === 1) {
+    const rbk = rcRaiserBucket(raiserPos);
+    const resp = (RC_CHARTS.vsOpen[bucket] || RC_CHARTS.vsOpen.mid)[rbk];
+    const heroKey = heroAggr ? "threeBet" : (heroCalled ? "call" : "fold");
+    const actionText = heroAggr ? "3-bet" : (heroCalled ? "Call" : "Fold");
+    const spot = [["threeBet", resp.threeBet], ["call", resp.call]];
+    return finishSpot(spot, heroKey, actionText,
+      `<b>${raiserPos || "An earlier position"}</b> opened — you're in the <b>${pos}</b> with <span class="rc-hand">${notation}</span>.`);
   }
+
+  // ---- Hero opened, faces a 3-bet (vs-3bet). ----
+  if (rb === 2 && heroOpened) {
+    const resp = RC_CHARTS.vs3bet[bucket] || RC_CHARTS.vs3bet.mid;
+    const heroKey = heroAggr ? "fourBet" : (heroCalled ? "call" : "fold");
+    const actionText = heroAggr ? "4-bet" : (heroCalled ? "Call" : "Fold");
+    const spot = [["fourBet", resp.fourBet], ["call", resp.call]];
+    return finishSpot(spot, heroKey, actionText,
+      `You opened from <b>${pos}</b> and faced a 3-bet from <b>${raiserPos || "a player"}</b> with <span class="rc-hand">${notation}</span>.`);
+  }
+
+  // ---- Hero 3-bet, faces a 4-bet (vs-4bet). ----
+  if (rb === 3 && heroThreeBet) {
+    const resp = RC_CHARTS.vs4bet[bucket] || RC_CHARTS.vs4bet.mid;
+    const heroKey = heroAggr ? "jam" : (heroCalled ? "call" : "fold");
+    const actionText = heroAggr ? "5-bet / jam" : (heroCalled ? "Call (off)" : "Fold");
+    const spot = [["jam", resp.jam], ["call", resp.call]];
+    return finishSpot(spot, heroKey, actionText,
+      `You 3-bet from <b>${pos}</b> and faced a 4-bet from <b>${raiserPos || "a player"}</b> with <span class="rc-hand">${notation}</span>.`);
+  }
+
+  res.verdictClass = "info";
+  res.verdict = "Couldn't classify this preflop spot.";
   return res;
+}
+
+// Turn a frequency distribution into a match/deviation verdict for the hero's action.
+function rcVerdict(dist, heroKey, notation) {
+  const f = dist[heroKey] || 0;
+  const pct = v => Math.round(v * 100);
+  const entries = Object.entries(dist).filter(([, v]) => v > 0.005).sort((a, b) => b[1] - a[1]);
+  const top = entries[0] || ["fold", 1];
+  const lab = k => (RC_ACT[k] ? RC_ACT[k].label : k);
+  const breakdown = entries.map(([k, v]) => `${lab(k)} ${pct(v)}%`).join(" · ");
+  if (f >= 0.5) return { cls: "match", text: `Standard — ${lab(heroKey)} is the main play here (${pct(f)}%).` };
+  if (f >= 0.2) return { cls: "match", text: `Fine — ${lab(heroKey)} is part of a mixed strategy here (${pct(f)}%). Full mix: ${breakdown}.` };
+  if (f > 0)    return { cls: "dev",   text: `${lab(heroKey)} is a low-frequency choice (${pct(f)}%). The bulk is ${lab(top[0])} (${pct(top[1])}%).` };
+  return { cls: "dev", text: `${lab(heroKey)} isn't part of the standard strategy here. Standard: ${breakdown}.` };
 }
 
 // Render the on-demand preflop range-check panel at the top of the output.
@@ -4607,18 +4727,40 @@ function showRangeCheckForm() {
       <div class="tf-head"><span>Preflop check</span><button type="button" id="rcClose" aria-label="Close">×</button></div>
       <div class="rc-verdict info">${r.error}</div>`;
   } else {
+    // Build the frequency breakdown bar (sorted, non-zero actions only).
+    let barHtml = "", legendHtml = "";
+    if (r.dist) {
+      const pct = v => Math.round(v * 100);
+      const entries = Object.entries(r.dist).filter(([, v]) => v > 0.005).sort((a, b) => b[1] - a[1]);
+      barHtml = `<div class="rc-bar">` + entries.map(([k, v]) => {
+        const c = (RC_ACT[k] && RC_ACT[k].color) || "#8a86a0";
+        const isHero = k === r.heroKey;
+        return `<div class="rc-seg${isHero ? " hero" : ""}" style="width:${pct(v)}%;background:${c}" title="${(RC_ACT[k]||{}).label||k} ${pct(v)}%"></div>`;
+      }).join("") + `</div>`;
+      legendHtml = `<div class="rc-legend">` + entries.map(([k, v]) => {
+        const c = (RC_ACT[k] && RC_ACT[k].color) || "#8a86a0";
+        const lab = (RC_ACT[k] || {}).label || k;
+        return `<span class="rc-leg${k === r.heroKey ? " hero" : ""}"><i style="background:${c}"></i>${lab} ${pct(v)}%</span>`;
+      }).join("") + `</div>`;
+    }
     form.innerHTML = `
       <div class="tf-head"><span>Preflop check</span><button type="button" id="rcClose" aria-label="Close">×</button></div>
       <div class="rc-situation">${r.situation}</div>
-      <div class="rc-row"><span class="k">Standard play</span><span class="v">${r.standard}</span></div>
+      ${barHtml ? `<div class="rc-stdlabel">Standard play (GTO mix)</div>${barHtml}${legendHtml}` : ""}
       <div class="rc-row"><span class="k">Your action</span><span class="v">${r.heroActionText}</span></div>
       <div class="rc-verdict ${r.verdictClass}">${r.verdict}</div>
       ${r.depthNote ? `<div class="rc-note">${r.depthNote}</div>` : ""}
-      <div class="rc-note">General MTT guidelines for ~40–60bb. A guide, not a full solver.</div>`;
+      <div class="rc-note">Approximate MTT guidelines (heuristic, not a solver)${r.bucket ? ` · ${RC_BUCKET_LABEL[r.bucket]} chart` : ""}. Hands the hero played from earlier positions ignore exact seat.</div>`;
   }
   out.insertBefore(form, out.firstChild);
+  // While the panel is open, hide the launch button; restore it on close.
+  const launchBtn = document.getElementById("headerCheckBtn");
+  if (launchBtn) launchBtn.style.display = "none";
   const close = document.getElementById("rcClose");
-  if (close) close.onclick = () => { const f = document.getElementById("rangeCheckForm"); if (f) f.remove(); };
+  if (close) close.onclick = () => {
+    const f = document.getElementById("rangeCheckForm"); if (f) f.remove();
+    if (launchBtn && state.gameType === "mtt") launchBtn.style.display = "";
+  };
 }
 
 // Get the current hand's image as a Blob — uses the saved-hand dataURL when viewing
