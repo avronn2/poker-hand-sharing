@@ -562,16 +562,18 @@
     padding: 12px 16px; border-bottom: 1px solid var(--line);
   }
   .sheet > header h3 { margin: 0; font-size: 16px; }
-  /* Small "add details" pills in the output header */
+  /* Small "add details" pills in the output header. They share the row width equally
+     and wrap their label to two lines so all three fit on a narrow (mobile) screen. */
   .header-tourney-btn {
+    flex: 1 1 0; min-width: 0;
     background: transparent; color: var(--accent);
     border: 1px solid var(--accent); border-radius: 8px;
-    padding: 6px 10px; font-size: 12px; font-weight: 700;
-    font-family: inherit; cursor: pointer; white-space: nowrap;
+    padding: 6px 6px; font-size: 11px; font-weight: 700; line-height: 1.2;
+    font-family: inherit; cursor: pointer; white-space: normal; text-align: center;
   }
-  /* Output overlay header: pills grouped on the left, close button pushed to the right */
+  /* Output overlay header: pills share the left, close button fixed at the right */
   #overlay > .sheet > header { justify-content: flex-start; gap: 8px; }
-  #overlay > .sheet > header .closebtn { margin-left: auto; }
+  #overlay > .sheet > header .closebtn { flex: 0 0 auto; margin-left: 4px; }
   /* Compact, narrow popover for entering tournament details after the fact */
   .tourney-form {
     max-width: 300px; margin: 0 auto 14px;
@@ -1678,7 +1680,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "2026-05-25·y";
+const APP_VERSION = "2026-05-25·aa";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -5079,12 +5081,9 @@ function showRangeCheckForm() {
     // and/or the heuristic note for the deeper-stack scenarios.
     const pushDec = r.decisions.find(d => d.src === "push");
     const usedPC = r.decisions.some(d => d.src === "pc");
-    const usedHeur = r.decisions.some(d => d.src === "heuristic");
     const notes = [];
     if (pushDec) notes.push(`Charted Nash push/fold — open-jam ranges, BB ante, 9-handed (${pushDec.pushDepth}bb).`);
     if (usedPC) notes.push(`Charted GTO ranges (PokerCoaching, 100bb solve, ~50bb+)${r.bucket ? ` · ${RC_BUCKET_LABEL[r.bucket]}` : ""}.`);
-    if (usedHeur) notes.push(`Approximate MTT guidelines (heuristic, not a solver)${r.bucket ? ` · ${RC_BUCKET_LABEL[r.bucket]} chart` : ""}. Earlier-position decisions ignore exact seat.`);
-    if (!notes.length) notes.push(`Tournament (MTT) preflop guidelines.`);
     form.innerHTML = `
       <div class="tf-head"><span>Preflop check</span><button type="button" id="rcClose" aria-label="Close">×</button></div>
       ${blocks}
