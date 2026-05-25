@@ -602,6 +602,31 @@
     border: 0; border-radius: 10px; font-weight: 700; font-size: 14px;
     font-family: inherit; cursor: pointer;
   }
+  /* Preflop range-check result panel (reuses .tourney-form shell) */
+  .range-check .rc-situation {
+    font-size: 12px; color: var(--ink-dim); line-height: 1.45; margin-bottom: 10px;
+  }
+  .range-check .rc-hand {
+    display: inline-block; font-weight: 800; color: var(--ink);
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 7px; padding: 2px 8px; margin: 0 2px;
+  }
+  .range-check .rc-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px;
+  }
+  .range-check .rc-row .k { color: var(--ink-dim); }
+  .range-check .rc-row .v { font-weight: 800; color: var(--ink); }
+  .range-check .rc-verdict {
+    margin-top: 12px; padding: 10px 12px; border-radius: 10px;
+    font-size: 13px; line-height: 1.5; font-weight: 600;
+  }
+  .range-check .rc-verdict.match  { background: rgba(46,160,67,0.14);  border: 1px solid rgba(46,160,67,0.5);  color: #7ee2a0; }
+  .range-check .rc-verdict.dev    { background: rgba(210,153,34,0.14); border: 1px solid rgba(210,153,34,0.5); color: #f0c674; }
+  .range-check .rc-verdict.info   { background: var(--panel); border: 1px solid var(--line); color: var(--ink-dim); font-weight: 500; }
+  .range-check .rc-note {
+    margin-top: 10px; font-size: 11px; color: var(--ink-dim); line-height: 1.45; opacity: .85;
+  }
   .sheet .body {
     padding: 16px 18px;
     overflow: auto;
@@ -1364,6 +1389,7 @@
     <header>
       <button type="button" id="headerTourneyBtn" class="header-tourney-btn" style="display:none;">+ Tournament Details</button>
       <button type="button" id="headerNoteBtn" class="header-tourney-btn" style="display:none;">+ Hand Title &amp; Notes</button>
+      <button type="button" id="headerCheckBtn" class="header-tourney-btn" style="display:none;">Range check</button>
       <button type="button" class="closebtn" id="closeBtn">×</button>
     </header>
     <div class="stage-toggle" id="stageToggle" style="display:none">
@@ -1633,7 +1659,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "2026-05-24·m";
+const APP_VERSION = "2026-05-24·n";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -4246,6 +4272,9 @@ async function renderOutputImage() {
     const has = (state.handTitle || "").trim() || (state.handNote || "").trim();
     nb.innerHTML = has ? "Edit Hand Title &amp; Notes" : "+ Hand Title &amp; Notes";
   }
+  // "Range check" pill — offered on MTT pictures (the built-in charts are MTT-tuned).
+  const cb = document.getElementById("headerCheckBtn");
+  if (cb) cb.style.display = state.gameType === "mtt" ? "" : "none";
 }
 
 // True when an MTT picture has no buy-in and no tournament type set yet.
@@ -4342,6 +4371,254 @@ function showTitleNoteForm() {
   };
 }
 
+/* ============================================================================
+   PREFLOP RANGE CHECK  (solver-lite v1 — MTT, single ~40–60bb bucket)
+   On-demand: compares the hero's actual preflop action against built-in
+   general MTT guidelines and flags whether it deviated. Fully client-side.
+   ========================================================================== */
+
+// Rank order, high → low. Index 0 = Ace (highest).
+const RC_RANKS = ["A","K","Q","J","T","9","8","7","6","5","4","3","2"];
+const RC_IDX = r => RC_RANKS.indexOf(r);
+
+// Convert two card objects to canonical 169-grid notation: "AKs", "QJo", "TT".
+function rcNotation(c1, c2) {
+  if (!c1 || !c2 || !c1.rank || !c2.rank) return null;
+  if (c1.rank === c2.rank) return c1.rank + c2.rank;            // pair
+  let hi = c1, lo = c2;
+  if (RC_IDX(c1.rank) > RC_IDX(c2.rank)) { hi = c2; lo = c1; }  // lower index = higher rank
+  const suited = c1.suit === c2.suit;
+  return hi.rank + lo.rank + (suited ? "s" : "o");
+}
+
+// Expand one range token (e.g. "22+", "ATs+", "A9s-A6s", "99-22", "AKo") to notations.
+function rcExpandToken(tok) {
+  tok = tok.trim();
+  if (!tok) return [];
+  const out = [];
+  // Range with a dash: same shape, descending kicker / pair.
+  if (tok.includes("-")) {
+    const [a, b] = tok.split("-").map(s => s.trim());
+    if (a.length === 2 && b.length === 2 && a[0] === a[1] && b[0] === b[1]) {
+      // pair range "99-22"
+      const hiI = RC_IDX(a[0]), loI = RC_IDX(b[0]);
+      for (let i = Math.min(hiI, loI); i <= Math.max(hiI, loI); i++) out.push(RC_RANKS[i] + RC_RANKS[i]);
+      return out;
+    }
+    // suited/offsuit range "A9s-A6s": same high card + suffix, varying kicker.
+    const suf = a.slice(-1), high = a[0];
+    const k1 = RC_IDX(a[1]), k2 = RC_IDX(b[1]);
+    for (let i = Math.min(k1, k2); i <= Math.max(k1, k2); i++) out.push(high + RC_RANKS[i] + suf);
+    return out;
+  }
+  // Plus token "22+", "ATs+".
+  if (tok.endsWith("+")) {
+    const base = tok.slice(0, -1);
+    if (base.length === 2 && base[0] === base[1]) {
+      // pair plus: this pair and every higher pair
+      const fromI = RC_IDX(base[0]);
+      for (let i = 0; i <= fromI; i++) out.push(RC_RANKS[i] + RC_RANKS[i]);
+      return out;
+    }
+    // suited/offsuit plus: fix high card, raise kicker up to one below the high card
+    const high = base[0], suf = base.slice(-1), kFrom = RC_IDX(base[1]);
+    const hiI = RC_IDX(high);
+    for (let i = kFrom; i > hiI; i--) out.push(high + RC_RANKS[i] + suf);
+    return out;
+  }
+  // Single explicit hand.
+  return [tok];
+}
+
+// Expand a comma-separated range string to a Set of notations.
+function rcExpandRange(str) {
+  const set = new Set();
+  for (const tok of String(str || "").split(",")) {
+    for (const n of rcExpandToken(tok)) set.add(n);
+  }
+  return set;
+}
+
+// Built-in MTT open-raise (RFI) ranges, ~40–60bb effective. Approximate, GTO-leaning.
+const RC_RFI = {
+  "UTG":   "55+, A9s+, KTs+, QTs+, JTs, T9s, AJo+, KQo",
+  "UTG+1": "44+, A8s+, KTs+, QTs+, J9s+, T9s, 98s, ATo+, KJo+",
+  "UTG+2": "33+, A7s+, K9s+, Q9s+, J9s+, T8s+, 98s, 87s, ATo+, KJo+, QJo",
+  "LJ":    "22+, A4s+, K9s+, Q9s+, J9s+, T8s+, 97s+, 87s, 76s, A9o+, KTo+, QJo",
+  "HJ":    "22+, A2s+, K8s+, Q9s+, J9s+, T8s+, 97s+, 86s+, 76s, 65s, A8o+, KTo+, QTo+, JTo",
+  "CO":    "22+, A2s+, K6s+, Q8s+, J8s+, T8s+, 97s+, 86s+, 75s+, 65s, 54s, A5o+, K9o+, Q9o+, JTo, T9o",
+  "BTN":   "22+, A2s+, K2s+, Q5s+, J7s+, T7s+, 96s+, 85s+, 75s+, 64s+, 54s, A2o+, K7o+, Q8o+, J8o+, T8o+, 98o",
+  "SB":    "22+, A2s+, K4s+, Q6s+, J7s+, T7s+, 96s+, 86s+, 75s+, 65s, 54s, A2o+, K8o+, Q9o+, J9o+, T9o",
+};
+
+// Built-in responses vs a single open, keyed by the raiser's position bucket.
+const RC_VS_OPEN = {
+  early: { // open from UTG / UTG+1 / UTG+2
+    threeBet: "TT+, AQs+, AKo, A5s",
+    call:     "22-99, AJs, ATs, KQs, KJs, QJs, JTs, T9s, AQo",
+  },
+  mid: {   // open from LJ / HJ
+    threeBet: "99+, AQs+, AKo, A5s, A4s, KQs",
+    call:     "22-88, AJs, ATs, KJs, KTs, QJs, QTs, JTs, T9s, 98s, AQo, AJo, KQo",
+  },
+  late: {  // open from CO / BTN
+    threeBet: "77+, ATs+, KTs+, QJs, A5s, A4s, AJo+, KQo",
+    call:     "22-66, A9s-A6s, K9s, Q9s, J9s, T9s, 98s, 87s, 76s, 65s, ATo, KJo, QJo, JTo",
+  },
+  sb: {    // open from SB (hero in BB)
+    threeBet: "55+, A8s+, A5s-A2s, KTs+, QTs+, JTs, AJo+, KQo",
+    call:     "22-44, A7s-A2s, K9s-K6s, Q8s+, J8s+, T8s+, 97s+, 86s+, 76s, 65s, 54s, A9o-A2o, KTo+, QTo+, JTo, T9o",
+  },
+};
+
+function rcRaiserBucket(pos) {
+  if (pos === "UTG" || pos === "UTG+1" || pos === "UTG+2") return "early";
+  if (pos === "LJ" || pos === "HJ") return "mid";
+  if (pos === "CO" || pos === "BTN") return "late";
+  if (pos === "SB") return "sb";
+  return "late"; // fallback
+}
+
+// Compute the preflop range-check result from current state. Returns an object the
+// panel renders, or { error } when the data isn't enough to judge.
+function rcCompute() {
+  const hole = getHeroHole();
+  if (hole.length !== 2) return { error: "Enter both of the hero's hole cards to run the check." };
+  const ss = sectionStatus();
+  const pos = ss.heroPos;
+  if (!pos) return { error: "Set the hero's position to run the check." };
+  const notation = rcNotation(hole[0], hole[1]);
+  const bbDepth = (ss.bb && isFinite(ss.heroStack)) ? ss.heroStack / ss.bb : null;
+
+  // Find the hero's first voluntary preflop action and what happened before it.
+  const acts = (state.streets && state.streets.preflop && state.streets.preflop.actions) || [];
+  let heroAct = null, raisesBefore = 0, lastRaiserPos = null;
+  for (const a of acts) {
+    if (a.player === "hero") { heroAct = a; break; }
+    if (a.verb === "raise" || a.verb === "jam") { raisesBefore++; lastRaiserPos = a.pos; }
+  }
+  const heroVerb = heroAct ? heroAct.verb : null; // raise|jam|call|fold|check|null
+
+  // Hero's action category.
+  let heroCat = "none";
+  if (heroVerb === "raise" || heroVerb === "jam") heroCat = "aggressive";
+  else if (heroVerb === "call") heroCat = "passive";
+  else if (heroVerb === "fold") heroCat = "fold";
+  else if (heroVerb === "check") heroCat = "check";
+
+  const heroActionText = ({
+    aggressive: heroVerb === "jam" ? "All-in" : (raisesBefore >= 1 ? "3-bet / raise" : "Open-raise"),
+    passive: raisesBefore >= 1 ? "Call" : "Limp / call",
+    fold: "Fold",
+    check: "Check",
+    none: "No preflop action recorded",
+  })[heroCat];
+
+  const res = {
+    notation, pos, bbDepth,
+    heroActionText,
+    situation: "", standard: "", verdict: "", verdictClass: "info",
+  };
+
+  // Stack-depth caveat.
+  if (bbDepth != null) {
+    if (bbDepth < 25) res.depthNote = `You're about ${Math.round(bbDepth)}bb deep. Short stacks shift toward jam-or-fold — these charts assume roughly 40–60bb, so treat this as a rough guide.`;
+    else if (bbDepth > 100) res.depthNote = `You're about ${Math.round(bbDepth)}bb deep. Deeper stacks play a bit wider — these charts assume roughly 40–60bb.`;
+  }
+
+  // ---- Multi-raise pots are out of scope for v1. ----
+  if (raisesBefore >= 2) {
+    res.situation = `Facing multiple raises with <span class="rc-hand">${notation}</span> from <b>${pos}</b>.`;
+    res.standard = "—";
+    res.verdictClass = "info";
+    res.verdict = "Multi-raise pots (4-bet+ spots) aren't covered yet. The preflop check currently handles unopened pots and single-raise spots.";
+    return res;
+  }
+
+  // ---- Unopened pot (RFI). ----
+  if (raisesBefore === 0) {
+    if (pos === "BB") {
+      res.situation = `Folded/limped to you in the <b>big blind</b> with <span class="rc-hand">${notation}</span>.`;
+      res.standard = "Check / option";
+      res.verdictClass = "info";
+      res.verdict = "There's no standard “open” from the big blind — you can check your option, or raise to isolate limpers. The check focuses on opening and defending spots for now.";
+      return res;
+    }
+    const range = rcExpandRange(RC_RFI[pos] || "");
+    const inRange = range.has(notation);
+    res.situation = `First in (unopened pot) from <b>${pos}</b> with <span class="rc-hand">${notation}</span>.`;
+    res.standard = inRange ? "Open-raise" : "Fold";
+    if (inRange) {
+      if (heroCat === "aggressive") { res.verdictClass = "match"; res.verdict = `${notation} is a standard open from ${pos}. Your open-raise matches the chart.`; }
+      else if (heroCat === "fold") { res.verdictClass = "dev"; res.verdict = `${notation} is a standard open from ${pos} — folding here is tighter than the chart.`; }
+      else if (heroCat === "passive") { res.verdictClass = "dev"; res.verdict = `The standard line is to open-raise ${notation} from ${pos}, not limp.`; }
+      else { res.verdictClass = "info"; res.verdict = `${notation} is a standard open from ${pos}.`; }
+    } else {
+      if (heroCat === "fold") { res.verdictClass = "match"; res.verdict = `${notation} is below a standard opening range from ${pos}. Folding matches the chart.`; }
+      else if (heroCat === "aggressive") { res.verdictClass = "dev"; res.verdict = `${notation} is below a standard opening range from ${pos} — this open is on the loose side.`; }
+      else if (heroCat === "passive") { res.verdictClass = "dev"; res.verdict = `${notation} isn't a standard open from ${pos}; limping it is non-standard.`; }
+      else { res.verdictClass = "info"; res.verdict = `${notation} is below a standard opening range from ${pos}.`; }
+    }
+    return res;
+  }
+
+  // ---- Facing a single open. ----
+  const bucket = rcRaiserBucket(lastRaiserPos);
+  const resp = RC_VS_OPEN[bucket];
+  const in3bet = rcExpandRange(resp.threeBet).has(notation);
+  const inCall = rcExpandRange(resp.call).has(notation);
+  const standard = in3bet ? "3-bet" : inCall ? "Call" : "Fold";
+  const raiserLabel = lastRaiserPos || "an earlier position";
+  res.situation = `Facing a raise from <b>${raiserLabel}</b> with <span class="rc-hand">${notation}</span> in <b>${pos}</b>.`;
+  res.standard = standard;
+
+  if (heroCat === "aggressive") {
+    if (in3bet) { res.verdictClass = "match"; res.verdict = `${notation} is a standard 3-bet vs a ${raiserLabel} open. Matches the chart.`; }
+    else if (inCall) { res.verdictClass = "dev"; res.verdict = `${notation} is more of a call than a 3-bet vs a ${raiserLabel} open.`; }
+    else { res.verdictClass = "dev"; res.verdict = `${notation} is below a standard 3-bet/call range vs a ${raiserLabel} open — a fold is standard.`; }
+  } else if (heroCat === "passive") {
+    if (inCall) { res.verdictClass = "match"; res.verdict = `${notation} is a standard call vs a ${raiserLabel} open. Matches the chart.`; }
+    else if (in3bet) { res.verdictClass = "dev"; res.verdict = `${notation} is strong enough to 3-bet vs a ${raiserLabel} open, not just call.`; }
+    else { res.verdictClass = "dev"; res.verdict = `${notation} is below a standard defending range vs a ${raiserLabel} open — calling is loose.`; }
+  } else if (heroCat === "fold") {
+    if (standard === "Fold") { res.verdictClass = "match"; res.verdict = `${notation} is below a standard defending range vs a ${raiserLabel} open. Folding matches the chart.`; }
+    else if (in3bet) { res.verdictClass = "dev"; res.verdict = `${notation} is a standard 3-bet vs a ${raiserLabel} open — folding is too tight.`; }
+    else { res.verdictClass = "dev"; res.verdict = `${notation} is a standard call vs a ${raiserLabel} open — folding is tighter than the chart.`; }
+  } else {
+    res.verdictClass = "info"; res.verdict = `Standard play with ${notation} vs a ${raiserLabel} open is to ${standard.toLowerCase()}.`;
+  }
+  return res;
+}
+
+// Render the on-demand preflop range-check panel at the top of the output.
+function showRangeCheckForm() {
+  const out = $("#output");
+  if (!out) return;
+  if (document.getElementById("rangeCheckForm")) return; // already open
+  track("range_check_opened", { game: state.gameType });
+  const r = rcCompute();
+  const form = document.createElement("div");
+  form.className = "tourney-form range-check";
+  form.id = "rangeCheckForm";
+  if (r.error) {
+    form.innerHTML = `
+      <div class="tf-head"><span>Preflop check</span><button type="button" id="rcClose" aria-label="Close">×</button></div>
+      <div class="rc-verdict info">${r.error}</div>`;
+  } else {
+    form.innerHTML = `
+      <div class="tf-head"><span>Preflop check</span><button type="button" id="rcClose" aria-label="Close">×</button></div>
+      <div class="rc-situation">${r.situation}</div>
+      <div class="rc-row"><span class="k">Standard play</span><span class="v">${r.standard}</span></div>
+      <div class="rc-row"><span class="k">Your action</span><span class="v">${r.heroActionText}</span></div>
+      <div class="rc-verdict ${r.verdictClass}">${r.verdict}</div>
+      ${r.depthNote ? `<div class="rc-note">${r.depthNote}</div>` : ""}
+      <div class="rc-note">General MTT guidelines for ~40–60bb. A guide, not a full solver.</div>`;
+  }
+  out.insertBefore(form, out.firstChild);
+  const close = document.getElementById("rcClose");
+  if (close) close.onclick = () => { const f = document.getElementById("rangeCheckForm"); if (f) f.remove(); };
+}
+
 // Get the current hand's image as a Blob — uses the saved-hand dataURL when viewing
 // a saved hand, otherwise renders fresh from `state`.
 async function getCurrentHandImageBlob() {
@@ -4378,6 +4655,7 @@ function refreshStageToggleUI() {
 $("#closeBtn").addEventListener("click", () => $("#overlay").classList.remove("on"));
 $("#headerTourneyBtn").addEventListener("click", () => showTourneyForm());
 $("#headerNoteBtn").addEventListener("click", () => showTitleNoteForm());
+$("#headerCheckBtn").addEventListener("click", () => showRangeCheckForm());
 $("#overlay").addEventListener("click", e => { if (e.target.id === "overlay") $("#overlay").classList.remove("on"); });
 
 function showToast(msg) {
