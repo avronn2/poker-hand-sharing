@@ -4495,13 +4495,15 @@ function rcCompute() {
   let heroAct = null, raisesBefore = 0, lastRaiserPos = null;
   for (const a of acts) {
     if (a.player === "hero") { heroAct = a; break; }
-    if (a.verb === "raise" || a.verb === "jam") { raisesBefore++; lastRaiserPos = a.pos; }
+    // Preflop, the FIRST aggressive action over the blinds is recorded as verb "bet"
+    // (the engine only switches to "raise" once raiseCount > 0), so "bet" here = an open.
+    if (a.verb === "raise" || a.verb === "jam" || a.verb === "bet") { raisesBefore++; lastRaiserPos = a.pos; }
   }
-  const heroVerb = heroAct ? heroAct.verb : null; // raise|jam|call|fold|check|null
+  const heroVerb = heroAct ? heroAct.verb : null; // raise|bet|jam|call|fold|check|null
 
   // Hero's action category.
   let heroCat = "none";
-  if (heroVerb === "raise" || heroVerb === "jam") heroCat = "aggressive";
+  if (heroVerb === "raise" || heroVerb === "jam" || heroVerb === "bet") heroCat = "aggressive";
   else if (heroVerb === "call") heroCat = "passive";
   else if (heroVerb === "fold") heroCat = "fold";
   else if (heroVerb === "check") heroCat = "check";
@@ -4546,7 +4548,7 @@ function rcCompute() {
     }
     const range = rcExpandRange(RC_RFI[pos] || "");
     const inRange = range.has(notation);
-    res.situation = `First in (unopened pot) from <b>${pos}</b> with <span class="rc-hand">${notation}</span>.`;
+    res.situation = `Folded to you — first in from the <b>${pos}</b> with <span class="rc-hand">${notation}</span>.`;
     res.standard = inRange ? "Open-raise" : "Fold";
     if (inRange) {
       if (heroCat === "aggressive") { res.verdictClass = "match"; res.verdict = `${notation} is a standard open from ${pos}. Your open-raise matches the chart.`; }
@@ -4569,19 +4571,19 @@ function rcCompute() {
   const inCall = rcExpandRange(resp.call).has(notation);
   const standard = in3bet ? "3-bet" : inCall ? "Call" : "Fold";
   const raiserLabel = lastRaiserPos || "an earlier position";
-  res.situation = `Facing a raise from <b>${raiserLabel}</b> with <span class="rc-hand">${notation}</span> in <b>${pos}</b>.`;
+  res.situation = `<b>${raiserLabel}</b> opened — you're in the <b>${pos}</b> with <span class="rc-hand">${notation}</span>.`;
   res.standard = standard;
 
   if (heroCat === "aggressive") {
     if (in3bet) { res.verdictClass = "match"; res.verdict = `${notation} is a standard 3-bet vs a ${raiserLabel} open. Matches the chart.`; }
-    else if (inCall) { res.verdictClass = "dev"; res.verdict = `${notation} is more of a call than a 3-bet vs a ${raiserLabel} open.`; }
-    else { res.verdictClass = "dev"; res.verdict = `${notation} is below a standard 3-bet/call range vs a ${raiserLabel} open — a fold is standard.`; }
+    else if (inCall) { res.verdictClass = "dev"; res.verdict = `Standard play is to call here — ${notation} is more of a flat than a 3-bet vs a ${raiserLabel} open.`; }
+    else { res.verdictClass = "dev"; res.verdict = `Standard play is to fold — ${notation} is below a normal 3-bet/call range vs a ${raiserLabel} open.`; }
   } else if (heroCat === "passive") {
     if (inCall) { res.verdictClass = "match"; res.verdict = `${notation} is a standard call vs a ${raiserLabel} open. Matches the chart.`; }
     else if (in3bet) { res.verdictClass = "dev"; res.verdict = `${notation} is strong enough to 3-bet vs a ${raiserLabel} open, not just call.`; }
-    else { res.verdictClass = "dev"; res.verdict = `${notation} is below a standard defending range vs a ${raiserLabel} open — calling is loose.`; }
+    else { res.verdictClass = "dev"; res.verdict = `Standard play is to fold — ${notation} is below a normal defending range vs a ${raiserLabel} open, so calling is loose.`; }
   } else if (heroCat === "fold") {
-    if (standard === "Fold") { res.verdictClass = "match"; res.verdict = `${notation} is below a standard defending range vs a ${raiserLabel} open. Folding matches the chart.`; }
+    if (standard === "Fold") { res.verdictClass = "match"; res.verdict = `Folding matches the chart — ${notation} is below a normal defending range vs a ${raiserLabel} open.`; }
     else if (in3bet) { res.verdictClass = "dev"; res.verdict = `${notation} is a standard 3-bet vs a ${raiserLabel} open — folding is too tight.`; }
     else { res.verdictClass = "dev"; res.verdict = `${notation} is a standard call vs a ${raiserLabel} open — folding is tighter than the chart.`; }
   } else {
