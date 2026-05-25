@@ -3689,6 +3689,10 @@ function saveActiveStreet() {
   refreshStreetSections();
   renderShowdownVillains();
   refreshShowdownStatus();
+  // Finalizing a street can complete the hand (e.g. a fold leaves one player) — re-evaluate
+  // the Generate button now, since this may run AFTER renderInlinePromptOrReview already
+  // checked completeness against the not-yet-saved street.
+  if (typeof refreshGenerateButton === "function") refreshGenerateButton();
 }
 
 /* Generic card picker.
