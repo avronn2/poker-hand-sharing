@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e0c1f">
+<title>Showdown Pro · Casillas</title>
+<style>
+:root {
+  --bg: #0e0c1f;
+  --panel: #14122a;
+  --panel-2: #1a1632;
+  --ink: #f2eeff;
+  --ink-dim: #9b96c4;
+  --line: #2b2748;
+  --accent: #34d6c4;
+  --pink: #ff7eb6;
+  --purple: #b07cff;
+  --danger: #f04b5a;
+  --warn: #f0c44d;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.5 "SF Pro Rounded", -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif;
+  min-height: 100vh; -webkit-font-smoothing: antialiased;
+}
+button, input, textarea { font-family: inherit; color: inherit; }
+button { cursor: pointer; }
+
+/* Header */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 16px; border-bottom: 1px solid var(--line);
+  background: var(--panel); position: sticky; top: 0; z-index: 10;
+}
+.brand {
+  font-weight: 800; letter-spacing: 1.4px; font-size: 13px;
+  background: linear-gradient(135deg, var(--pink), var(--purple));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  flex-shrink: 0;
+}
+.brand small { color: var(--ink-dim); font-weight: 600; font-size: 11px; letter-spacing: 1.2px; margin-left: 6px; background: none; -webkit-text-fill-color: var(--ink-dim); }
+.identity { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.identity .avatar {
+  width: 30px; height: 30px; border-radius: 50%; overflow: hidden; position: relative;
+  background: linear-gradient(135deg, var(--pink), var(--purple));
+  display: flex; align-items: center; justify-content: center;
+  color: #0c1226; font-weight: 800; font-size: 11px;
+  flex-shrink: 0;
+}
+.identity .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.identity .name { font-size: 13px; font-weight: 700; }
+.sandbox-tag {
+  background: var(--warn); color: #1c1b2c;
+  font-size: 9px; font-weight: 800; padding: 3px 7px; border-radius: 4px;
+  letter-spacing: .6px; flex-shrink: 0;
+}
+
+.container { max-width: 760px; margin: 0 auto; padding: 16px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.tab {
+  background: var(--panel); color: var(--ink-dim);
+  border: 1px solid var(--line); border-radius: 999px;
+  padding: 7px 14px; font-size: 12px; font-weight: 700;
+}
+.tab.active { background: var(--accent); color: #0c1226; border-color: var(--accent); }
+.tab .count { opacity: .7; margin-left: 3px; font-weight: 600; }
+
+/* Review cards */
+.review-card {
+  display: flex; gap: 12px; align-items: center;
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px; margin-bottom: 10px;
+  cursor: pointer; transition: border-color .15s ease, transform .15s ease;
+}
+.review-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.review-card .thumb {
+  width: 96px; height: 64px; flex-shrink: 0; border-radius: 8px; overflow: hidden;
+  background: #14122a;
+}
+.review-card .thumb svg { display: block; width: 100%; height: 100%; }
+.review-card .meta { flex: 1; min-width: 0; }
+.review-card .row1 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tier-badge {
+  font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 4px;
+  background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+  letter-spacing: .4px;
+}
+.tier-badge.voice { background: var(--accent); color: #0c1226; border-color: var(--accent); }
+.review-card .who {
+  font-size: 12px; color: var(--ink); margin-top: 5px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.review-card .title-line { font-size: 11px; color: var(--ink-dim); margin-top: 2px; }
+.sla { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; }
+.sla .dot { width: 8px; height: 8px; border-radius: 50%; }
+.sla.green { color: #6ce29e; } .sla.green .dot { background: #6ce29e; }
+.sla.amber { color: var(--warn); } .sla.amber .dot { background: var(--warn); }
+.sla.red   { color: var(--danger); } .sla.red   .dot { background: var(--danger); }
+.review-card .sla { margin-top: 6px; }
+.review-card .chev { color: var(--ink-dim); font-size: 22px; flex-shrink: 0; font-weight: 300; }
+
+.empty { text-align: center; padding: 60px 20px; color: var(--ink-dim); font-size: 13px; }
+
+/* Detail view */
+.detail-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.back-btn {
+  background: transparent; border: 0; color: var(--accent);
+  font-size: 14px; font-weight: 700; padding: 4px 0;
+}
+.detail-title { font-size: 17px; font-weight: 800; margin: 0 0 3px; letter-spacing: -0.2px; }
+.detail-sub { font-size: 12px; color: var(--ink-dim); margin: 0 0 14px; }
+.hand-image {
+  width: 100%; max-width: 520px; margin: 0 auto 18px;
+  border-radius: 12px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,0.35); display: block;
+}
+.hand-image svg { display: block; width: 100%; height: auto; }
+
+.streets-title {
+  font-size: 11px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .8px; color: var(--ink-dim); margin: 14px 0 8px;
+}
+
+.street-row {
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: 12px; margin-bottom: 8px; overflow: hidden;
+}
+.street-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; cursor: pointer; user-select: none;
+}
+.street-head .label {
+  font-size: 13px; font-weight: 800; color: var(--accent);
+  text-transform: uppercase; letter-spacing: .8px;
+}
+.street-head .right { display: flex; align-items: center; gap: 10px; }
+.street-head .status { font-size: 11px; color: var(--ink-dim); }
+.street-head .status.has { color: var(--accent); }
+.street-head .chev { color: var(--ink-dim); font-size: 14px; transition: transform .2s ease; }
+.street-row.open .street-head .chev { transform: rotate(90deg); }
+.street-body { display: none; padding: 0 14px 14px; border-top: 1px solid var(--line); }
+.street-row.open .street-body { display: block; }
+
+textarea.street-input {
+  width: 100%; min-height: 80px; padding: 10px 12px;
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: 8px; color: var(--ink); font-size: 13px; line-height: 1.5;
+  margin-top: 10px; resize: vertical;
+}
+textarea.street-input:focus { outline: none; border-color: var(--accent); }
+
+/* Voice recorder */
+.recorder { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+.rec-row { display: flex; align-items: center; gap: 10px; }
+.rec-btn {
+  background: var(--accent); color: #0c1226;
+  border: 0; border-radius: 8px; padding: 9px 14px;
+  font-size: 13px; font-weight: 800;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.rec-btn.recording { background: var(--danger); color: #fff; }
+.rec-btn.recording .pulse { width: 10px; height: 10px; border-radius: 50%; background: #fff; animation: rec-pulse 1.2s ease-in-out infinite; }
+@keyframes rec-pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+.rec-time { font-size: 12px; color: var(--ink-dim); font-variant-numeric: tabular-nums; min-width: 36px; }
+.rec-playback { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rec-playback audio { flex: 1; min-width: 200px; }
+.rec-clear {
+  background: transparent; color: var(--ink-dim);
+  border: 1px solid var(--line); border-radius: 6px;
+  padding: 6px 10px; font-size: 11px; font-weight: 700;
+}
+
+/* Footer actions (sticky) */
+.detail-actions {
+  display: flex; gap: 10px; margin-top: 18px;
+  position: sticky; bottom: 0;
+  padding: 14px 0; background: linear-gradient(to top, var(--bg) 80%, transparent);
+}
+.btn-primary {
+  flex: 1; background: var(--accent); color: #0c1226;
+  border: 0; border-radius: 10px; padding: 13px;
+  font-size: 14px; font-weight: 800;
+}
+.btn-primary:disabled { background: var(--panel); color: var(--ink-dim); cursor: not-allowed; }
+.btn-secondary {
+  background: var(--panel-2); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 10px; padding: 13px 16px; font-size: 13px; font-weight: 700;
+}
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+  background: var(--accent); color: #0c1226;
+  padding: 10px 18px; border-radius: 8px;
+  font-size: 13px; font-weight: 800;
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+  z-index: 100;
+}
+.toast.on { opacity: 1; transform: translateX(-50%) translateY(-5px); }
+.toast.err { background: var(--danger); color: #fff; }
+
+.sandbox-banner {
+  background: rgba(240,196,77,0.12); border: 1px solid rgba(240,196,77,0.4);
+  color: var(--warn); border-radius: 10px; padding: 10px 12px;
+  font-size: 12px; line-height: 1.5; margin-bottom: 14px;
+}
+.sandbox-banner b { color: var(--warn); }
+
+@media (max-width: 600px) {
+  .container { padding: 12px; }
+  .review-card .thumb { width: 78px; height: 54px; }
+  .review-card { padding: 10px; gap: 10px; }
+  .detail-title { font-size: 15px; }
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">SHOWDOWN<small>PRO</small></div>
+  <span class="sandbox-tag">SANDBOX</span>
+  <div class="identity">
+    <div class="avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"><span>EE</span></div>
+    <div class="name">Casillas</div>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Dashboard view -->
+  <div id="dashboardView">
+    <div class="sandbox-banner">
+      <b>Sandbox mode</b> &mdash; mock reviews seed the queue; anything a user requests from <code>showdown.cards</code> shows up here tagged <b>LIVE</b>. Hit Send and it lands in their banner.
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="pending">Pending <span class="count" id="pendingCount">0</span></button>
+      <button class="tab" data-tab="delivered">Delivered <span class="count" id="deliveredCount">0</span></button>
+    </div>
+    <div id="reviewList"></div>
+  </div>
+
+  <!-- Detail view -->
+  <div id="detailView" style="display:none">
+    <div class="detail-header">
+      <button class="back-btn" id="backBtn">← Back to queue</button>
+      <div id="detailSla"></div>
+    </div>
+    <h2 class="detail-title" id="detailTitle"></h2>
+    <p class="detail-sub" id="detailSub"></p>
+    <div class="hand-image" id="detailImage"></div>
+    <div class="streets-title">Your notes by street</div>
+    <div id="streetsList"></div>
+    <div class="detail-actions">
+      <button class="btn-secondary" id="saveDraftBtn">Save draft</button>
+      <button class="btn-primary" id="sendBtn">Send to user</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Saved</div>
+
+<script>
+const $ = sel => document.querySelector(sel);
+const STORAGE_KEY = "showdown_pro_sandbox_v1";   // mock reviews + Casillas's drafts
+const REAL_KEY = "showdown_reviews_v1";          // bus shared with index.html (real submissions)
+const STREETS = ["preflop", "flop", "turn", "river"];
+
+function showToast(msg, isErr) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.toggle("err", !!isErr);
+  t.classList.add("on");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("on"), 2000);
+}
+
+/* ---------- SVG mock hand image generator ---------- */
+function makeHandSvg(opts) {
+  const o = Object.assign({
+    heroPos: "BTN", villainPos: "CO",
+    heroCards: ["Ah", "Ks"],
+    board: ["Jc", "9h", "3d"],
+    pot: "12bb",
+  }, opts || {});
+  const card = (rank, suit, x, y, w, h) => {
+    w = w || 36; h = h || 50;
+    const red = suit === "h" || suit === "d";
+    const sym = { s: "♠", h: "♥", d: "♦", c: "♣" }[suit] || "?";
+    const color = red ? "#d4537e" : "#1c1b2c";
+    return `<g transform="translate(${x} ${y})">
+      <rect width="${w}" height="${h}" rx="4" fill="#f4f1ea"/>
+      <text x="5" y="14" font-family="-apple-system,sans-serif" font-size="13" font-weight="800" fill="${color}">${rank}</text>
+      <text x="5" y="${h - 6}" font-family="-apple-system,sans-serif" font-size="14" fill="${color}">${sym}</text>
+    </g>`;
+  };
+  const pill = (label, x, y, hero) => {
+    const bg = hero ? "#22363f" : "#2c2550";
+    const stroke = hero ? "#5ae5c8" : "#3a3266";
+    const text = hero ? "#5ae5c8" : "#d7d2ec";
+    return `<g>
+      <rect x="${x - 26}" y="${y - 11}" width="52" height="22" rx="11" fill="${bg}" stroke="${stroke}" stroke-width="1.5"/>
+      <text x="${x}" y="${y + 4}" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" font-weight="800" fill="${text}">${label}</text>
+    </g>`;
+  };
+  const boardW = o.board.length ? (o.board.length * 36 + (o.board.length - 1) * 6) : 0;
+  const boardStartX = 260 - boardW / 2;
+  return `<svg viewBox="0 0 520 320" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="felt" cx="50%" cy="50%" r="65%">
+        <stop offset="0%" stop-color="#1a5d44"/>
+        <stop offset="100%" stop-color="#0e3327"/>
+      </radialGradient>
+      <linearGradient id="rail" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0%" stop-color="#6b4520"/>
+        <stop offset="100%" stop-color="#3a2613"/>
+      </linearGradient>
+    </defs>
+    <rect width="520" height="320" fill="#14122a"/>
+    <ellipse cx="260" cy="160" rx="240" ry="135" fill="url(#rail)"/>
+    <ellipse cx="260" cy="160" rx="225" ry="120" fill="url(#felt)"/>
+    ${o.board.map((c, i) => card(c[0], c[1], boardStartX + i * 42, 145)).join("")}
+    <text x="260" y="${o.board.length ? 225 : 175}" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="14" font-weight="800" fill="#f0c44d">POT ${o.pot}</text>
+    ${pill(o.villainPos, 260, 35, false)}
+    ${pill(o.heroPos, 260, 295, true)}
+    ${card(o.heroCards[0][0], o.heroCards[0][1], 234, 250)}
+    ${card(o.heroCards[1][0], o.heroCards[1][1], 250, 250)}
+  </svg>`;
+}
+
+/* ---------- mock data ---------- */
+const MOCK = [
+  { id: "rev_001", userEmail: "alex@showdown.cards", tier: "voice", createdAt: Date.now() - 8 * 3600e3,
+    handImageSvg: makeHandSvg({ heroPos: "BTN", villainPos: "CO", heroCards: ["Ah","Ks"], board: ["Jc","9h","3d","Qs","2c"], pot: "62bb" }),
+    handTitle: "Caller defends BTN vs CO 3-bet, river decision" },
+  { id: "rev_002", userEmail: "maya@showdown.cards", tier: "text", createdAt: Date.now() - 26 * 3600e3,
+    handImageSvg: makeHandSvg({ heroPos: "SB", villainPos: "BTN", heroCards: ["Qc","Qd"], board: ["Kh","Ts","4c","Jd"], pot: "48bb" }),
+    handTitle: "QQ on K-high turn out of position" },
+  { id: "rev_003", userEmail: "devon@showdown.cards", tier: "voice", createdAt: Date.now() - 39 * 3600e3,
+    handImageSvg: makeHandSvg({ heroPos: "CO", villainPos: "BB", heroCards: ["Ts","9s"], board: ["8s","7c","2h","6s","As"], pot: "94bb" }),
+    handTitle: "Wheel draw rivered, value or bluff?" },
+  { id: "rev_004", userEmail: "sam@showdown.cards", tier: "text", createdAt: Date.now() - 4 * 3600e3,
+    handImageSvg: makeHandSvg({ heroPos: "UTG", villainPos: "HJ", heroCards: ["Kd","Kc"], board: [], pot: "14bb" }),
+    handTitle: "KK preflop 4-bet pot" },
+];
+
+/* ---------- state ---------- */
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }
+  catch (_) { return {}; }
+}
+function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {} }
+let state = loadState();
+if (!state.reviews || !state.reviews.length) {
+  state.reviews = MOCK.map(r => Object.assign({ status: "pending", notes: {} }, r));
+  saveState();
+}
+
+/* Real submissions come in via the showdown_reviews_v1 bus (written by index.html).
+   We normalize their shape to match the mock shape so the renderer can be unaware.
+   The `source` field tags them as live, so we can show a "LIVE" badge. */
+function loadRealReviews() {
+  try { return JSON.parse(localStorage.getItem(REAL_KEY)) || []; }
+  catch (_) { return []; }
+}
+function saveRealReviews(arr) {
+  try { localStorage.setItem(REAL_KEY, JSON.stringify(arr)); } catch (_) {}
+}
+function normalizeReal(r) {
+  // Map index.html review shape → pro.html review shape
+  return {
+    id: r.id,
+    userEmail: r.userEmail,
+    tier: r.tier,
+    createdAt: r.createdAt,
+    handImageDataUrl: r.handImageDataUrl,   // <img src="…"> instead of inline SVG
+    handTitle: r.handTitle,
+    status: r.status === "delivered" ? "delivered" : "pending",  // "paid" → "pending"
+    notes: r.notes || {},
+    deliveredAt: r.deliveredAt || 0,
+    source: "real",
+    _raw: r   // keep a handle to write back to the shared bus on Send
+  };
+}
+
+function getAllReviews() {
+  // Real submissions first (newest first), then mock — for both Pending and Delivered tabs.
+  const real = loadRealReviews().map(normalizeReal);
+  return real.concat(state.reviews);
+}
+function getReview(id) {
+  const all = getAllReviews();
+  return all.find(r => r.id === id);
+}
+
+function setNote(id, street, patch) {
+  const r = getReview(id); if (!r) return;
+  r.notes = r.notes || {};
+  r.notes[street] = Object.assign({}, r.notes[street] || {}, patch);
+  if (r.source === "real") {
+    // Persist back to the shared bus
+    const real = loadRealReviews();
+    const idx = real.findIndex(x => x.id === id);
+    if (idx >= 0) {
+      real[idx].notes = real[idx].notes || {};
+      real[idx].notes[street] = Object.assign({}, real[idx].notes[street] || {}, patch);
+      saveRealReviews(real);
+    }
+  } else {
+    saveState();
+  }
+}
+
+/* ---------- SLA ---------- */
+function sla(createdAt) {
+  const hours = (createdAt + 48 * 3600e3 - Date.now()) / 3600e3;
+  if (hours <= 0) return { cls: "red", label: "Overdue" };
+  if (hours < 12) return { cls: "red", label: `Due in ${Math.round(hours)}h` };
+  if (hours < 24) return { cls: "amber", label: `Due in ${Math.round(hours)}h` };
+  return { cls: "green", label: `Due in ${Math.round(hours)}h` };
+}
+
+/* ---------- dashboard render ---------- */
+let currentTab = "pending";
+let currentReviewId = null;
+
+function thumbHtml(r) {
+  // Real submissions ship a base64 image dataURL; mocks ship an inline SVG string.
+  if (r.handImageDataUrl) return `<img src="${r.handImageDataUrl}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">`;
+  return r.handImageSvg || "";
+}
+
+function renderDashboard() {
+  const list = $("#reviewList");
+  const all = getAllReviews();
+  const pending = all.filter(r => r.status === "pending");
+  const delivered = all.filter(r => r.status === "delivered");
+  $("#pendingCount").textContent = pending.length;
+  $("#deliveredCount").textContent = delivered.length;
+  const items = currentTab === "pending"
+    ? pending.slice().sort((a, b) => {
+        // Real submissions to the top, then by oldest createdAt (closest to SLA)
+        if (a.source === "real" && b.source !== "real") return -1;
+        if (b.source === "real" && a.source !== "real") return 1;
+        return a.createdAt - b.createdAt;
+      })
+    : delivered.slice().sort((a, b) => (b.deliveredAt || 0) - (a.deliveredAt || 0));
+  if (!items.length) {
+    list.innerHTML = `<div class="empty">No ${currentTab} reviews ${currentTab === "pending" ? "right now — sit tight" : "yet"}.</div>`;
+    return;
+  }
+  list.innerHTML = items.map(r => {
+    const s = currentTab === "pending" ? sla(r.createdAt) : { cls: "green", label: "Delivered" };
+    const tierLabel = r.tier === "voice" ? "Voice memo · $15" : "Written note · $5";
+    const liveTag = r.source === "real" ? `<span class="tier-badge" style="background:var(--pink);color:#1c1b2c;border-color:var(--pink);">LIVE</span>` : "";
+    return `<div class="review-card" data-id="${r.id}">
+      <div class="thumb">${thumbHtml(r)}</div>
+      <div class="meta">
+        <div class="row1">${liveTag}<span class="tier-badge ${r.tier}">${tierLabel}</span></div>
+        <div class="who">${escapeHtml(r.userEmail)}</div>
+        <div class="title-line">${escapeHtml(r.handTitle || "Hand review")}</div>
+        <div class="sla ${s.cls}"><span class="dot"></span>${s.label}</div>
+      </div>
+      <div class="chev">›</div>
+    </div>`;
+  }).join("");
+  list.querySelectorAll(".review-card").forEach(el => {
+    el.addEventListener("click", () => openReview(el.dataset.id));
+  });
+}
+
+function escapeHtml(s) { return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+document.querySelectorAll(".tab").forEach(t => {
+  t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    currentTab = t.dataset.tab;
+    renderDashboard();
+  });
+});
+
+/* ---------- detail view ---------- */
+function openReview(id) {
+  const r = getReview(id); if (!r) return;
+  currentReviewId = id;
+  $("#dashboardView").style.display = "none";
+  $("#detailView").style.display = "block";
+  const tierWord = r.tier === "voice" ? "Voice memo" : "Written note";
+  $("#detailTitle").textContent = `${tierWord} for ${r.userEmail}`;
+  $("#detailSub").textContent = r.handTitle || "";
+  const s = r.status === "pending" ? sla(r.createdAt) : { cls: "green", label: "Delivered" };
+  $("#detailSla").innerHTML = `<span class="sla ${s.cls}"><span class="dot"></span>${s.label}</span>${r.source === "real" ? ` <span class="tier-badge" style="background:var(--pink);color:#1c1b2c;border-color:var(--pink);margin-left:6px;">LIVE</span>` : ""}`;
+  $("#detailImage").innerHTML = thumbHtml(r);
+  renderStreets(r);
+  $("#sendBtn").disabled = r.status === "delivered";
+  $("#sendBtn").textContent = r.status === "delivered" ? "Already delivered" : "Send to user";
+  $("#saveDraftBtn").style.display = r.status === "delivered" ? "none" : "";
+  window.scrollTo(0, 0);
+}
+function closeReview() {
+  currentReviewId = null;
+  $("#detailView").style.display = "none";
+  $("#dashboardView").style.display = "block";
+  renderDashboard();
+}
+$("#backBtn").addEventListener("click", closeReview);
+
+/* ---------- streets ---------- */
+function renderStreets(r) {
+  const list = $("#streetsList");
+  list.innerHTML = STREETS.map(s => {
+    const note = (r.notes && r.notes[s]) || {};
+    const hasContent = (r.tier === "voice" ? !!note.audio : !!(note.text && note.text.trim()));
+    const body = r.tier === "text"
+      ? `<textarea class="street-input" data-street-input="${s}" placeholder="Your read on the ${s} action…">${escapeHtml(note.text || "")}</textarea>`
+      : `<div class="recorder" data-street-rec="${s}">
+          ${note.audio
+            ? `<div class="rec-playback">
+                <audio controls preload="metadata" src="${note.audio}"></audio>
+                <button type="button" class="rec-clear">Re-record</button>
+              </div>`
+            : `<div class="rec-row">
+                <button type="button" class="rec-btn"><span>🎤</span><span>Record</span></button>
+                <span class="rec-time">0:00</span>
+              </div>`}
+        </div>`;
+    return `<div class="street-row ${hasContent ? "" : ""}" data-street="${s}">
+      <div class="street-head">
+        <span class="label">${s}</span>
+        <div class="right">
+          <span class="status ${hasContent ? "has" : ""}">${hasContent ? "✓ noted" : "add note"}</span>
+          <span class="chev">›</span>
+        </div>
+      </div>
+      <div class="street-body">${body}</div>
+    </div>`;
+  }).join("");
+  list.querySelectorAll(".street-row").forEach(row => {
+    row.querySelector(".street-head").addEventListener("click", () => row.classList.toggle("open"));
+    if (r.tier === "text") wireTextInput(row, r);
+    else wireRecorder(row, r);
+  });
+}
+
+function updateStatus(row, hasContent) {
+  const s = row.querySelector(".status");
+  if (!s) return;
+  s.textContent = hasContent ? "✓ noted" : "add note";
+  s.classList.toggle("has", !!hasContent);
+}
+
+function wireTextInput(row, r) {
+  const input = row.querySelector("textarea");
+  if (!input) return;
+  input.addEventListener("input", () => {
+    setNote(r.id, row.dataset.street, { text: input.value });
+    updateStatus(row, !!input.value.trim());
+  });
+}
+
+/* ---------- voice recorder ---------- */
+function wireRecorder(row, r) {
+  const street = row.dataset.street;
+  const clear = row.querySelector(".rec-clear");
+  if (clear) {
+    clear.addEventListener("click", () => {
+      setNote(r.id, street, { audio: null });
+      const open = row.classList.contains("open");
+      renderStreets(r);
+      const newRow = document.querySelector(`#streetsList [data-street="${street}"]`);
+      if (newRow && open) newRow.classList.add("open");
+    });
+    return;
+  }
+  const btn = row.querySelector(".rec-btn");
+  const timeEl = row.querySelector(".rec-time");
+  let recorder = null, chunks = [], startedAt = 0, tick = null;
+  btn.addEventListener("click", async () => {
+    if (!recorder || recorder.state === "inactive") {
+      if (!navigator.mediaDevices || !window.MediaRecorder) {
+        showToast("Voice recording not supported in this browser", true);
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        chunks = [];
+        recorder = new MediaRecorder(stream);
+        recorder.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+        recorder.onstop = () => {
+          stream.getTracks().forEach(t => t.stop());
+          const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+          const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              setNote(r.id, street, { audio: reader.result });
+              renderStreets(r);
+              const newRow = document.querySelector(`#streetsList [data-street="${street}"]`);
+              if (newRow) newRow.classList.add("open");
+            } catch (e) {
+              showToast("Audio too large to save locally", true);
+            }
+          };
+          reader.readAsDataURL(blob);
+        };
+        recorder.start();
+        startedAt = Date.now();
+        btn.classList.add("recording");
+        btn.innerHTML = `<span class="pulse"></span><span>Stop</span>`;
+        tick = setInterval(() => {
+          const sec = Math.floor((Date.now() - startedAt) / 1000);
+          timeEl.textContent = `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, "0")}`;
+        }, 250);
+      } catch (e) {
+        showToast("Microphone permission required", true);
+      }
+    } else if (recorder.state === "recording") {
+      recorder.stop();
+      clearInterval(tick);
+      btn.classList.remove("recording");
+    }
+  });
+}
+
+/* ---------- send / draft ---------- */
+$("#sendBtn").addEventListener("click", () => {
+  if (!currentReviewId) return;
+  const r = getReview(currentReviewId);
+  if (!r || r.status === "delivered") return;
+  const any = STREETS.some(s => {
+    const n = r.notes && r.notes[s];
+    if (!n) return false;
+    return r.tier === "voice" ? !!n.audio : !!(n.text && n.text.trim());
+  });
+  if (!any) { showToast("Add a note on at least one street first", true); return; }
+  r.status = "delivered";
+  r.deliveredAt = Date.now();
+  if (r.source === "real") {
+    // Push the full delivered state back onto the shared bus so index.html sees it.
+    const real = loadRealReviews();
+    const idx = real.findIndex(x => x.id === r.id);
+    if (idx >= 0) {
+      real[idx].status = "delivered";
+      real[idx].deliveredAt = r.deliveredAt;
+      real[idx].notes = r.notes;
+      saveRealReviews(real);
+    }
+  } else {
+    saveState();
+  }
+  showToast(r.source === "real" ? "Delivered to user (sandbox)" : "Sent (sandbox)");
+  setTimeout(closeReview, 700);
+});
+$("#saveDraftBtn").addEventListener("click", () => showToast("Draft saved"));
+
+/* ---------- initial render + tick ---------- */
+renderDashboard();
+setInterval(() => {
+  if ($("#dashboardView").style.display !== "none") renderDashboard();
+}, 60000);
+
+// When index.html writes a fresh submission to the shared bus from another tab,
+// or this tab refreshes localStorage, re-render so it appears at the top of Pending.
+window.addEventListener("storage", (e) => {
+  if (e.key === REAL_KEY) {
+    if ($("#dashboardView").style.display !== "none") renderDashboard();
+  }
+});
+</script>
+</body>
+</html>

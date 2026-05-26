@@ -673,7 +673,7 @@
   .pro-section {
     margin: 16px 0 12px; background: var(--panel-2); border: 1px solid var(--line);
     border-radius: 14px; padding: 14px;
-    display: flex; flex-direction: column; gap: 6px;
+    display: flex; flex-direction: column; gap: 12px;
   }
   .pro-section .pro-head {
     display: flex; flex-direction: row; flex-wrap: nowrap;
@@ -734,6 +734,133 @@
     font-size: 18px; cursor: pointer; padding: 0 6px; margin-left: 2px; line-height: 1;
   }
   .waitlist-form input[type="email"] { width: 100%; box-sizing: border-box; }
+
+  /* ===== Ask-a-Pro: sandbox checkout modal ===== */
+  .checkout-body { padding: 18px 18px 14px; }
+  .checkout-body .ck-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .checkout-body .ck-avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff7eb6, #b07cff);
+    display: flex; align-items: center; justify-content: center;
+    color: #0c1226; font-weight: 800; font-size: 14px;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .checkout-body .ck-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .checkout-body .ck-headline { font-size: 17px; font-weight: 800; color: var(--ink); line-height: 1.2; }
+  .checkout-body .ck-sub { font-size: 12px; color: var(--ink-dim); margin-top: 2px; }
+  .checkout-body .ck-tier {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+    padding: 11px 12px; display: flex; align-items: center; justify-content: space-between;
+    margin: 10px 0 14px;
+  }
+  .checkout-body .ck-tier .ck-tier-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+  .checkout-body .ck-tier .ck-tier-price { font-size: 18px; font-weight: 800; color: var(--accent); }
+  .checkout-body label.ck-label {
+    display: block; font-size: 11px; color: var(--ink-dim);
+    text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; margin-bottom: 6px;
+  }
+  .checkout-body input[type="email"] {
+    width: 100%; box-sizing: border-box;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    color: var(--ink); padding: 10px 12px; font: inherit;
+  }
+  .checkout-body input[type="email"]:focus { outline: none; border-color: var(--accent); }
+  .checkout-body .ck-note {
+    background: rgba(94,234,212,0.08); border: 1px solid rgba(94,234,212,0.25);
+    border-radius: 8px; padding: 8px 10px; margin-top: 12px;
+    font-size: 11px; color: var(--ink-dim); line-height: 1.5;
+  }
+  .checkout-body .ck-note b { color: var(--accent); font-weight: 700; }
+
+  /* ===== Delivery banner on main page ===== */
+  .review-banner {
+    margin: 0 0 12px; padding: 10px 14px;
+    background: linear-gradient(135deg, rgba(94,234,212,0.18), rgba(94,234,212,0.06));
+    border: 1px solid rgba(94,234,212,0.35); border-radius: 12px;
+    display: flex; align-items: center; gap: 10px; cursor: pointer;
+    font-size: 13px; color: var(--ink);
+  }
+  .review-banner .rb-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(94,234,212,0.25);
+    flex-shrink: 0;
+  }
+  .review-banner .rb-text { flex: 1; min-width: 0; }
+  .review-banner .rb-text b { color: var(--accent); }
+  .review-banner .rb-chev { color: var(--ink-dim); font-size: 18px; }
+  .review-banner .rb-close {
+    background: transparent; border: 0; color: var(--ink-dim);
+    font-size: 18px; cursor: pointer; padding: 0 6px; line-height: 1;
+  }
+
+  /* ===== Saved-hand row review badges ===== */
+  .my-hand-row .row-review-chip {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    padding: 2px 8px; border-radius: 999px;
+    text-transform: uppercase; letter-spacing: 0.4px; margin-top: 4px;
+  }
+  .my-hand-row .row-review-chip.pending {
+    background: rgba(251,191,36,0.15); color: #fbbf24;
+    border: 1px solid rgba(251,191,36,0.35);
+  }
+  .my-hand-row .row-review-chip.ready {
+    background: rgba(94,234,212,0.15); color: var(--accent);
+    border: 1px solid rgba(94,234,212,0.4); cursor: pointer;
+  }
+  .my-hand-row .row-review-chip.ready:hover { background: rgba(94,234,212,0.25); }
+
+  /* ===== Review viewer overlay ===== */
+  .review-viewer-body { padding: 16px 18px 24px; }
+  .rv-hero {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+    padding-bottom: 14px; border-bottom: 1px solid var(--line);
+  }
+  .rv-hero .rv-avatar {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff7eb6, #b07cff);
+    display: flex; align-items: center; justify-content: center;
+    color: #0c1226; font-weight: 800; font-size: 16px;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .rv-hero .rv-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .rv-hero .rv-titles { flex: 1; min-width: 0; }
+  .rv-hero .rv-from { font-size: 11px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+  .rv-hero .rv-name { font-size: 17px; font-weight: 800; color: var(--ink); line-height: 1.2; }
+  .rv-hero .rv-tier {
+    font-size: 11px; color: var(--accent); font-weight: 700; margin-top: 3px;
+  }
+  .rv-image { margin: 0 0 16px; border-radius: 10px; overflow: hidden; }
+  .rv-image img { display: block; width: 100%; height: auto; }
+  .rv-streets { display: flex; flex-direction: column; gap: 10px; }
+  .rv-street {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .rv-street .rv-street-head {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  }
+  .rv-street .rv-street-label {
+    font-size: 11px; font-weight: 800; color: var(--ink-dim);
+    text-transform: uppercase; letter-spacing: 0.6px;
+  }
+  .rv-street .rv-street-tag {
+    font-size: 10px; padding: 2px 7px; border-radius: 6px;
+    background: rgba(94,234,212,0.15); color: var(--accent);
+    border: 1px solid rgba(94,234,212,0.3);
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .rv-street .rv-street-text {
+    font-size: 14px; line-height: 1.55; color: var(--ink);
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .rv-street audio {
+    width: 100%; margin-top: 4px;
+    background: var(--bg); border-radius: 8px;
+  }
+  .rv-empty {
+    text-align: center; padding: 24px 0; color: var(--ink-dim); font-size: 13px; line-height: 1.5;
+  }
+
   .sheet .body {
     padding: 16px 18px;
     overflow: auto;
@@ -1324,6 +1451,14 @@
   </button>
 </header>
 
+<!-- ASK-A-PRO: delivery banner. Populated by checkAndRenderReviewBanner() on load. -->
+<div id="reviewBanner" class="review-banner" style="display:none">
+  <span class="rb-dot"></span>
+  <div class="rb-text" id="reviewBannerText"></div>
+  <span class="rb-chev">›</span>
+  <button type="button" class="rb-close" id="reviewBannerClose" aria-label="Dismiss">&times;</button>
+</div>
+
 <!-- GAME -->
 <section class="card setup-section" id="sectionGame">
   <h2 class="setup-h2">Game<span class="setup-summary" id="summaryGame" style="display:none;font-weight:normal;color:#aaa5c8;font-size:13px;margin-left:8px;"></span></h2>
@@ -1606,6 +1741,45 @@
   </div>
 </div>
 
+<!-- ASK-A-PRO: SANDBOX CHECKOUT MODAL
+     No real payment — writes a review record to localStorage that pro.html picks up. -->
+<div class="overlay" id="checkoutOverlay">
+  <div class="sheet dialog-sheet">
+    <div class="checkout-body">
+      <div class="ck-head">
+        <div class="ck-avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"><span>EK</span></div>
+        <div>
+          <div class="ck-headline">Send hand to &ldquo;Casillas&rdquo;</div>
+          <div class="ck-sub">3&times; Israel Champion &middot; 48h turnaround</div>
+        </div>
+      </div>
+      <div class="ck-tier">
+        <span class="ck-tier-name" id="ckTierName">Written note</span>
+        <span class="ck-tier-price" id="ckTierPrice">$5</span>
+      </div>
+      <label class="ck-label" for="ckEmail">Where should we send the review?</label>
+      <input type="email" id="ckEmail" placeholder="you@example.com" autocomplete="email">
+      <div class="ck-note"><b>Sandbox mode.</b> Nothing's actually charged. This simulates the full loop &mdash; Casillas's dashboard will see your hand and you'll get the review back here.</div>
+    </div>
+    <div class="dialog-foot">
+      <button type="button" class="btn-secondary" id="ckCancel">Cancel</button>
+      <button type="button" class="btn-primary" id="ckConfirm">Pay (sandbox)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ASK-A-PRO: REVIEW VIEWER OVERLAY
+     Shows the original hand + Casillas's street-tagged notes inline. -->
+<div class="overlay" id="reviewViewerOverlay">
+  <div class="sheet">
+    <header>
+      <h3 style="font-size:15px;font-weight:800;letter-spacing:.2px;">Your review from &ldquo;Casillas&rdquo;</h3>
+      <button type="button" class="closebtn" id="rvClose" aria-label="Close">&times;</button>
+    </header>
+    <div class="body review-viewer-body" id="rvBody"></div>
+  </div>
+</div>
+
 <!-- MY HANDS VIEW (separate page-like view, swapped with main form) -->
 <div id="myHandsView">
   <div class="my-hands-header">
@@ -1765,7 +1939,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.1.7";
+const APP_VERSION = "v1.2.0";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -5291,10 +5465,33 @@ function injectAskAPro(out) {
   sec.querySelectorAll(".pro-tier").forEach(btn => {
     btn.onclick = () => {
       track("pro_cta_clicked", { surface: "section", tier: btn.dataset.tier });
-      if (typeof showToast === "function") showToast("Pro reviews launching soon");
+      openCheckoutModal(btn.dataset.tier);
     };
   });
   track("pro_cta_seen", { surface: "section" });
+
+  // On mobile (≤600px), ensure the pro section ALWAYS sits below the viewport fold on
+  // first view — the popup is the discovery cue, this section is the destination. Short
+  // hands (cropped canvas) can leave room above the fold, so we push the section down with
+  // extra top margin when needed. Wait for the image to finish loading so offsetTop is real.
+  const bodyEl = document.querySelector("#overlay .sheet .body");
+  const measureFold = () => {
+    if (!bodyEl || window.innerWidth > 600) return;
+    if (!document.body.contains(sec)) return;
+    const fold = bodyEl.clientHeight;
+    const top = sec.offsetTop;
+    if (top < fold - 4) {
+      const extra = (fold - top) + 8;   // sit ~8px below the fold so a tiny edge isn't visible
+      const cur = parseFloat(getComputedStyle(sec).marginTop) || 0;
+      sec.style.marginTop = (cur + extra) + "px";
+    }
+  };
+  const imgEl = document.getElementById("outputImagePreview");
+  if (imgEl && !imgEl.complete) {
+    imgEl.addEventListener("load", () => requestAnimationFrame(measureFold), { once: true });
+  } else {
+    requestAnimationFrame(measureFold);
+  }
 
   // Floating reminder pop-up that slides in ~3s after the picture is in place,
   // unless the user dismissed it earlier this session.
@@ -5327,8 +5524,237 @@ function injectAskAPro(out) {
   }, 3000);
 }
 
-// (Waitlist modal removed — tier buttons now just toast "Pro reviews launching soon".
-//  The full pay flow will land when the backend ships per AskAPro-Spec.md.)
+/* ===========================================================================
+   Ask-a-Pro: SANDBOX END-TO-END FLOW (no backend)
+
+   We fake the full loop using localStorage as a shared bus between this page
+   and showdown.cards/pro.html (the pro-side dashboard). Nothing leaves the
+   browser. Shared key: "showdown_reviews_v1".
+
+   Flow:
+     1. User picks $5/$15 tier → openCheckoutModal()
+     2. submitCheckoutModal() snapshots the rendered hand + writes a review
+        record (status: "paid") to the shared bus.
+     3. pro.html reads the bus, lets Casillas write notes per street, and on
+        Send flips status → "delivered".
+     4. On next index.html load, checkAndRenderReviewBanner() spots the
+        delivered review and surfaces a banner. Click → openReviewViewer().
+   ========================================================================== */
+
+const REVIEWS_KEY = "showdown_reviews_v1";
+const PRO_BANNER_DISMISS_KEY = "showdown_pro_banner_dismissed";  // map of reviewId → 1
+
+function loadReviews() {
+  try { return JSON.parse(localStorage.getItem(REVIEWS_KEY)) || []; }
+  catch (_) { return []; }
+}
+function saveReviews(arr) {
+  try { localStorage.setItem(REVIEWS_KEY, JSON.stringify(arr)); }
+  catch (e) { if (typeof showAlert === "function") showAlert("Couldn't save review: " + e.message, "Storage error"); }
+}
+function loadBannerDismissed() {
+  try { return JSON.parse(localStorage.getItem(PRO_BANNER_DISMISS_KEY)) || {}; }
+  catch (_) { return {}; }
+}
+function saveBannerDismissed(map) {
+  try { localStorage.setItem(PRO_BANNER_DISMISS_KEY, JSON.stringify(map)); } catch (_) {}
+}
+
+// Snapshot the currently-displayed hand image. Reuses the same logic as the
+// regular "save image" path — returns a PNG dataURL.
+async function snapshotCurrentHandDataUrl() {
+  if (currentSavedHand && currentSavedHand.imageDataUrl) return currentSavedHand.imageDataUrl;
+  if (typeof lastOutputImageDataUrl !== "undefined" && lastOutputImageDataUrl) return lastOutputImageDataUrl;
+  try {
+    const canvas = await renderHandToCanvas(currentUpTo);
+    if (canvas) return canvas.toDataURL("image/jpeg", 0.82);
+  } catch (_) {}
+  return null;
+}
+
+// Pull a one-line summary of the current hand for the pro to scan in their
+// dashboard list. Uses the saved-hand summary shape if we're viewing a saved
+// hand; otherwise pulls live from `state`.
+function snapshotHandSummary() {
+  if (currentSavedHand && currentSavedHand.summary) {
+    return Object.assign({}, currentSavedHand.summary, { savedHandId: currentSavedHand.id });
+  }
+  // Build a minimal summary from live state
+  const heroPos = (typeof state !== "undefined" && state.heroPos) ? state.heroPos : "";
+  let heroCards = "";
+  try {
+    if (state && state.cards) {
+      const hc = ["c1", "c2"].map(k => state.cards[k]).filter(Boolean);
+      heroCards = hc.map(c => `${c.rank}${(SUITS.find(s => s.s === c.suit) || {}).glyph || ""}`).join(" ");
+    }
+  } catch (_) {}
+  return { heroPos, heroCards, savedHandId: null };
+}
+
+function snapshotHandTitle() {
+  const sum = snapshotHandSummary();
+  const parts = [];
+  if (sum.heroPos) parts.push(sum.heroPos);
+  if (sum.heroCards) parts.push(sum.heroCards);
+  if (currentSavedHand && currentSavedHand.title) return currentSavedHand.title;
+  return parts.length ? parts.join(" — ") : "Hand review";
+}
+
+// ---------- Checkout modal ----------
+let _ckTier = null;
+async function openCheckoutModal(tier) {
+  _ckTier = tier;
+  const isVoice = tier === "voice";
+  document.getElementById("ckTierName").textContent = isVoice ? "Voice memo" : "Written note";
+  document.getElementById("ckTierPrice").textContent = isVoice ? "$15" : "$5";
+  const emailInput = document.getElementById("ckEmail");
+  // Pre-fill from the last review's email if we have one
+  const last = loadReviews().slice(-1)[0];
+  if (last && last.userEmail) emailInput.value = last.userEmail;
+  document.getElementById("checkoutOverlay").classList.add("on", "dialog-mode");
+  setTimeout(() => emailInput.focus(), 80);
+}
+function closeCheckoutModal() {
+  document.getElementById("checkoutOverlay").classList.remove("on", "dialog-mode");
+}
+
+document.getElementById("ckCancel").onclick = closeCheckoutModal;
+document.getElementById("checkoutOverlay").addEventListener("click", e => {
+  if (e.target.id === "checkoutOverlay") closeCheckoutModal();
+});
+
+document.getElementById("ckConfirm").onclick = async () => {
+  const emailEl = document.getElementById("ckEmail");
+  const email = (emailEl.value || "").trim();
+  // Very loose email check — sandbox doesn't need to be strict
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
+    emailEl.focus();
+    if (typeof showToast === "function") showToast("Enter a valid email");
+    return;
+  }
+  const imageDataUrl = await snapshotCurrentHandDataUrl();
+  if (!imageDataUrl) {
+    if (typeof showToast === "function") showToast("Couldn't capture the hand image — try again");
+    return;
+  }
+  const summary = snapshotHandSummary();
+  const review = {
+    id: "rv_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7),
+    userEmail: email,
+    tier: _ckTier,
+    amountCents: _ckTier === "voice" ? 1500 : 500,
+    source: "real",
+    handImageDataUrl: imageDataUrl,
+    handTitle: snapshotHandTitle(),
+    summary: summary,
+    savedHandId: summary.savedHandId || null,
+    createdAt: Date.now(),
+    status: "paid",
+    deliveredAt: null,
+    notes: {}
+  };
+  const all = loadReviews();
+  all.push(review);
+  saveReviews(all);
+  track("pro_review_requested", { tier: _ckTier });
+  closeCheckoutModal();
+  if (typeof showToast === "function") showToast("Sent to Casillas (sandbox)");
+  haptic(12);
+};
+
+// ---------- Delivery banner ----------
+function checkAndRenderReviewBanner() {
+  const banner = document.getElementById("reviewBanner");
+  const txt = document.getElementById("reviewBannerText");
+  if (!banner || !txt) return;
+  const reviews = loadReviews();
+  const dismissed = loadBannerDismissed();
+  const delivered = reviews.filter(r => r.status === "delivered" && !dismissed[r.id])
+    .sort((a, b) => (b.deliveredAt || 0) - (a.deliveredAt || 0));
+  if (!delivered.length) { banner.style.display = "none"; return; }
+  const top = delivered[0];
+  const more = delivered.length > 1 ? ` <span style="color:var(--ink-dim)">(+${delivered.length - 1} more)</span>` : "";
+  txt.innerHTML = `<b>Casillas reviewed your hand.</b>${more} &nbsp;Tap to read it.`;
+  banner.style.display = "flex";
+  banner.onclick = (e) => {
+    if (e.target.closest(".rb-close")) return;
+    openReviewViewer(top.id);
+  };
+  document.getElementById("reviewBannerClose").onclick = (e) => {
+    e.stopPropagation();
+    const map = loadBannerDismissed();
+    delivered.forEach(r => { map[r.id] = 1; });
+    saveBannerDismissed(map);
+    banner.style.display = "none";
+  };
+}
+
+// ---------- Review viewer ----------
+function openReviewViewer(reviewId) {
+  const review = loadReviews().find(r => r.id === reviewId);
+  if (!review) return;
+  const body = document.getElementById("rvBody");
+  const STREETS = ["preflop", "flop", "turn", "river"];
+  const tierLabel = review.tier === "voice" ? "Voice memo · $15" : "Written note · $5";
+  const noteHtml = STREETS.map(s => {
+    const n = (review.notes && review.notes[s]) || {};
+    const hasText = n.text && n.text.trim();
+    const hasAudio = !!n.audio;
+    if (!hasText && !hasAudio) return "";
+    return `<div class="rv-street">
+      <div class="rv-street-head">
+        <span class="rv-street-label">${s}</span>
+        <span class="rv-street-tag">Casillas</span>
+      </div>
+      ${hasText ? `<div class="rv-street-text">${escapeHTML(n.text)}</div>` : ""}
+      ${hasAudio ? `<audio controls preload="metadata" src="${n.audio}"></audio>` : ""}
+    </div>`;
+  }).filter(Boolean).join("");
+  body.innerHTML = `
+    <div class="rv-hero">
+      <div class="rv-avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"><span>EK</span></div>
+      <div class="rv-titles">
+        <div class="rv-from">From</div>
+        <div class="rv-name">Eyal &ldquo;Casillas&rdquo; Eshkar</div>
+        <div class="rv-tier">${tierLabel}</div>
+      </div>
+    </div>
+    ${review.handImageDataUrl ? `<div class="rv-image"><img src="${review.handImageDataUrl}" alt="Hand"></div>` : ""}
+    <div class="rv-streets">
+      ${noteHtml || `<div class="rv-empty">Casillas hasn't tagged any streets on this one.</div>`}
+    </div>
+  `;
+  document.getElementById("reviewViewerOverlay").classList.add("on");
+  // Once seen, dismiss the banner for this review automatically
+  const map = loadBannerDismissed();
+  map[reviewId] = 1;
+  saveBannerDismissed(map);
+  // Refresh banner in case multiple were delivered
+  checkAndRenderReviewBanner();
+}
+
+document.getElementById("rvClose").onclick = () => {
+  document.getElementById("reviewViewerOverlay").classList.remove("on");
+};
+document.getElementById("reviewViewerOverlay").addEventListener("click", e => {
+  if (e.target.id === "reviewViewerOverlay") {
+    document.getElementById("reviewViewerOverlay").classList.remove("on");
+  }
+});
+
+// Helper for HTML-escaping (defined elsewhere in file as escapeHTML; this is a guard
+// in case the bottom-of-file copy runs before the original definition).
+if (typeof escapeHTML !== "function") {
+  window.escapeHTML = function (s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  };
+}
+
+// Run on load + whenever localStorage changes from another tab (pro.html flipping a review to delivered)
+checkAndRenderReviewBanner();
+window.addEventListener("storage", (e) => {
+  if (e.key === REVIEWS_KEY) checkAndRenderReviewBanner();
+});
 
 // Get the current hand's image as a Blob — uses the saved-hand dataURL when viewing
 // a saved hand, otherwise renders fresh from `state`.
@@ -7714,6 +8140,14 @@ function renderMyHandsList() {
       if (summary.stage) parts.push(summary.stage);
       context = parts.join(" · ");
     }
+    // Show a chip if there's a pro review tied to this hand (matched by savedHandId).
+    const linkedReviews = loadReviews().filter(r => r.savedHandId === h.id);
+    let reviewChipHtml = "";
+    if (linkedReviews.some(r => r.status === "delivered")) {
+      reviewChipHtml = `<div class="row-review-chip ready">✓ Review ready</div>`;
+    } else if (linkedReviews.some(r => r.status === "paid")) {
+      reviewChipHtml = `<div class="row-review-chip pending">Review pending</div>`;
+    }
     const row = document.createElement("div");
     row.className = "my-hand-row";
     row.innerHTML = `
@@ -7725,6 +8159,7 @@ function renderMyHandsList() {
           ${summary.outcome ? `<span class="${outcomeCls}">${summary.outcome}</span>` : ""}
         </div>
         ${context ? `<div class="row-context">${escapeHTML(context)}</div>` : ""}
+        ${reviewChipHtml}
       </div>
       <button type="button" class="row-trash" data-trash="${h.id}" aria-label="Delete">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -7738,6 +8173,12 @@ function renderMyHandsList() {
     `;
     row.addEventListener("click", (e) => {
       if (e.target.closest(".row-trash")) return;
+      // Clicking the "Review ready" chip opens the review viewer directly,
+      // skipping the saved-hand overlay.
+      if (e.target.closest(".row-review-chip.ready")) {
+        const ready = linkedReviews.find(r => r.status === "delivered");
+        if (ready) { openReviewViewer(ready.id); return; }
+      }
       openSavedHand(h);
     });
     list.appendChild(row);
@@ -7867,6 +8308,21 @@ $("#saveConfirm").onclick = async () => {
   const all = loadHands();
   all.push(hand);
   saveHands(all);
+  // If the user requested a pro review BEFORE saving (so the review has no
+  // savedHandId), retroactively link the most-recent unlinked review whose
+  // image matches this save. Cheap heuristic: take the newest unlinked review
+  // created within the last 10 minutes.
+  try {
+    const cutoff = Date.now() - 10 * 60 * 1000;
+    const reviews = loadReviews();
+    const orphan = reviews
+      .filter(r => !r.savedHandId && r.createdAt >= cutoff)
+      .sort((a, b) => b.createdAt - a.createdAt)[0];
+    if (orphan) {
+      orphan.savedHandId = hand.id;
+      saveReviews(reviews);
+    }
+  } catch (_) {}
   track("hand_saved", { game: state.gameType });
   $("#saveOverlay").classList.remove("on", "dialog-mode");
   showToast("Saved to My hands");
