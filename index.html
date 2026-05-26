@@ -574,6 +574,27 @@
   /* Output overlay header: pills share the left, close button fixed at the right */
   #overlay > .sheet > header { justify-content: flex-start; gap: 8px; }
   #overlay > .sheet > header .closebtn { flex: 0 0 auto; margin-left: 4px; }
+  /* "Dealing cards" loader. Stays invisible for 200ms (CSS delay) so fast renders never
+     show it; fades in for slower renders. The two cards fan in a continuous loop. */
+  @keyframes gl-fadein { to { opacity: 1; } }
+  @keyframes gl-card1  { 0%,100% { transform: translate(-14px,4px) rotate(-12deg); } 50% { transform: translate(-19px,-5px) rotate(-19deg); } }
+  @keyframes gl-card2  { 0%,100% { transform: translate(14px,4px) rotate(12deg); }   50% { transform: translate(19px,-5px) rotate(19deg); } }
+  .gen-loader {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 18px; padding: 60px 0 40px; min-height: 220px;
+    opacity: 0; animation: gl-fadein 140ms ease 200ms forwards;
+  }
+  .gen-loader .gl-cards { position: relative; width: 90px; height: 64px; }
+  .gen-loader .gl-card {
+    position: absolute; left: 50%; top: 50%; width: 36px; height: 50px;
+    margin: -25px 0 0 -18px; background: #f4f1ea; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font: 700 18px/1 "SF Pro Rounded", -apple-system, BlinkMacSystemFont, sans-serif;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+  }
+  .gen-loader .gl-card.c1 { color: #d4537e; animation: gl-card1 1.1s ease-in-out infinite; }
+  .gen-loader .gl-card.c2 { color: #1c1b2c; animation: gl-card2 1.1s ease-in-out infinite; }
+  .gen-loader .gl-lbl { font-size: 13px; font-weight: 700; color: var(--ink-dim); letter-spacing: .3px; text-align: center; }
   /* Compact, narrow popover for entering tournament details after the fact */
   .tourney-form {
     max-width: 300px; margin: 0 auto 14px;
@@ -648,6 +669,71 @@
     display: flex; align-items: center; gap: 6px; margin-bottom: 2px;
   }
   .range-check .rc-divider { height: 1px; background: var(--line); margin: 14px -2px; }
+  /* ----- Ask-a-Pro preview UI (no backend yet — waitlist mode) ----- */
+  .pro-section {
+    margin: 16px 0 12px; background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 14px; padding: 14px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .pro-section .pro-head {
+    display: flex; flex-direction: row; flex-wrap: nowrap;
+    align-items: flex-start; gap: 14px;
+  }
+  .pro-section .pro-avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff7eb6, #b07cff);
+    display: flex; align-items: center; justify-content: center;
+    color: #0c1226; font-weight: 800; font-size: 22px; flex-shrink: 0;
+    position: relative; overflow: hidden;
+  }
+  .pro-section .pro-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .pro-section .pro-meta { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding-top: 1px; }
+  .pro-section .pro-name { font-size: 19px; font-weight: 800; color: var(--ink); line-height: 1.15; letter-spacing: -0.2px; }
+  .pro-section .pro-sub {
+    font-size: 11px; color: var(--ink-dim); line-height: 1.35;
+    display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+  }
+  .pro-section .pro-beta {
+    background: #ff7eb6; color: #1c1b2c;
+    font-weight: 800; font-size: 9px; letter-spacing: .5px;
+    padding: 2px 6px; border-radius: 4px; text-transform: uppercase;
+  }
+  .pro-section .pro-pitch { display: flex; flex-direction: column; gap: 4px; padding: 0; }
+  .pro-section .pro-pitch .ppl { font-size: 18px; font-weight: 800; color: var(--ink); line-height: 1.25; letter-spacing: -0.2px; }
+  .pro-section .pro-pitch .pps { font-size: 13px; color: var(--ink-dim); line-height: 1.5; }
+  .pro-section .pro-pitch .pps b { color: var(--ink); font-weight: 700; }
+  .pro-section .pro-tiers { display: flex; gap: 8px; }
+  .pro-section .pro-tier {
+    flex: 1; background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px; cursor: pointer; transition: transform .12s ease, border-color .12s ease;
+    font-family: inherit; color: inherit; text-align: center;
+  }
+  .pro-section .pro-tier:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .pro-section .pro-tier .pt-name { font-size: 11px; color: var(--ink-dim); font-weight: 600; }
+  .pro-section .pro-tier .pt-price { font-size: 18px; font-weight: 800; color: var(--accent); margin-top: 4px; }
+  @keyframes pp-slidein { 0% { transform: translateX(120px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+  @keyframes pp-pulse   { 0%,100% { box-shadow: 0 4px 14px rgba(255,126,182,0.25); } 50% { box-shadow: 0 4px 14px rgba(255,126,182,0.55); } }
+  .pro-popup {
+    position: absolute; right: 12px; bottom: 86px; z-index: 5;
+    background: var(--panel-2); border: 1px solid #ff7eb6; border-radius: 30px;
+    padding: 7px 16px 7px 6px; display: flex; align-items: center; gap: 10px;
+    cursor: pointer;
+    animation: pp-slidein .5s ease-out, pp-pulse 2.4s ease-in-out infinite 1s;
+  }
+  .pro-popup .pp-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff7eb6, #b07cff);
+    display: flex; align-items: center; justify-content: center;
+    color: #0c1226; font-weight: 800; font-size: 14px;
+    position: relative; overflow: hidden;
+  }
+  .pro-popup .pp-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .pro-popup .pp-text { font-size: 14px; font-weight: 700; color: var(--ink); letter-spacing: .1px; }
+  .pro-popup .pp-close {
+    background: transparent; border: 0; color: var(--ink-dim);
+    font-size: 18px; cursor: pointer; padding: 0 6px; margin-left: 2px; line-height: 1;
+  }
+  .waitlist-form input[type="email"] { width: 100%; box-sizing: border-box; }
   .sheet .body {
     padding: 16px 18px;
     overflow: auto;
@@ -1302,7 +1388,7 @@
     </div>
     <div>
       <label id="heroStackLabel">Stack (chips)</label>
-      <input type="text" id="heroStack" inputmode="numeric" autocomplete="off" placeholder="75,000">
+      <input type="text" id="heroStack" inputmode="numeric" autocomplete="off" placeholder="Enter your stack">
     </div>
   </div>
 
@@ -1398,8 +1484,7 @@
       <div id="pickerError" class="picker-error" style="display:none"></div>
     </div>
     <div class="foot">
-      <button type="button" class="btn-secondary" id="cardCancel">Cancel</button>
-      <button type="button" class="btn-primary" id="cardSave">Save</button>
+      <button type="button" class="btn-primary" id="cardSave" style="flex:1;">Save</button>
     </div>
   </div>
 </div>
@@ -1680,7 +1765,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "2026-05-25·aa";
+const APP_VERSION = "v1.1.7";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -1887,7 +1972,7 @@ function setStackLabels(unit) {
   const heroLabel = $("#heroStackLabel");
   if (heroLabel) heroLabel.textContent = `Stack (${unitWord})`;
   const heroStack = $("#heroStack");
-  if (heroStack) heroStack.placeholder = bb ? "100" : (isCash ? "400" : "75,000");
+  if (heroStack) heroStack.placeholder = "Enter your stack";
   // Villain stack labels carry a dedicated unit span so the "optional" note is preserved.
   document.querySelectorAll(".vstack-unit").forEach(el => { el.textContent = ` (${unitWord})`; });
   document.querySelectorAll("[data-vfield='stack']").forEach(el => {
@@ -2015,6 +2100,16 @@ function renderShowdownVillains() {
   const wrap = $("#sdVillains");
   wrap.innerHTML = "";
   const folded = foldedIdsFromSaved();
+  // Only ask for villain hole cards once betting is locked — either all-in run-out is in
+  // effect (no one can bet any more) or the river is complete. While ≥2 players still have
+  // chips and could keep betting, asking for their cards is premature.
+  const bettingLocked = (() => {
+    for (const s of ["preflop","flop","turn","river"]) {
+      const st = state.streets[s];
+      if (st.complete && st.allInRunout) return true;
+    }
+    return !!state.streets.river.complete;
+  })();
   // In an MTT, all-in players are required to expose their cards (live poker rule).
   // We force showdownResult → "showed" and disable the Mucked button.
   const mttForceShow = state.gameType === "mtt" && anyoneAllIn();
@@ -2028,6 +2123,17 @@ function renderShowdownVillains() {
         <div class="head">
           <span class="name">${posName}</span>
           <span class="tag">folded earlier</span>
+        </div>
+      `;
+      wrap.appendChild(row);
+      return;
+    }
+    // Live villain — hand still being played: just show "still in hand", no inputs yet.
+    if (!bettingLocked) {
+      row.innerHTML = `
+        <div class="head">
+          <span class="name">${posName}</span>
+          <span class="tag">still in hand</span>
         </div>
       `;
       wrap.appendChild(row);
@@ -3547,7 +3653,9 @@ function renderInlineReview(reviewEl, rt) {
     const thoughtsEl = $("#streetThoughts");
     state.streets[streetName].thoughts = thoughtsEl ? thoughtsEl.value.trim() : "";
     haptic(15);
-    saveActiveStreet();
+    // If saveActiveStreet refuses (e.g. board cards missing), keep the user on this street
+    // so they can fix it — don't tear down the active wizard.
+    if (!saveActiveStreet()) return;
     activeWiz = null;
     activeWizStreet = null;
     refreshStreetSections();
@@ -3665,9 +3773,29 @@ function invalidateStreetsAfter(name) {
 
 // Save the active wizard to state.streets
 function saveActiveStreet() {
-  if (!activeWiz) return;
+  if (!activeWiz) return false;
   const rt = activeWiz;
   const stName = rt.streetName;
+  // Board-card guard: if the hand continues past this street (≥2 live players remain),
+  // we cannot mark it complete without its community cards entered. Fold-outs that leave
+  // ≤1 live player are exempt — the hand ends here and the board doesn't matter.
+  const _liveAfterCheck = rt.runtime.filter(p => !p.folded);
+  if (_liveAfterCheck.length >= 2) {
+    const _need = stName === "flop" ? 3 : (stName === "turn" || stName === "river" ? 1 : 0);
+    if (_need) {
+      const _board = state.streets[stName].board || [];
+      const _filled = _board.filter(c => c && c.rank && c.suit).length;
+      if (_filled < _need) {
+        const _word = stName === "flop" ? "flop" : stName;
+        const _missing = _need - _filled;
+        const _msg = stName === "flop"
+          ? `Enter all 3 flop cards before continuing (${_missing} missing).`
+          : `Enter the ${_word} card before continuing.`;
+        if (typeof showAlert === "function") showAlert(_msg, "Missing board cards");
+        return false;
+      }
+    }
+  }
   state.streets[stName].actions = rt.streetActions.map(a => ({
     player: a.player,
     label: a.label,
@@ -3700,6 +3828,7 @@ function saveActiveStreet() {
   // the Generate button now, since this may run AFTER renderInlinePromptOrReview already
   // checked completeness against the not-yet-saved street.
   if (typeof refreshGenerateButton === "function") refreshGenerateButton();
+  return true;
 }
 
 /* Generic card picker.
@@ -3976,7 +4105,6 @@ $("#cardSave").onclick = () => {
     $("#cardOverlay").classList.remove("on");
   }
 };
-$("#cardCancel").onclick = () => $("#cardOverlay").classList.remove("on");
 $("#cardClose").onclick = () => $("#cardOverlay").classList.remove("on");
 $("#cardOverlay").addEventListener("click", (e) => {
   // Tap outside the sheet dismisses the picker
@@ -4222,8 +4350,25 @@ async function renderOutputImage() {
   if (oldImg) oldImg.remove();
   const oldTourney = document.getElementById("tourneyForm");
   if (oldTourney) oldTourney.remove();
+  // Progressive "dealing cards" loader. Stays invisible for the first 200ms via CSS
+  // animation-delay (fast renders never paint it); messages escalate every 1.2s once
+  // the spinner is visible; min-display 500ms once visible avoids any flash.
+  const loader = document.createElement("div");
+  loader.id = "genLoader"; loader.className = "gen-loader";
+  loader.innerHTML = `<div class="gl-cards"><div class="gl-card c1">A</div><div class="gl-card c2">K</div></div><div class="gl-lbl" id="genLoaderLbl">Building your hand…</div>`;
+  out.insertBefore(loader, out.firstChild);
+  await new Promise(requestAnimationFrame);   // commit opacity:0 so the delay starts now
+  const t0 = performance.now();
+  const setLbl = txt => { const e = document.getElementById("genLoaderLbl"); if (e) e.textContent = txt; };
+  const msgT1 = setTimeout(() => setLbl("Calculating the odds…"), 200 + 1200);
+  const msgT2 = setTimeout(() => setLbl("Polishing the picture…"), 200 + 2400);
+  const cleanupLoader = () => {
+    clearTimeout(msgT1); clearTimeout(msgT2);
+    const l = document.getElementById("genLoader"); if (l) l.remove();
+  };
   // Surface render failures visibly inside the overlay so we can debug instead of silently failing.
   const showRenderError = msg => {
+    cleanupLoader();
     out.innerHTML = `<div style="padding:24px;color:#f04b5a;text-align:center;font:14px -apple-system,'Segoe UI',sans-serif;line-height:1.5;">Image render failed:<br><span style="color:#aaa5c8;font-size:12px;">${msg}</span></div>`;
   };
   let canvas;
@@ -4237,6 +4382,14 @@ async function renderOutputImage() {
     showRenderError("missing data — make sure hero position, stack, and at least one villain (with position + stack) are filled in.");
     return;
   }
+  // Threshold + min-display: if the spinner never became visible (render < 200ms) drop
+  // it now; otherwise wait until it's been visible at least 500ms before removing.
+  const elapsed = performance.now() - t0;
+  if (elapsed >= 200) {
+    const visibleFor = elapsed - 200;
+    if (visibleFor < 500) await new Promise(r => setTimeout(r, 500 - visibleFor));
+  }
+  cleanupLoader();
   // JPEG dataURL for compact persistence (saved hands are stored in localStorage).
   try { lastOutputImageDataUrl = canvas.toDataURL("image/jpeg", 0.85); } catch (_) {}
   // Blob URL drives the on-screen preview and the Share/Save image buttons.
@@ -4251,6 +4404,7 @@ async function renderOutputImage() {
       img.alt = "Hand summary";
       img.style.cssText = "display:block;width:100%;max-width:520px;margin:0 auto 14px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.4);";
       out.insertBefore(img, out.firstChild);
+      injectAskAPro(out);
       resolve();
     };
     try {
@@ -5101,6 +5255,81 @@ function showRangeCheckForm() {
   };
 }
 
+/* ----------------------------------------------------------------------------
+   ASK-A-PRO PREVIEW UI (waitlist mode — no backend yet)
+   Full pro card section below the hand image + a small timed pop-up on the
+   right edge ~3s after the image renders. All CTAs route to a waitlist modal
+   that captures the user's email (sent to PostHog as an event for now).
+   ========================================================================== */
+let _proPopupTimer = null;
+function injectAskAPro(out) {
+  if (!out) return;
+  if (document.getElementById("proSection")) return;     // already injected this render
+  const sec = document.createElement("div");
+  sec.id = "proSection"; sec.className = "pro-section";
+  sec.innerHTML = `
+    <div class="pro-head">
+      <div class="pro-avatar"><img src="eyal.jpg" alt="Eyal Eshkar" onerror="this.remove()"><span>EK</span></div>
+      <div class="pro-meta">
+        <div class="pro-name">Eyal &ldquo;Casillas&rdquo; Eshkar</div>
+        <div class="pro-sub">
+          <div>3&times; Israel Champion</div>
+          <div>Over $600K live tournament winnings</div>
+          <div><span class="pro-beta">Beta &middot; launching soon</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="pro-pitch">
+      <div class="ppl">Did you play this hand right?</div>
+      <div class="pps">Get a <b>personal review from &ldquo;Casillas&rdquo;</b> &mdash; every street, every decision, broken down by a 3&times; Israel Champion. Delivered in 48 hours, attached right here.</div>
+    </div>
+    <div class="pro-tiers">
+      <button type="button" class="pro-tier" data-tier="text"><div class="pt-name">Written note</div><div class="pt-price">$5</div></button>
+      <button type="button" class="pro-tier" data-tier="voice"><div class="pt-name">Voice memo</div><div class="pt-price">$15</div></button>
+    </div>`;
+  out.appendChild(sec);
+  sec.querySelectorAll(".pro-tier").forEach(btn => {
+    btn.onclick = () => {
+      track("pro_cta_clicked", { surface: "section", tier: btn.dataset.tier });
+      if (typeof showToast === "function") showToast("Pro reviews launching soon");
+    };
+  });
+  track("pro_cta_seen", { surface: "section" });
+
+  // Floating reminder pop-up that slides in ~3s after the picture is in place,
+  // unless the user dismissed it earlier this session.
+  if (_proPopupTimer) { clearTimeout(_proPopupTimer); _proPopupTimer = null; }
+  const existing = document.getElementById("proPopup"); if (existing) existing.remove();
+  if (sessionStorage.getItem("proPopupDismissed") === "1") return;
+  _proPopupTimer = setTimeout(() => {
+    const overlay = document.getElementById("overlay");
+    if (!overlay || !overlay.classList.contains("on")) return;
+    const sheet = overlay.querySelector(".sheet");
+    if (!sheet || document.getElementById("proPopup")) return;
+    const popup = document.createElement("div");
+    popup.id = "proPopup"; popup.className = "pro-popup";
+    popup.innerHTML = `<div class="pp-avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"><span>EK</span></div><div class="pp-text">Ask &ldquo;Casillas&rdquo;</div><button type="button" class="pp-close" aria-label="Dismiss">&times;</button>`;
+    sheet.appendChild(popup);
+    track("pro_cta_seen", { surface: "popup" });
+    popup.querySelector(".pp-close").onclick = (e) => {
+      e.stopPropagation();
+      sessionStorage.setItem("proPopupDismissed", "1");
+      popup.remove();
+      track("pro_cta_dismissed");
+    };
+    popup.onclick = (e) => {
+      if (e.target.closest(".pp-close")) return;
+      track("pro_cta_clicked", { surface: "popup" });
+      const target = document.getElementById("proSection");
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+      popup.remove();   // tap dismisses the popup — it would otherwise cover the pro section
+    };
+  }, 3000);
+}
+
+// (Waitlist modal removed — tier buttons now just toast "Pro reviews launching soon".
+//  The full pay flow will land when the backend ships per AskAPro-Spec.md.)
+
 // Get the current hand's image as a Blob — uses the saved-hand dataURL when viewing
 // a saved hand, otherwise renders fresh from `state`.
 async function getCurrentHandImageBlob() {
@@ -5739,10 +5968,11 @@ function _sdTile(ctx, x, y, w, h, r, top, bot, border, bw) {
 }
 function sdDrawTimeline(ctx, top_y, columns, heroPos) {
   const n = columns.length;
-  if (!n) return;
+  if (!n) return top_y;
   const margin = 14, gap = 8;
   const col_w = Math.floor((SHOWDOWN_W - margin*2 - gap*(n-1)) / n);
   const head_h = 72;
+  let maxBottom = top_y + head_h + 8;   // track deepest column for canvas auto-crop
   // Headers
   for (let i = 0; i < n; i++) {
     const c = columns[i];
@@ -5867,14 +6097,16 @@ function sdDrawTimeline(ctx, top_y, columns, heroPos) {
         cy += row_h + 4;
       }
     }
+    if (cy > maxBottom) maxBottom = cy;
   }
+  return maxBottom;
 }
 
 // Build the rich data the visual renderer needs from `state`.
 // upTo: "preflop" | "flop" | "turn" | "river" | "full" (default "full") — when not
 // "full", the renderer hides spoilers past that street (no villain reveal, no winner
 // badge, no hand-strength notes, no equity %) so the share can ask "what would you do?".
-function sdBuildRenderData(upTo) {
+async function sdBuildRenderData(upTo) {
   upTo = upTo || "full";
   const stageRank = { preflop: 0, flop: 1, turn: 2, river: 3, full: 4 };
   const upToRank = stageRank[upTo] ?? 4;
@@ -6310,7 +6542,7 @@ function sdBuildRenderData(upTo) {
         // Show equity from the all-in street onward — including a PREFLOP all-in,
         // where the board is still empty (computed via Monte Carlo runout).
         if (i >= firstAllInStreet) {
-          const eqMap = sdComputeEquity(contenders, cumBoard);
+          const eqMap = await sdComputeEquity(contenders, cumBoard);
           if (eqMap) timeline[i].equity = eqMap;
         }
       }
@@ -6340,8 +6572,10 @@ function sdBuildRenderData(upTo) {
 // contenders: [{pos, hole: [{rank,suit}, {rank,suit}]}, ...]
 // board: array of {rank, suit} (3-5 cards). Suit is "s"/"h"/"d"/"c".
 // Returns: {pos: percent, ...} summing to 100, or null on bad input.
-function sdComputeEquity(contenders, board) {
+async function sdComputeEquity(contenders, board) {
   // board may be 0 cards (preflop all-in) up to 5; fewer known cards → Monte Carlo below.
+  // Async + periodic yields so the main thread can fire timers (loader labels) during
+  // a long render.
   if (contenders.length < 2 || board.length > 5) return null;
   const RANKS_X = ["A","K","Q","J","T","9","8","7","6","5","4","3","2"];
   const SUITS_X = ["s","h","d","c"];
@@ -6369,11 +6603,14 @@ function sdComputeEquity(contenders, board) {
   if (needed === 0) evalRound(board);
   else if (needed === 1) for (const c of deck) evalRound(board.concat([c]));
   else if (needed === 2) {
+    let cnt = 0;
     for (let i = 0; i < deck.length; i++) for (let j = i+1; j < deck.length; j++) {
       evalRound(board.concat([deck[i], deck[j]]));
+      if ((++cnt & 127) === 0) await new Promise(r => setTimeout(r, 0));
     }
   } else {
-    // 3+ unknown cards — too many combinations, use Monte Carlo
+    // 3+ unknown cards — too many combinations, use Monte Carlo. Yield every 80
+    // iterations so timers (e.g. the loader's progressive labels) can fire mid-render.
     const ITER = 1500;
     for (let n = 0; n < ITER; n++) {
       const idxs = [];
@@ -6382,6 +6619,7 @@ function sdComputeEquity(contenders, board) {
         if (!idxs.includes(r)) idxs.push(r);
       }
       evalRound(board.concat(idxs.map(i => deck[i])));
+      if ((n & 79) === 79) await new Promise(r => setTimeout(r, 0));
     }
   }
   if (total === 0) return null;
@@ -6406,7 +6644,7 @@ function sdWrapText(ctx, text, maxW) {
 }
 
 async function renderHandToCanvas(upTo) {
-  const data = sdBuildRenderData(upTo);
+  const data = await sdBuildRenderData(upTo);
   if (!data) return null;
   // NOTE: We deliberately do not drawImage any external bitmaps on this canvas.
   // Loading logo-header.png / feather-only.png and painting them taints the canvas
@@ -6863,8 +7101,9 @@ async function renderHandToCanvas(upTo) {
   // Pot breakdown panel (only present for multiway side pots or split pots).
   if (data.pots && data.pots.length) sdDrawPotBreakdown(ctx, cx, 92, data.pots);
 
-  // Timeline
-  sdDrawTimeline(ctx, cy + ry + 130, data.timeline, data.heroPos);
+  // Timeline — captures the bottom Y of the deepest column so we can crop the canvas
+  // to the actual content (avoids a big empty gap for short hands).
+  const timelineBottomY = sdDrawTimeline(ctx, cy + ry + 130, data.timeline, data.heroPos);
 
   // "What would you do?" banner in ask-mode — drawn over the header subtitle area.
   if (data.askMode && data.askPrompt) {
@@ -6882,14 +7121,36 @@ async function renderHandToCanvas(upTo) {
 
   ctx.restore();   // undo the title/caption band shift
 
-  // Tiny version stamp (bottom-right) so we can confirm which build produced a picture.
-  ctx.font = `500 9px -apple-system, "Segoe UI", sans-serif`;
-  ctx.fillStyle = "rgba(255,255,255,0.22)";
-  ctx.textAlign = "right";
-  ctx.textBaseline = "bottom";
-  ctx.fillText(APP_VERSION, W - 8, totalH - 5);
-
-  return canvas;
+  // Auto-crop the canvas to the actual content height. Short hands (e.g. preflop fold-out
+  // with one column) leave a tall empty area below the timeline; we trim that off and
+  // re-anchor the version stamp to the new bottom.
+  const STAMP_PAD = 18;
+  const minH = Math.max(cy + ry + 130, 500);                // never crop above the table
+  const desiredH = Math.max((timelineBottomY || 0) + STAMP_PAD, minH);
+  const finalH = Math.min(totalH, desiredH);
+  let outCanvas = canvas;
+  if (finalH < totalH - 4) {
+    const cropped = document.createElement("canvas");
+    cropped.width = canvas.width;
+    cropped.height = Math.round(finalH * dpi);
+    const cctx = cropped.getContext("2d");
+    cctx.drawImage(canvas, 0, 0);    // pixels past the new height are clipped naturally
+    cctx.scale(dpi, dpi);
+    cctx.font = `500 9px -apple-system, "Segoe UI", sans-serif`;
+    cctx.fillStyle = "rgba(255,255,255,0.22)";
+    cctx.textAlign = "right";
+    cctx.textBaseline = "bottom";
+    cctx.fillText(APP_VERSION, W - 8, finalH - 5);
+    outCanvas = cropped;
+  } else {
+    // No crop needed — stamp the version on the original canvas at its original bottom.
+    ctx.font = `500 9px -apple-system, "Segoe UI", sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,0.22)";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(APP_VERSION, W - 8, totalH - 5);
+  }
+  return outCanvas;
 }
 
 async function exportHandPNGTable(returnBlob, upTo) {
