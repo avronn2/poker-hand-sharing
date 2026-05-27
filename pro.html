@@ -263,6 +263,22 @@ textarea.street-input:focus { outline: none; border-color: var(--accent); }
 }
 .sandbox-banner b { color: var(--warn); }
 
+/* Diagnostic strip sits right under the sandbox banner. Honest report on what
+   /pro actually sees in localStorage, including the most-recent submission time
+   and the browser fingerprint (so the user can tell if it's the same browser). */
+.diag-strip {
+  font-size: 11px; color: var(--ink-dim);
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 12px; margin: 0 0 14px;
+  line-height: 1.5;
+}
+.diag-strip b { color: var(--ink); }
+.diag-strip.warn { border-color: var(--warn); color: var(--warn); }
+.diag-strip.warn b { color: var(--warn); }
+.diag-strip.ok b { color: var(--accent); }
+.diag-strip .diag-row { display: flex; justify-content: space-between; gap: 8px; }
+.diag-strip code { font-size: 10px; opacity: .8; }
+
 @media (max-width: 600px) {
   .container { padding: 12px; }
   .review-card .thumb { width: 78px; height: 54px; }
@@ -287,6 +303,10 @@ textarea.street-input:focus { outline: none; border-color: var(--accent); }
     <div class="sandbox-banner">
       <b>Sandbox mode</b> &mdash; mock reviews seed the queue; anything a user requests from <code>showdown.cards</code> shows up here tagged <b>LIVE</b>. Hit Send and it lands in their banner.
     </div>
+    <!-- Diagnostic strip: shows exactly what localStorage looks like to /pro.
+         If 0 reviews show but the user just sent one, this proves the two pages
+         aren't sharing storage (different browser/device/PWA context). -->
+    <div id="proDiag" class="diag-strip"></div>
     <div class="tabs">
       <button class="tab active" data-tab="pending">Pending <span class="count" id="pendingCount">0</span></button>
       <button class="tab" data-tab="delivered">Delivered <span class="count" id="deliveredCount">0</span></button>
@@ -507,7 +527,35 @@ function thumbHtml(r) {
   return r.handImageSvg || "";
 }
 
+function renderDiagnostic() {
+  const el = $("#proDiag"); if (!el) return;
+  const raw = (() => { try { return localStorage.getItem(REAL_KEY); } catch (_) { return null; } })();
+  let n = 0, latest = 0;
+  try {
+    const arr = JSON.parse(raw || "[]");
+    n = arr.length;
+    arr.forEach(r => { if ((r.createdAt || 0) > latest) latest = r.createdAt; });
+  } catch (_) {}
+  const origin = (typeof location !== "undefined") ? location.host : "?";
+  const ago = latest ? Math.round((Date.now() - latest) / 1000) : 0;
+  const agoStr = !latest ? "—" :
+    ago < 60   ? `${ago}s ago` :
+    ago < 3600 ? `${Math.round(ago / 60)}m ago` :
+    ago < 86400 ? `${Math.round(ago / 3600)}h ago` :
+    `${Math.round(ago / 86400)}d ago`;
+  el.classList.toggle("warn", n === 0);
+  el.classList.toggle("ok",   n > 0);
+  el.innerHTML = `
+    <div class="diag-row">
+      <span><b>${n}</b> submission${n === 1 ? "" : "s"} in this browser's storage</span>
+      <span>last write: <b>${agoStr}</b></span>
+    </div>
+    ${n === 0 ? `<div style="margin-top:4px">If you just sent a hand and don't see it: make sure <code>${origin}</code> is the same browser you sent from. localStorage isn't shared across devices/browsers/PWAs.</div>` : ""}
+  `;
+}
+
 function renderDashboard() {
+  renderDiagnostic();
   const list = $("#reviewList");
   const all = getAllReviews();
   const pending = all.filter(r => r.status === "pending");
