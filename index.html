@@ -772,33 +772,59 @@
   }
   .checkout-body .ck-note b { color: var(--accent); font-weight: 700; }
 
-  /* ===== Delivery banner on main page ===== */
+  /* ===== Delivery banner on main page =====
+     Big, friendly, Casillas-photo-first. Lives at the top of the page so the
+     user can't miss it after he delivers their review. */
+  @keyframes rb-pulse-glow {
+    0%,100% { box-shadow: 0 0 0 0 rgba(94,234,212,0.55); }
+    50%     { box-shadow: 0 0 0 8px rgba(94,234,212,0); }
+  }
   .review-banner {
-    margin: 0 0 12px; padding: 10px 14px;
-    background: linear-gradient(135deg, rgba(94,234,212,0.18), rgba(94,234,212,0.06));
-    border: 1px solid rgba(94,234,212,0.35); border-radius: 12px;
-    display: flex; align-items: center; gap: 10px; cursor: pointer;
+    margin: 0 0 14px; padding: 12px 14px;
+    background: linear-gradient(135deg, rgba(94,234,212,0.22), rgba(176,124,255,0.10));
+    border: 1px solid rgba(94,234,212,0.45); border-radius: 14px;
+    display: flex; align-items: center; gap: 12px; cursor: pointer;
     font-size: 13px; color: var(--ink);
+    box-shadow: 0 4px 14px rgba(94,234,212,0.10);
   }
-  .review-banner .rb-dot {
-    width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
-    box-shadow: 0 0 0 4px rgba(94,234,212,0.25);
-    flex-shrink: 0;
+  .review-banner .rb-avatar {
+    flex-shrink: 0; position: relative;
+    width: 42px; height: 42px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff7eb6, #b07cff);
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(176, 124, 255, 0.30);
   }
-  .review-banner .rb-text { flex: 1; min-width: 0; }
+  .review-banner .rb-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .review-banner .rb-avatar .rb-pulse {
+    /* Tiny mint pulse dot on the bottom-right of the avatar — a "new" indicator. */
+    position: absolute; right: -2px; bottom: -2px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--accent); border: 2px solid var(--bg);
+    animation: rb-pulse-glow 1.8s ease-in-out infinite;
+  }
+  .review-banner .rb-text { flex: 1; min-width: 0; font-size: 14px; }
   .review-banner .rb-text b { color: var(--accent); }
-  .review-banner .rb-chev { color: var(--ink-dim); font-size: 18px; }
+  .review-banner .rb-chev { color: var(--ink-dim); font-size: 20px; font-weight: 600; }
   .review-banner .rb-close {
     background: transparent; border: 0; color: var(--ink-dim);
-    font-size: 18px; cursor: pointer; padding: 0 6px; line-height: 1;
+    font-size: 20px; cursor: pointer; padding: 0 6px; line-height: 1;
   }
 
-  /* ===== Saved-hand row review badges ===== */
+  /* ===== Saved-hand row review badges =====
+     Each chip has a tiny Casillas face on the left so the user instantly knows
+     who the review is from, not just that there IS a review. */
   .my-hand-row .row-review-chip {
-    display: inline-block; font-size: 10px; font-weight: 700;
-    padding: 2px 8px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 700;
+    padding: 2px 8px 2px 3px; border-radius: 999px;
     text-transform: uppercase; letter-spacing: 0.4px; margin-top: 4px;
   }
+  .my-hand-row .row-review-chip .rc-avatar {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff7eb6, #b07cff);
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .my-hand-row .row-review-chip .rc-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .my-hand-row .row-review-chip.pending {
     background: rgba(251,191,36,0.15); color: #fbbf24;
     border: 1px solid rgba(251,191,36,0.35);
@@ -831,63 +857,74 @@
   }
   .rv-image { margin: 0 0 16px; border-radius: 10px; overflow: hidden; }
   .rv-image img { display: block; width: 100%; height: auto; }
-  /* Review viewer notes — "inside the mind of a pro" layout.
-     Each street gets a small header, then Eyal's avatar + chat-bubble note.
-     Mirrors how a coach would talk you through a hand: street by street. */
-  .rv-streets { display: flex; flex-direction: column; gap: 18px; }
-  .rv-street-block { display: flex; flex-direction: column; gap: 8px; }
-  .rv-street-header {
+  /* Review viewer notes — "inside the mind of a pro" column layout.
+     The PNG above already shows the street action timeline; below it we render
+     one mint-bordered note card per street, echoing the visual rhythm of the
+     timeline columns. On mobile (<600px) the cards stack vertically. */
+  .rv-section-title {
+    font-size: 11px; font-weight: 800; color: var(--accent);
+    text-transform: uppercase; letter-spacing: 1px;
+    margin: 18px 0 10px;
     display: flex; align-items: center; gap: 8px;
-    font-size: 11px; font-weight: 800; color: var(--ink-dim);
-    text-transform: uppercase; letter-spacing: 0.8px;
   }
-  .rv-street-header::before, .rv-street-header::after {
-    content: ""; flex: 1; height: 1px;
-    background: linear-gradient(to right, transparent, var(--line), transparent);
-  }
-  .rv-street-header::before { background: linear-gradient(to left, var(--line), transparent); }
-  .rv-street-header::after  { background: linear-gradient(to right, var(--line), transparent); }
-  .rv-pro-note { display: flex; gap: 10px; align-items: flex-start; }
-  .rv-pro-avatar {
-    flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%;
+  .rv-section-title .rv-st-avatar {
+    width: 22px; height: 22px; border-radius: 50%;
     background: linear-gradient(135deg, #ff7eb6, #b07cff);
-    display: flex; align-items: center; justify-content: center;
-    color: #0c1226; font-weight: 800; font-size: 13px;
-    position: relative; overflow: hidden;
-    box-shadow: 0 2px 8px rgba(176, 124, 255, 0.25);
+    position: relative; overflow: hidden; flex-shrink: 0;
   }
-  .rv-pro-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .rv-pro-bubble {
-    flex: 1; min-width: 0;
-    background: var(--panel-2); border: 1px solid var(--line); border-radius: 14px;
-    border-top-left-radius: 4px;
-    padding: 10px 14px 12px;
-    position: relative;
+  .rv-section-title .rv-st-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+  .rv-streets {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
   }
-  .rv-pro-bubble::before {
-    /* Subtle tail pointing back at the avatar */
-    content: ""; position: absolute; left: -7px; top: 12px;
-    width: 0; height: 0;
-    border-top: 6px solid transparent; border-bottom: 6px solid transparent;
-    border-right: 7px solid var(--line);
+  @media (max-width: 600px) {
+    .rv-streets { grid-template-columns: 1fr; gap: 10px; }
   }
-  .rv-pro-bubble::after {
-    content: ""; position: absolute; left: -6px; top: 12px;
-    width: 0; height: 0;
-    border-top: 6px solid transparent; border-bottom: 6px solid transparent;
-    border-right: 7px solid var(--panel-2);
+  .rv-street-card {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 12px;
+    padding: 10px 12px 12px;
+    display: flex; flex-direction: column; gap: 8px;
+    min-width: 0;
   }
-  .rv-pro-name {
-    font-size: 12px; font-weight: 800; color: var(--accent);
-    letter-spacing: 0.2px; margin-bottom: 4px;
+  .rv-street-card .rv-sc-head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 6px;
+    border-bottom: 1px dashed var(--line);
+    padding-bottom: 6px;
   }
-  .rv-pro-content {
-    font-size: 14px; line-height: 1.55; color: var(--ink);
+  .rv-street-card .rv-sc-name {
+    font-size: 12px; font-weight: 800; color: var(--ink);
+    text-transform: uppercase; letter-spacing: 0.6px;
+  }
+  .rv-street-card .rv-sc-pro {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 10px; font-weight: 700; color: var(--accent);
+    letter-spacing: 0.3px;
+  }
+  .rv-street-card .rv-sc-pro .rv-sc-avatar {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff7eb6, #b07cff);
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .rv-street-card .rv-sc-pro .rv-sc-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .rv-street-card .rv-sc-body {
+    font-size: 13px; line-height: 1.5; color: var(--ink);
     white-space: pre-wrap; word-break: break-word;
   }
-  .rv-pro-content audio {
-    width: 100%; margin-top: 2px;
-    background: var(--bg); border-radius: 8px;
+  .rv-street-card .rv-sc-body audio {
+    width: 100%; margin-top: 4px;
+    background: var(--bg); border-radius: 6px;
+  }
+  .rv-street-card.rv-empty-card {
+    border-left-color: var(--line);
+    opacity: 0.6;
+  }
+  .rv-street-card.rv-empty-card .rv-sc-body {
+    color: var(--ink-dim); font-size: 12px; font-style: italic;
   }
   .rv-empty {
     text-align: center; padding: 24px 0; color: var(--ink-dim); font-size: 13px; line-height: 1.5;
@@ -1494,7 +1531,7 @@
 
 <!-- ASK-A-PRO: delivery banner. Populated by checkAndRenderReviewBanner() on load. -->
 <div id="reviewBanner" class="review-banner" style="display:none">
-  <span class="rb-dot"></span>
+  <span class="rb-avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"><span class="rb-pulse"></span></span>
   <div class="rb-text" id="reviewBannerText"></div>
   <span class="rb-chev">›</span>
   <button type="button" class="rb-close" id="reviewBannerClose" aria-label="Dismiss">&times;</button>
@@ -1814,7 +1851,12 @@
 <div class="overlay" id="reviewViewerOverlay">
   <div class="sheet">
     <header>
-      <h3 style="font-size:15px;font-weight:800;letter-spacing:.2px;">Your review from &ldquo;Casillas&rdquo;</h3>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="rb-avatar" style="width:28px;height:28px;">
+          <img src="eyal.jpg" alt="" onerror="this.remove()">
+        </span>
+        <h3 style="font-size:15px;font-weight:800;letter-spacing:.2px;">Review from &ldquo;Casillas&rdquo;</h3>
+      </div>
       <button type="button" class="closebtn" id="rvClose" aria-label="Close">&times;</button>
     </header>
     <div class="body review-viewer-body" id="rvBody"></div>
@@ -1980,7 +2022,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.1";
+const APP_VERSION = "v1.2.2";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -5766,27 +5808,47 @@ function openReviewViewer(reviewId) {
   const body = document.getElementById("rvBody");
   const STREETS = ["preflop", "flop", "turn", "river"];
   const tierLabel = review.tier === "voice" ? "Voice memo · $15" : "Written note · $5";
-  // Render notes "inside the mind of a pro" style — street header, then Eyal's
-  // avatar + chat bubble of his note. One bubble per street, in order.
-  const noteHtml = STREETS.map(s => {
+  // Render notes as street columns (PREFLOP / FLOP / TURN / RIVER) — visually
+  // echoes the action timeline above (which is in the PNG). Each card has a
+  // mint left-border, the street name, Casillas's badge with photo, and his
+  // note (text and/or audio). Streets with no note still render but dimmed,
+  // so the user sees Casillas considered every street.
+  const hasAny = STREETS.some(s => {
+    const n = (review.notes && review.notes[s]) || {};
+    return (n.text && n.text.trim()) || n.audio;
+  });
+  const streetsHtml = STREETS.map(s => {
     const n = (review.notes && review.notes[s]) || {};
     const hasText = n.text && n.text.trim();
     const hasAudio = !!n.audio;
-    if (!hasText && !hasAudio) return "";
-    const contentParts = [];
-    if (hasText) contentParts.push(`<div>${escapeHTML(n.text)}</div>`);
-    if (hasAudio) contentParts.push(`<audio controls preload="metadata" src="${n.audio}"></audio>`);
-    return `<div class="rv-street-block">
-      <div class="rv-street-header">${s}</div>
-      <div class="rv-pro-note">
-        <div class="rv-pro-avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"><span>EE</span></div>
-        <div class="rv-pro-bubble">
-          <div class="rv-pro-name">Casillas</div>
-          <div class="rv-pro-content">${contentParts.join("")}</div>
+    if (!hasText && !hasAudio) {
+      return `<div class="rv-street-card rv-empty-card">
+        <div class="rv-sc-head">
+          <span class="rv-sc-name">${s}</span>
         </div>
+        <div class="rv-sc-body">No note on this street.</div>
+      </div>`;
+    }
+    const bodyParts = [];
+    if (hasText) bodyParts.push(escapeHTML(n.text));
+    if (hasAudio) bodyParts.push(`<audio controls preload="metadata" src="${n.audio}"></audio>`);
+    return `<div class="rv-street-card">
+      <div class="rv-sc-head">
+        <span class="rv-sc-name">${s}</span>
+        <span class="rv-sc-pro">
+          <span class="rv-sc-avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"></span>
+          Casillas
+        </span>
       </div>
+      <div class="rv-sc-body">${bodyParts.join("")}</div>
     </div>`;
-  }).filter(Boolean).join("");
+  }).join("");
+  const noteHtml = hasAny ? `
+    <div class="rv-section-title">
+      <span class="rv-st-avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"></span>
+      Casillas&rsquo;s street-by-street
+    </div>
+    <div class="rv-streets">${streetsHtml}</div>` : "";
   body.innerHTML = `
     <div class="rv-hero">
       <div class="rv-avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"><span>EK</span></div>
@@ -8245,12 +8307,14 @@ function renderMyHandsList() {
       context = parts.join(" · ");
     }
     // Show a chip if there's a pro review tied to this hand (matched by savedHandId).
+    // Includes a tiny Casillas face so users see at a glance whose review it is.
     const linkedReviews = loadReviews().filter(r => r.savedHandId === h.id);
     let reviewChipHtml = "";
+    const tinyFace = `<span class="rc-avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"></span>`;
     if (linkedReviews.some(r => r.status === "delivered")) {
-      reviewChipHtml = `<div class="row-review-chip ready">✓ Review ready</div>`;
+      reviewChipHtml = `<div class="row-review-chip ready">${tinyFace}Casillas &middot; ready</div>`;
     } else if (linkedReviews.some(r => r.status === "paid")) {
-      reviewChipHtml = `<div class="row-review-chip pending">Review pending</div>`;
+      reviewChipHtml = `<div class="row-review-chip pending">${tinyFace}Casillas &middot; pending</div>`;
     }
     const row = document.createElement("div");
     row.className = "my-hand-row";

@@ -124,6 +124,59 @@ button { cursor: pointer; }
   letter-spacing: .8px; color: var(--ink-dim); margin: 14px 0 8px;
 }
 
+/* Street note input — column grid that mirrors what the user sees.
+   4 columns on desktop, single column on phones. Each column has the street
+   name, an avatar tag for Casillas, and the input (textarea or recorder). */
+.streets-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+@media (max-width: 720px) { .streets-grid { grid-template-columns: 1fr; } }
+.col-card {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 12px;
+  padding: 10px 12px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+  min-width: 0;
+}
+.col-card .col-head {
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 6px;
+}
+.col-card .col-name {
+  font-size: 12px; font-weight: 800; color: var(--ink);
+  text-transform: uppercase; letter-spacing: 0.6px;
+}
+.col-card .col-pro {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 700; color: var(--accent);
+  letter-spacing: 0.3px;
+}
+.col-card .col-pro .col-avatar {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--pink), var(--purple));
+  position: relative; overflow: hidden;
+}
+.col-card .col-pro .col-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.col-card .col-body { display: flex; flex-direction: column; gap: 8px; }
+.col-card textarea.col-input {
+  width: 100%; min-height: 90px; padding: 8px 10px;
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: 8px; color: var(--ink);
+  font: inherit; font-size: 13px; line-height: 1.5; resize: vertical;
+}
+.col-card textarea.col-input:focus { outline: none; border-color: var(--accent); }
+.col-card .col-status {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
+  color: var(--ink-dim);
+}
+.col-card .col-status.has { color: var(--accent); }
+
+/* (Legacy collapsible-row CSS kept around in case anything else still uses it.) */
 .street-row {
   background: var(--panel-2); border: 1px solid var(--line);
   border-radius: 12px; margin-bottom: 8px; overflow: hidden;
@@ -250,8 +303,8 @@ textarea.street-input:focus { outline: none; border-color: var(--accent); }
     <h2 class="detail-title" id="detailTitle"></h2>
     <p class="detail-sub" id="detailSub"></p>
     <div class="hand-image" id="detailImage"></div>
-    <div class="streets-title">Your notes by street</div>
-    <div id="streetsList"></div>
+    <div class="streets-title">Your notes — one card per street (this is what the user sees)</div>
+    <div id="streetsList" class="streets-grid"></div>
     <div class="detail-actions">
       <button class="btn-secondary" id="saveDraftBtn">Save draft</button>
       <button class="btn-primary" id="sendBtn">Send to user</button>
@@ -514,14 +567,17 @@ function closeReview() {
 }
 $("#backBtn").addEventListener("click", closeReview);
 
-/* ---------- streets ---------- */
+/* ---------- streets ----------
+   Column-grid layout: one card per street (preflop/flop/turn/river). Each card
+   has a Casillas badge at the top right and the input (textarea or recorder)
+   filling the body. The visual matches what the user will see on their side. */
 function renderStreets(r) {
   const list = $("#streetsList");
   list.innerHTML = STREETS.map(s => {
     const note = (r.notes && r.notes[s]) || {};
     const hasContent = (r.tier === "voice" ? !!note.audio : !!(note.text && note.text.trim()));
     const body = r.tier === "text"
-      ? `<textarea class="street-input" data-street-input="${s}" placeholder="Your read on the ${s} action…">${escapeHtml(note.text || "")}</textarea>`
+      ? `<textarea class="col-input" placeholder="Your read on the ${s} action…">${escapeHtml(note.text || "")}</textarea>`
       : `<div class="recorder" data-street-rec="${s}">
           ${note.audio
             ? `<div class="rec-playback">
@@ -533,26 +589,26 @@ function renderStreets(r) {
                 <span class="rec-time">0:00</span>
               </div>`}
         </div>`;
-    return `<div class="street-row ${hasContent ? "" : ""}" data-street="${s}">
-      <div class="street-head">
-        <span class="label">${s}</span>
-        <div class="right">
-          <span class="status ${hasContent ? "has" : ""}">${hasContent ? "✓ noted" : "add note"}</span>
-          <span class="chev">›</span>
-        </div>
+    return `<div class="col-card" data-street="${s}">
+      <div class="col-head">
+        <span class="col-name">${s}</span>
+        <span class="col-pro">
+          <span class="col-avatar"><img src="eyal.jpg" alt="" onerror="this.parentNode.style.background='linear-gradient(135deg,var(--pink),var(--purple))'"></span>
+          Casillas
+        </span>
       </div>
-      <div class="street-body">${body}</div>
+      <div class="col-body">${body}</div>
+      <div class="col-status ${hasContent ? "has" : ""}">${hasContent ? "✓ noted" : "add note"}</div>
     </div>`;
   }).join("");
-  list.querySelectorAll(".street-row").forEach(row => {
-    row.querySelector(".street-head").addEventListener("click", () => row.classList.toggle("open"));
-    if (r.tier === "text") wireTextInput(row, r);
-    else wireRecorder(row, r);
+  list.querySelectorAll(".col-card").forEach(card => {
+    if (r.tier === "text") wireTextInput(card, r);
+    else wireRecorder(card, r);
   });
 }
 
-function updateStatus(row, hasContent) {
-  const s = row.querySelector(".status");
+function updateStatus(card, hasContent) {
+  const s = card.querySelector(".col-status");
   if (!s) return;
   s.textContent = hasContent ? "✓ noted" : "add note";
   s.classList.toggle("has", !!hasContent);
@@ -574,10 +630,7 @@ function wireRecorder(row, r) {
   if (clear) {
     clear.addEventListener("click", () => {
       setNote(r.id, street, { audio: null });
-      const open = row.classList.contains("open");
       renderStreets(r);
-      const newRow = document.querySelector(`#streetsList [data-street="${street}"]`);
-      if (newRow && open) newRow.classList.add("open");
     });
     return;
   }
