@@ -2096,7 +2096,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.10";
+const APP_VERSION = "v1.2.12";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -5978,6 +5978,18 @@ document.getElementById("ckConfirm").onclick = async () => {
   // has the image — works across browsers and devices, not just same-origin
   // same-storage. The full-quality image still lives once in My hands.
   const thumbDataUrl = await snapshotHandThumbnailDataUrl(imageDataUrl);
+  // Which streets were actually played? A preflop fold means no flop/turn/river
+  // were dealt; we shouldn't ask the pro to comment on streets that don't exist.
+  const streetsPlayed = [];
+  try {
+    ["preflop", "flop", "turn", "river"].forEach(s => {
+      const st = state.streets && state.streets[s];
+      if (st && ((st.actions && st.actions.length > 0) || (st.board && st.board.length > 0))) {
+        streetsPlayed.push(s);
+      }
+    });
+  } catch (_) {}
+  if (streetsPlayed.length === 0) streetsPlayed.push("preflop");
   const review = {
     id: "rv_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7),
     userEmail: email,
@@ -5987,6 +5999,7 @@ document.getElementById("ckConfirm").onclick = async () => {
     handTitle: snapshotHandTitle(),
     summary: summary,
     savedHandId: savedHandId,
+    streetsPlayed: streetsPlayed,   // which streets to ask the pro about
     // Compressed thumbnail (~30-60 KB) for pro.html to display. The full image
     // is still in My hands; the user viewer uses that when available.
     handImageDataUrl: thumbDataUrl,
@@ -6961,8 +6974,11 @@ function sdDrawTimeline(ctx, top_y, columns, heroPos) {
     // Pro note for this street, rendered as a styled card below actions/equity.
     // Pink left-border to distinguish from hero commentary (mint). The text
     // wraps inside the column width. Font size matches the action labels
-    // (~17px) so it reads as part of the same visual hierarchy.
+    // (~17px) so it reads as part of the same visual hierarchy. Extra gap
+    // above the card visually separates "what happened" from "what the pro
+    // says about it".
     if (c.proNote && typeof c.proNote === "string" && c.proNote.trim()) {
+      cy += 12;   // breathing room between action and pro note
       const note = c.proNote.trim();
       const noteFont = `17px -apple-system, "Segoe UI", sans-serif`;
       const labelFont = `bold 12px -apple-system, "Segoe UI", sans-serif`;
@@ -8807,9 +8823,15 @@ function setOutputSheetMode(mode) {
   const stageToggle = $("#stageToggle");
   if (stageToggle) stageToggle.style.display = (mode === "saved") ? "none" : "";
   if (mode === "saved") {
+    // Lock editing once Casillas has reviewed the hand — the canvas now carries
+    // his commentary baked in, and editing the underlying hand would orphan
+    // those notes. The user can still Delete the hand if they want to start
+    // over (which would also drop the review).
+    const isReviewed = currentSavedHand && (typeof loadReviews === "function") &&
+      loadReviews().some(r => r.savedHandId === currentSavedHand.id && r.status === "delivered");
     foot.innerHTML = `
       <button type="button" class="btn-danger-outline" id="savedDeleteBtn">Delete</button>
-      <button type="button" class="btn-secondary" id="savedEditBtn">Edit</button>
+      ${isReviewed ? "" : `<button type="button" class="btn-secondary" id="savedEditBtn">Edit</button>`}
       <button type="button" class="btn-secondary" id="savePngBtn">Save image</button>
       <button type="button" class="btn-primary" id="shareBtn">Share</button>
     `;
@@ -8838,7 +8860,9 @@ function rebindOutputActionsForSaved() {
     if (document.body.classList.contains("viewing-myhands")) renderMyHandsList();
     haptic(8);
   };
-  $("#savedEditBtn").onclick = () => {
+  // Edit button is hidden for reviewed hands (see setOutputSheetMode)
+  const editBtn = $("#savedEditBtn");
+  if (editBtn) editBtn.onclick = () => {
     loadHandData(currentSavedHand);
     $("#overlay").classList.remove("on");
     closeMyHands();

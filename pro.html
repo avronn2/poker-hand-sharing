@@ -105,8 +105,10 @@ button { cursor: pointer; }
 
 .empty { text-align: center; padding: 60px 20px; color: var(--ink-dim); font-size: 13px; }
 
-/* Detail view */
-.detail-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+/* Detail view — the original header (Back + SLA) is hidden because the back
+   button and SLA chip both live inside the sticky hand-image header now. */
+.detail-header { display: none; }
+.detail-header-legacy { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .back-btn {
   background: transparent; border: 0; color: var(--accent);
   font-size: 14px; font-weight: 700; padding: 4px 0;
@@ -118,96 +120,106 @@ button { cursor: pointer; }
    what Casillas references most while writing notes). Tap header to expand
    and see the full table; tap again to shrink. Action buttons stay sticky at
    the bottom of the viewport via .detail-actions. */
+/* Sticky (not fixed) — lives in normal flow, so no padding-top calculation
+   needed on the notes grid, no empty gap between image and notes. Sticks at
+   top: ~60px once the user scrolls (clears the SHOWDOWN PRO topbar so the
+   hand-image-head with the back button is always visible). */
 .hand-image {
-  position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + 8px);
-  left: 12px; right: 12px;
+  position: sticky;
+  top: 56px;   /* clears the sticky SHOWDOWN PRO topbar above it */
+  margin: 0 auto 12px;
   max-width: 736px;
-  margin: 0 auto;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 12px;
   box-shadow: 0 6px 22px rgba(0,0,0,0.45);
-  max-height: 28vh;
+  max-height: 56vh;
   overflow: hidden;
-  z-index: 9;
+  z-index: 5;
   display: flex; flex-direction: column;
   transition: max-height 0.25s ease;
 }
 .hand-image .hand-image-head {
   flex: 0 0 auto;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 6px 12px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px;
   border-bottom: 1px solid var(--line);
   font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
   text-transform: uppercase; color: var(--ink-dim);
-  cursor: pointer;
   user-select: none;
+}
+.hand-image .hand-image-back {
+  background: var(--panel-2); color: var(--accent);
+  border: 1px solid var(--line); border-radius: 6px;
+  padding: 4px 8px; font-size: 11px; font-weight: 800;
+  letter-spacing: 0.3px; text-transform: none;
+  flex-shrink: 0; cursor: pointer;
+}
+.hand-image .hand-image-title {
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  cursor: pointer;
 }
 .hand-image .hand-image-collapse {
   background: transparent; border: 0; color: var(--ink-dim);
   font-size: 14px; padding: 2px 6px; cursor: pointer; line-height: 1;
   transition: transform 0.2s ease;
+  flex-shrink: 0;
 }
 .hand-image .hand-image-body {
   flex: 1; min-height: 0;
   overflow: hidden;
   position: relative;
 }
-/* Default (streets-only): the image fills the container width at its natural
-   aspect ratio and is bottom-anchored via flex align-items:flex-end. Overflow
-   at the top gets clipped, so only the BOTTOM of the image is visible. This
-   approach is reliable across all image aspect ratios (object-fit cover and
-   absolute positioning both have edge cases). */
+/* Default (streets-only): image fills the container completely via object-fit
+   cover with bottom bias. For tall images (hands with full timeline), the
+   bottom 80% is visible. For shorter images (preflop-only), the full image
+   shows scaled to fit. No empty space inside the container. */
 .hand-image.streets-only .hand-image-body {
-  flex: 0 0 24vh;
+  flex: 0 0 50vh;
   overflow: hidden;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
   padding: 0;
 }
 .hand-image.streets-only .hand-image-body img,
 .hand-image.streets-only .hand-image-body svg {
-  width: 100%;
-  height: auto;
   display: block;
-  flex-shrink: 0;   /* don't let flex squish the image vertically */
-  max-width: 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
 }
 
-/* Expanded: show the full image at natural aspect, capped to the body height
-   via object-fit: contain. */
+/* Expanded: show the full image at natural aspect, capped to the body height. */
 .hand-image.expanded {
-  max-height: 56vh;
+  max-height: 72vh;
 }
 .hand-image.expanded .hand-image-body {
-  height: 52vh;
+  flex: 0 0 66vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 6px;
+  overflow: auto;
 }
 .hand-image.expanded .hand-image-body img,
 .hand-image.expanded .hand-image-body svg {
   display: block;
   max-width: 100%;
-  max-height: 100%;
-  width: auto;
+  width: 100%;
   height: auto;
-  object-fit: contain;
 }
 .hand-image.expanded .hand-image-collapse { transform: rotate(180deg); }
 .hand-image.collapsed { max-height: 38px; }
 .hand-image.collapsed .hand-image-body { display: none; }
 .hand-image.collapsed .hand-image-collapse { transform: rotate(180deg); }
 /* The note columns need top padding so the fixed image doesn't cover them. */
-.streets-grid { padding-top: calc(30vh + env(safe-area-inset-top, 0px)); padding-bottom: 90px; }
-.streets-grid.image-expanded { padding-top: calc(52vh + env(safe-area-inset-top, 0px)); }
-.streets-grid.image-collapsed { padding-top: 60px; }
+/* Hand-image is now position: sticky so it lives in normal flow — no padding-top
+   calculation needed on the notes grid. Just leave space at the bottom for the
+   sticky action footer. */
+.streets-grid { padding-top: 4px; padding-bottom: 90px; }
 
-/* Override the default streets-title margin so it sits below the sticky image. */
-.streets-title { margin-top: 4px !important; }
+/* The "Your notes" title is redundant with the hand-image-head title bar above. */
+.streets-title { display: none; }
 
 .streets-title {
   font-size: 11px; font-weight: 800; text-transform: uppercase;
@@ -415,10 +427,11 @@ textarea.street-input:focus { outline: none; border-color: var(--accent); }
     <!-- Sticky hand reference at the TOP of the viewport. Three states:
          streets-only (default, shows just the action timeline), expanded
          (full table + timeline), collapsed (just the header bar). Tap header
-         to cycle. -->
+         to cycle, back button on the left returns to the queue. -->
     <div class="hand-image streets-only" id="detailImage">
       <div class="hand-image-head">
-        <span>Hand reference &middot; <span id="handImageHint" style="color:var(--ink-dim);font-weight:600;text-transform:none;letter-spacing:0;">Tap to see full table</span></span>
+        <button type="button" class="hand-image-back" id="handImageBack" aria-label="Back to queue">‹ Queue</button>
+        <span class="hand-image-title">Hand reference &middot; <span id="handImageHint" style="color:var(--ink-dim);font-weight:600;text-transform:none;letter-spacing:0;">Tap to see full table</span></span>
         <button type="button" class="hand-image-collapse" id="handImageCollapse" aria-label="Toggle">▼</button>
       </div>
       <div class="hand-image-body" id="detailImageBody"></div>
@@ -575,6 +588,11 @@ function normalizeReal(r) {
     status: r.status === "delivered" ? "delivered" : "pending",  // "paid" → "pending"
     notes: r.notes || {},
     deliveredAt: r.deliveredAt || 0,
+    // Which streets the pro should be asked about. Falls back to all 4 if the
+    // review record predates this field (legacy v1.2.9 and earlier).
+    streetsPlayed: Array.isArray(r.streetsPlayed) && r.streetsPlayed.length
+      ? r.streetsPlayed
+      : ["preflop", "flop", "turn", "river"],
     source: "real",
     _raw: r   // keep a handle to write back to the shared bus on Send
   };
@@ -767,19 +785,28 @@ $("#handImageCollapse").addEventListener("click", (e) => {
   e.stopPropagation();
   cycleHandImageState();
 });
-$("#detailImage .hand-image-head").addEventListener("click", (e) => {
-  if (e.target.closest("#handImageCollapse")) return;
+// Title bar (not the back/collapse buttons) toggles state
+$("#detailImage .hand-image-title").addEventListener("click", (e) => {
   cycleHandImageState();
+});
+// Back button — returns to the dashboard
+$("#handImageBack").addEventListener("click", (e) => {
+  e.stopPropagation();
+  closeReview();
 });
 applyHandImageState();
 
 /* ---------- streets ----------
    Column-grid layout: one card per street (preflop/flop/turn/river). Each card
    has a Casillas badge at the top right and the input (textarea or recorder)
-   filling the body. The visual matches what the user will see on their side. */
+   filling the body. Only renders inputs for streets actually played — a preflop
+   fold means flop/turn/river don't exist and shouldn't be asked about. */
 function renderStreets(r) {
   const list = $("#streetsList");
-  list.innerHTML = STREETS.map(s => {
+  const streetsToShow = (r.streetsPlayed && r.streetsPlayed.length)
+    ? STREETS.filter(s => r.streetsPlayed.includes(s))
+    : STREETS;
+  list.innerHTML = streetsToShow.map(s => {
     const note = (r.notes && r.notes[s]) || {};
     const hasContent = (r.tier === "voice" ? !!note.audio : !!(note.text && note.text.trim()));
     const body = r.tier === "text"
@@ -894,7 +921,9 @@ $("#sendBtn").addEventListener("click", () => {
   if (!currentReviewId) return;
   const r = getReview(currentReviewId);
   if (!r || r.status === "delivered") return;
-  const any = STREETS.some(s => {
+  // Only consider streets that were actually played
+  const playedStreets = (r.streetsPlayed && r.streetsPlayed.length) ? r.streetsPlayed : STREETS;
+  const any = playedStreets.some(s => {
     const n = r.notes && r.notes[s];
     if (!n) return false;
     return r.tier === "voice" ? !!n.audio : !!(n.text && n.text.trim());
