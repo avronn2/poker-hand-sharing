@@ -831,30 +831,62 @@
   }
   .rv-image { margin: 0 0 16px; border-radius: 10px; overflow: hidden; }
   .rv-image img { display: block; width: 100%; height: auto; }
-  .rv-streets { display: flex; flex-direction: column; gap: 10px; }
-  .rv-street {
-    background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px;
-    padding: 12px 14px;
-  }
-  .rv-street .rv-street-head {
-    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
-  }
-  .rv-street .rv-street-label {
+  /* Review viewer notes — "inside the mind of a pro" layout.
+     Each street gets a small header, then Eyal's avatar + chat-bubble note.
+     Mirrors how a coach would talk you through a hand: street by street. */
+  .rv-streets { display: flex; flex-direction: column; gap: 18px; }
+  .rv-street-block { display: flex; flex-direction: column; gap: 8px; }
+  .rv-street-header {
+    display: flex; align-items: center; gap: 8px;
     font-size: 11px; font-weight: 800; color: var(--ink-dim);
-    text-transform: uppercase; letter-spacing: 0.6px;
+    text-transform: uppercase; letter-spacing: 0.8px;
   }
-  .rv-street .rv-street-tag {
-    font-size: 10px; padding: 2px 7px; border-radius: 6px;
-    background: rgba(94,234,212,0.15); color: var(--accent);
-    border: 1px solid rgba(94,234,212,0.3);
-    font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+  .rv-street-header::before, .rv-street-header::after {
+    content: ""; flex: 1; height: 1px;
+    background: linear-gradient(to right, transparent, var(--line), transparent);
   }
-  .rv-street .rv-street-text {
+  .rv-street-header::before { background: linear-gradient(to left, var(--line), transparent); }
+  .rv-street-header::after  { background: linear-gradient(to right, var(--line), transparent); }
+  .rv-pro-note { display: flex; gap: 10px; align-items: flex-start; }
+  .rv-pro-avatar {
+    flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff7eb6, #b07cff);
+    display: flex; align-items: center; justify-content: center;
+    color: #0c1226; font-weight: 800; font-size: 13px;
+    position: relative; overflow: hidden;
+    box-shadow: 0 2px 8px rgba(176, 124, 255, 0.25);
+  }
+  .rv-pro-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .rv-pro-bubble {
+    flex: 1; min-width: 0;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 14px;
+    border-top-left-radius: 4px;
+    padding: 10px 14px 12px;
+    position: relative;
+  }
+  .rv-pro-bubble::before {
+    /* Subtle tail pointing back at the avatar */
+    content: ""; position: absolute; left: -7px; top: 12px;
+    width: 0; height: 0;
+    border-top: 6px solid transparent; border-bottom: 6px solid transparent;
+    border-right: 7px solid var(--line);
+  }
+  .rv-pro-bubble::after {
+    content: ""; position: absolute; left: -6px; top: 12px;
+    width: 0; height: 0;
+    border-top: 6px solid transparent; border-bottom: 6px solid transparent;
+    border-right: 7px solid var(--panel-2);
+  }
+  .rv-pro-name {
+    font-size: 12px; font-weight: 800; color: var(--accent);
+    letter-spacing: 0.2px; margin-bottom: 4px;
+  }
+  .rv-pro-content {
     font-size: 14px; line-height: 1.55; color: var(--ink);
     white-space: pre-wrap; word-break: break-word;
   }
-  .rv-street audio {
-    width: 100%; margin-top: 4px;
+  .rv-pro-content audio {
+    width: 100%; margin-top: 2px;
     background: var(--bg); border-radius: 8px;
   }
   .rv-empty {
@@ -949,13 +981,22 @@
   .menu-list { list-style: none; padding: 8px; margin: 0; }
   .menu-list li { margin: 0; }
   .menu-list button {
-    display: block; width: 100%; text-align: left;
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
     background: transparent; color: var(--ink);
     border: 0; padding: 14px 16px; border-radius: 10px;
     font: inherit; font-size: 15px; font-weight: 600;
     cursor: pointer;
   }
   .menu-list button:hover { background: var(--panel-2); }
+  /* Notification badge on a menu item (e.g. "My hands · 2 ready") */
+  .menu-list .menu-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 20px; height: 20px; padding: 0 6px;
+    background: var(--accent); color: #0c1226;
+    border-radius: 999px;
+    font-size: 11px; font-weight: 800;
+    box-shadow: 0 0 0 3px rgba(94,234,212,0.18);
+  }
 
   /* Welcome / How it works screen */
   .welcome-sheet {
@@ -1662,7 +1703,7 @@
     <ul class="menu-list">
       <li><button type="button" data-menu="profile">Profile</button></li>
       <li><button type="button" data-menu="newhand">New hand</button></li>
-      <li><button type="button" data-menu="myhands">My hands</button></li>
+      <li><button type="button" data-menu="myhands">My hands<span class="menu-badge" id="myHandsMenuBadge" style="display:none">0</span></button></li>
       <li><button type="button" data-menu="tour">Example walkthrough</button></li>
     </ul>
     <!-- Build/version marker so we can confirm production is on the latest deploy -->
@@ -1939,7 +1980,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.0";
+const APP_VERSION = "v1.2.1";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -5637,6 +5678,31 @@ document.getElementById("ckConfirm").onclick = async () => {
     if (typeof showToast === "function") showToast("Couldn't capture the hand image — try again");
     return;
   }
+
+  // Auto-save the hand to "My hands" if we aren't already viewing a saved one.
+  // This guarantees every reviewed hand has a permanent home where the pro's
+  // notes can attach. The save is silent — we don't pop the save dialog.
+  let savedHandId = null;
+  if (currentSavedHand && currentSavedHand.id) {
+    savedHandId = currentSavedHand.id;
+  } else {
+    try {
+      const hand = serializeHand();
+      // No user-typed title — leave hand.title empty so the row falls back to
+      // position + cards (consistent with what a manual "Save" with no title does).
+      hand.title = "";
+      hand.imageDataUrl = imageDataUrl;
+      const all = loadHands();
+      all.push(hand);
+      saveHands(all);
+      savedHandId = hand.id;
+    } catch (e) {
+      // If we can't auto-save, the review still goes through unlinked. Banner
+      // and viewer work fine; only the My-hands chip is missing.
+      console.warn("Auto-save on checkout failed:", e);
+    }
+  }
+
   const summary = snapshotHandSummary();
   const review = {
     id: "rv_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7),
@@ -5647,7 +5713,7 @@ document.getElementById("ckConfirm").onclick = async () => {
     handImageDataUrl: imageDataUrl,
     handTitle: snapshotHandTitle(),
     summary: summary,
-    savedHandId: summary.savedHandId || null,
+    savedHandId: savedHandId,
     createdAt: Date.now(),
     status: "paid",
     deliveredAt: null,
@@ -5658,8 +5724,12 @@ document.getElementById("ckConfirm").onclick = async () => {
   saveReviews(all);
   track("pro_review_requested", { tier: _ckTier });
   closeCheckoutModal();
-  if (typeof showToast === "function") showToast("Sent to Casillas (sandbox)");
+  if (typeof showToast === "function") {
+    showToast(savedHandId && !currentSavedHand ? "Hand saved & sent to Casillas (sandbox)" : "Sent to Casillas (sandbox)");
+  }
   haptic(12);
+  // Refresh the menu badge — there's a new pending review tied to a hand now.
+  if (typeof updateMyHandsMenuBadge === "function") updateMyHandsMenuBadge();
 };
 
 // ---------- Delivery banner ----------
@@ -5696,18 +5766,25 @@ function openReviewViewer(reviewId) {
   const body = document.getElementById("rvBody");
   const STREETS = ["preflop", "flop", "turn", "river"];
   const tierLabel = review.tier === "voice" ? "Voice memo · $15" : "Written note · $5";
+  // Render notes "inside the mind of a pro" style — street header, then Eyal's
+  // avatar + chat bubble of his note. One bubble per street, in order.
   const noteHtml = STREETS.map(s => {
     const n = (review.notes && review.notes[s]) || {};
     const hasText = n.text && n.text.trim();
     const hasAudio = !!n.audio;
     if (!hasText && !hasAudio) return "";
-    return `<div class="rv-street">
-      <div class="rv-street-head">
-        <span class="rv-street-label">${s}</span>
-        <span class="rv-street-tag">Casillas</span>
+    const contentParts = [];
+    if (hasText) contentParts.push(`<div>${escapeHTML(n.text)}</div>`);
+    if (hasAudio) contentParts.push(`<audio controls preload="metadata" src="${n.audio}"></audio>`);
+    return `<div class="rv-street-block">
+      <div class="rv-street-header">${s}</div>
+      <div class="rv-pro-note">
+        <div class="rv-pro-avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"><span>EE</span></div>
+        <div class="rv-pro-bubble">
+          <div class="rv-pro-name">Casillas</div>
+          <div class="rv-pro-content">${contentParts.join("")}</div>
+        </div>
       </div>
-      ${hasText ? `<div class="rv-street-text">${escapeHTML(n.text)}</div>` : ""}
-      ${hasAudio ? `<audio controls preload="metadata" src="${n.audio}"></audio>` : ""}
     </div>`;
   }).filter(Boolean).join("");
   body.innerHTML = `
@@ -5750,11 +5827,38 @@ if (typeof escapeHTML !== "function") {
   };
 }
 
+// Show a notification badge on the hamburger's "My hands" item: count of
+// reviews that have come back from Casillas but haven't been opened yet.
+// We treat "seen" the same way as the banner dismissal — once the user opens
+// the review viewer for that id, it's marked seen and the badge ticks down.
+function updateMyHandsMenuBadge() {
+  const badge = document.getElementById("myHandsMenuBadge");
+  if (!badge) return;
+  const reviews = loadReviews();
+  const seen = loadBannerDismissed();
+  const unseenReady = reviews.filter(r => r.status === "delivered" && !seen[r.id]);
+  if (unseenReady.length === 0) { badge.style.display = "none"; return; }
+  badge.textContent = String(unseenReady.length);
+  badge.style.display = "";
+}
+
 // Run on load + whenever localStorage changes from another tab (pro.html flipping a review to delivered)
 checkAndRenderReviewBanner();
+updateMyHandsMenuBadge();
 window.addEventListener("storage", (e) => {
-  if (e.key === REVIEWS_KEY) checkAndRenderReviewBanner();
+  if (e.key === REVIEWS_KEY) {
+    checkAndRenderReviewBanner();
+    updateMyHandsMenuBadge();
+  }
 });
+
+// Keep badge in sync any time the viewer/banner state mutates locally.
+// (Both code paths call saveBannerDismissed; we wrap it to also refresh the badge.)
+const _origSaveBannerDismissed = saveBannerDismissed;
+saveBannerDismissed = function (map) {
+  _origSaveBannerDismissed(map);
+  updateMyHandsMenuBadge();
+};
 
 // Get the current hand's image as a Blob — uses the saved-hand dataURL when viewing
 // a saved hand, otherwise renders fresh from `state`.

@@ -329,21 +329,28 @@ function makeHandSvg(opts) {
   </svg>`;
 }
 
-/* ---------- mock data ---------- */
-const MOCK = [
-  { id: "rev_001", userEmail: "alex@showdown.cards", tier: "voice", createdAt: Date.now() - 8 * 3600e3,
-    handImageSvg: makeHandSvg({ heroPos: "BTN", villainPos: "CO", heroCards: ["Ah","Ks"], board: ["Jc","9h","3d","Qs","2c"], pot: "62bb" }),
-    handTitle: "Caller defends BTN vs CO 3-bet, river decision" },
-  { id: "rev_002", userEmail: "maya@showdown.cards", tier: "text", createdAt: Date.now() - 26 * 3600e3,
-    handImageSvg: makeHandSvg({ heroPos: "SB", villainPos: "BTN", heroCards: ["Qc","Qd"], board: ["Kh","Ts","4c","Jd"], pot: "48bb" }),
-    handTitle: "QQ on K-high turn out of position" },
-  { id: "rev_003", userEmail: "devon@showdown.cards", tier: "voice", createdAt: Date.now() - 39 * 3600e3,
-    handImageSvg: makeHandSvg({ heroPos: "CO", villainPos: "BB", heroCards: ["Ts","9s"], board: ["8s","7c","2h","6s","As"], pot: "94bb" }),
-    handTitle: "Wheel draw rivered, value or bluff?" },
-  { id: "rev_004", userEmail: "sam@showdown.cards", tier: "text", createdAt: Date.now() - 4 * 3600e3,
-    handImageSvg: makeHandSvg({ heroPos: "UTG", villainPos: "HJ", heroCards: ["Kd","Kc"], board: [], pot: "14bb" }),
-    handTitle: "KK preflop 4-bet pot" },
-];
+/* ---------- mock data ----------
+   Backlog intentionally empty — Eyal's queue is driven entirely by real submissions
+   from showdown.cards now. The makeHandSvg() helper above is kept around for any
+   future seeding we want to do (e.g. demo mode for press shots). */
+const MOCK = [];
+
+// One-shot cleanup: earlier sandbox builds seeded localStorage with 4 stale rev_001…rev_004
+// mock reviews. Drop them so Eyal sees a clean queue on next open.
+(() => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (s && Array.isArray(s.reviews)) {
+      const cleaned = s.reviews.filter(r => !/^rev_00[1-4]$/.test(r.id || ""));
+      if (cleaned.length !== s.reviews.length) {
+        s.reviews = cleaned;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+      }
+    }
+  } catch (_) {}
+})();
 
 /* ---------- state ---------- */
 function loadState() {
