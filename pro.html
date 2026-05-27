@@ -113,11 +113,57 @@ button { cursor: pointer; }
 }
 .detail-title { font-size: 17px; font-weight: 800; margin: 0 0 3px; letter-spacing: -0.2px; }
 .detail-sub { font-size: 12px; color: var(--ink-dim); margin: 0 0 14px; }
+/* Sticky hand image — pinned at the bottom of the viewport so Casillas can
+   always see the table while writing notes. The note columns scroll above it.
+   Collapse button on the right edge to free space if it gets in the way. */
 .hand-image {
-  width: 100%; max-width: 520px; margin: 0 auto 18px;
-  border-radius: 12px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,0.35); display: block;
+  position: fixed;
+  left: 12px; right: 12px;
+  bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  max-width: 736px;
+  margin: 0 auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 -6px 22px rgba(0,0,0,0.45);
+  max-height: 38vh;
+  overflow: hidden;
+  z-index: 9;
+  display: flex; flex-direction: column;
+  transition: transform 0.25s ease, max-height 0.25s ease;
 }
-.hand-image svg { display: block; width: 100%; height: auto; }
+.hand-image .hand-image-head {
+  flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
+  text-transform: uppercase; color: var(--ink-dim);
+}
+.hand-image .hand-image-collapse {
+  background: transparent; border: 0; color: var(--ink-dim);
+  font-size: 14px; padding: 2px 6px; cursor: pointer; line-height: 1;
+}
+.hand-image .hand-image-body {
+  flex: 1; min-height: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 6px;
+  overflow: hidden;
+}
+.hand-image img, .hand-image svg {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  width: auto;
+  height: auto;
+}
+.hand-image.collapsed { max-height: 38px; }
+.hand-image.collapsed .hand-image-body { display: none; }
+.hand-image.collapsed .hand-image-collapse { transform: rotate(180deg); }
+/* The note columns need bottom padding so the fixed image doesn't cover them. */
+.streets-grid { padding-bottom: calc(42vh + env(safe-area-inset-bottom, 0px)); }
+.streets-grid.image-collapsed { padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
 
 .streets-title {
   font-size: 11px; font-weight: 800; text-transform: uppercase;
@@ -322,7 +368,15 @@ textarea.street-input:focus { outline: none; border-color: var(--accent); }
     </div>
     <h2 class="detail-title" id="detailTitle"></h2>
     <p class="detail-sub" id="detailSub"></p>
-    <div class="hand-image" id="detailImage"></div>
+    <!-- Sticky hand reference at the bottom of the viewport. Casillas can
+         collapse it via the chevron if he needs more room for typing. -->
+    <div class="hand-image" id="detailImage">
+      <div class="hand-image-head">
+        <span>Hand reference</span>
+        <button type="button" class="hand-image-collapse" id="handImageCollapse" aria-label="Collapse">▼</button>
+      </div>
+      <div class="hand-image-body" id="detailImageBody"></div>
+    </div>
     <div class="streets-title">Your notes — one card per street (this is what the user sees)</div>
     <div id="streetsList" class="streets-grid"></div>
     <div class="detail-actions">
@@ -616,7 +670,7 @@ function openReview(id) {
   $("#detailSub").textContent = r.handTitle || "";
   const s = r.status === "pending" ? sla(r.createdAt) : { cls: "green", label: "Delivered" };
   $("#detailSla").innerHTML = `<span class="sla ${s.cls}"><span class="dot"></span>${s.label}</span>${r.source === "real" ? ` <span class="tier-badge" style="background:var(--pink);color:#1c1b2c;border-color:var(--pink);margin-left:6px;">LIVE</span>` : ""}`;
-  $("#detailImage").innerHTML = thumbHtml(r);
+  $("#detailImageBody").innerHTML = thumbHtml(r);
   renderStreets(r);
   $("#sendBtn").disabled = r.status === "delivered";
   $("#sendBtn").textContent = r.status === "delivered" ? "Already delivered" : "Send to user";
@@ -630,6 +684,28 @@ function closeReview() {
   renderDashboard();
 }
 $("#backBtn").addEventListener("click", closeReview);
+
+// Collapse / expand the sticky hand image. Remembers its state across renders
+// via localStorage so Casillas doesn't have to re-collapse on every review.
+const HAND_COLLAPSE_KEY = "showdown_pro_hand_collapsed";
+function applyHandCollapseState() {
+  const collapsed = localStorage.getItem(HAND_COLLAPSE_KEY) === "1";
+  const img = $("#detailImage"); const grid = $("#streetsList");
+  if (img) img.classList.toggle("collapsed", collapsed);
+  if (grid) grid.classList.toggle("image-collapsed", collapsed);
+}
+$("#handImageCollapse").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const cur = localStorage.getItem(HAND_COLLAPSE_KEY) === "1";
+  localStorage.setItem(HAND_COLLAPSE_KEY, cur ? "0" : "1");
+  applyHandCollapseState();
+});
+// Tap the head bar (anywhere) to toggle too
+$("#detailImage .hand-image-head").addEventListener("click", (e) => {
+  if (e.target.closest("#handImageCollapse")) return;
+  $("#handImageCollapse").click();
+});
+applyHandCollapseState();
 
 /* ---------- streets ----------
    Column-grid layout: one card per street (preflop/flop/turn/river). Each card
