@@ -2046,7 +2046,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.5";
+const APP_VERSION = "v1.2.6";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -4671,8 +4671,12 @@ async function renderOutputImage() {
     if (visibleFor < 500) await new Promise(r => setTimeout(r, 500 - visibleFor));
   }
   cleanupLoader();
-  // JPEG dataURL for compact persistence (saved hands are stored in localStorage).
-  try { lastOutputImageDataUrl = canvas.toDataURL("image/jpeg", 0.85); } catch (_) {}
+  // JPEG dataURL for compact persistence. localStorage caps at ~5 MB per
+  // origin, and each hand image is by far the biggest single thing we store
+  // (a 1640px-wide rendered canvas at 0.85 quality = ~500 KB). Dropping to
+  // 0.7 cuts that roughly in half with no visible difference, so the user
+  // can fit ~2× more hands before hitting the cap.
+  try { lastOutputImageDataUrl = canvas.toDataURL("image/jpeg", 0.7); } catch (_) {}
   // Blob URL drives the on-screen preview and the Share/Save image buttons.
   // If toBlob fails, fall back to the dataURL so the user still sees the image.
   await new Promise(resolve => {
@@ -5682,35 +5686,50 @@ function loadReviews() {
   catch (_) { return []; }
 }
 // Returns true on success, false if localStorage quota was hit. On failure we
-// show a friendly dialog that explains the cause and offers a one-click cleanup
-// of older delivered reviews to free space.
+// route through the shared storage-recovery dialog (defined below) which
+// actually frees space (vs. the previous filter that only deleted delivered
+// reviews >24h old — leaving pending recent ones stuck in a loop).
 function saveReviews(arr) {
   try {
     localStorage.setItem(REVIEWS_KEY, JSON.stringify(arr));
     return true;
   }
   catch (e) {
-    const usedMB = Math.round(JSON.stringify(arr).length / 1024 / 102.4) / 10;
-    if (typeof showConfirm === "function") {
-      showConfirm(
-        `Your browser ran out of room for new reviews (~${usedMB} MB in use). ` +
-        `Drop the older delivered reviews to free space?`,
-        { title: "Storage full", confirmLabel: "Clear old reviews", danger: true }
-      ).then(ok => {
-        if (!ok) return;
-        // Keep only reviews from the last 24h or still pending; drop the rest.
-        const cutoff = Date.now() - 24 * 3600 * 1000;
-        const kept = arr.filter(r => r.status !== "delivered" || (r.deliveredAt || r.createdAt || 0) > cutoff);
-        try { localStorage.setItem(REVIEWS_KEY, JSON.stringify(kept)); } catch (_) {}
-        if (typeof showToast === "function") showToast("Cleared older reviews");
-        if (typeof checkAndRenderReviewBanner === "function") checkAndRenderReviewBanner();
-        if (typeof updateMyHandsMenuBadge === "function") updateMyHandsMenuBadge();
-      });
-    } else if (typeof showAlert === "function") {
-      showAlert("Couldn't save review: " + e.message, "Storage error");
-    }
+    showStorageFullDialog();
     return false;
   }
+}
+
+// Shared escape hatch for any storage-full situation. Inspects how much each
+// sandbox key is using, offers a one-click reset, and explains the browser's
+// 5 MB localStorage limit honestly. The "Reset" button clears every review
+// and pro state — the user's saved hands are NOT touched here.
+let _storageDialogOpen = false;
+function showStorageFullDialog() {
+  if (_storageDialogOpen) return;
+  if (typeof showConfirm !== "function") return;
+  _storageDialogOpen = true;
+  let reviewsKB = 0, proKB = 0, handsKB = 0;
+  try {
+    reviewsKB = Math.round(((localStorage.getItem("showdown_reviews_v1") || "").length) / 1024);
+    proKB     = Math.round(((localStorage.getItem("showdown_pro_sandbox_v1") || "").length) / 1024);
+    handsKB   = Math.round(((localStorage.getItem("showdown_hands_v1") || "").length) / 1024);
+  } catch (_) {}
+  const msg =
+    `Browsers cap each site at ~5 MB of local storage. Right now Showdown is using:\n\n` +
+    `• My hands: ${handsKB} KB\n` +
+    `• Sandbox reviews + pro state: ${reviewsKB + proKB} KB\n\n` +
+    `Reset the sandbox (reviews + Casillas's drafts) to free space? Your saved hands won't be touched.`;
+  showConfirm(msg, { title: "Storage full", confirmLabel: "Reset sandbox", danger: true }).then(ok => {
+    _storageDialogOpen = false;
+    if (!ok) return;
+    try { localStorage.removeItem("showdown_reviews_v1"); } catch (_) {}
+    try { localStorage.removeItem("showdown_pro_sandbox_v1"); } catch (_) {}
+    try { localStorage.removeItem("showdown_pro_banner_dismissed"); } catch (_) {}
+    if (typeof showToast === "function") showToast("Sandbox reset — try Send again");
+    if (typeof checkAndRenderReviewBanner === "function") checkAndRenderReviewBanner();
+    if (typeof updateMyHandsMenuBadge === "function") updateMyHandsMenuBadge();
+  });
 }
 function loadBannerDismissed() {
   try { return JSON.parse(localStorage.getItem(PRO_BANNER_DISMISS_KEY)) || {}; }
@@ -8009,33 +8028,10 @@ function loadHands() {
 function saveHands(arr) {
   try { localStorage.setItem(HANDS_KEY, JSON.stringify(arr)); return true; }
   catch (e) {
-    // Storage is full. Most common cause is bloat in the Ask-a-Pro sandbox
-    // stores from older builds (embedded images, mock reviews, etc.) — those
-    // are safe to clear. Offer the user a one-click reset before asking them
-    // to delete their actual hands.
-    let sandboxBytes = 0;
-    try {
-      sandboxBytes += (localStorage.getItem("showdown_reviews_v1") || "").length;
-      sandboxBytes += (localStorage.getItem("showdown_pro_sandbox_v1") || "").length;
-    } catch (_) {}
-    const sandboxKB = Math.round(sandboxBytes / 1024);
-    if (typeof showConfirm === "function" && sandboxBytes > 0) {
-      showConfirm(
-        `Your browser's storage is full. The Ask-a-Pro sandbox is taking ~${sandboxKB} KB ` +
-        `that's safe to clear (mock data + old reviews). Clear it and try again?`,
-        { title: "Storage full", confirmLabel: "Clear sandbox data", danger: true }
-      ).then(ok => {
-        if (!ok) return;
-        try { localStorage.removeItem("showdown_reviews_v1"); } catch (_) {}
-        try { localStorage.removeItem("showdown_pro_sandbox_v1"); } catch (_) {}
-        try { localStorage.removeItem("showdown_pro_banner_dismissed"); } catch (_) {}
-        if (typeof showToast === "function") showToast("Sandbox cleared — try Send again");
-        if (typeof checkAndRenderReviewBanner === "function") checkAndRenderReviewBanner();
-        if (typeof updateMyHandsMenuBadge === "function") updateMyHandsMenuBadge();
-      });
-    } else {
-      showAlert("Couldn't save: " + e.message + "\n\nYour browser's storage is full. Try deleting some saved hands first.", "Storage error");
-    }
+    // Route through the shared storage-recovery dialog. It will report what's
+    // taking space and offer to reset the sandbox without touching saved hands.
+    if (typeof showStorageFullDialog === "function") showStorageFullDialog();
+    else if (typeof showAlert === "function") showAlert("Couldn't save: " + e.message, "Storage error");
     return false;
   }
 }
@@ -8678,7 +8674,7 @@ $("#saveConfirm").onclick = async () => {
     // Just in case (e.g. first save before any render finished), try to render now.
     try {
       const canvas = await renderHandToCanvas();
-      if (canvas) lastOutputImageDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      if (canvas) lastOutputImageDataUrl = canvas.toDataURL("image/jpeg", 0.7);
     } catch (_) {}
   }
   if (lastOutputImageDataUrl) hand.imageDataUrl = lastOutputImageDataUrl;
