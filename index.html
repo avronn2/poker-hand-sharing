@@ -561,6 +561,14 @@
     display: flex; align-items: center; justify-content: space-between;
     padding: 12px 16px; border-bottom: 1px solid var(--line);
   }
+  /* The output overlay can fill the screen on tall hands. On iPhones with a
+     Dynamic Island / notch, that puts the header underneath the cutout. Pad
+     the top by the safe-area inset so the close button and pills always sit
+     below the OS UI. (Applies to any fullscreen overlay sheet, not just the
+     output one — they all share this CSS rule.) */
+  .overlay.on .sheet > header {
+    padding-top: max(12px, env(safe-area-inset-top, 0px));
+  }
   .sheet > header h3 { margin: 0; font-size: 16px; }
   /* Small "add details" pills in the output header. They share the row width equally
      and wrap their label to two lines so all three fit on a narrow (mobile) screen. */
@@ -711,6 +719,22 @@
   .pro-section .pro-tier:hover { border-color: var(--accent); transform: translateY(-1px); }
   .pro-section .pro-tier .pt-name { font-size: 11px; color: var(--ink-dim); font-weight: 600; }
   .pro-section .pro-tier .pt-price { font-size: 18px; font-weight: 800; color: var(--accent); margin-top: 4px; }
+  /* "Already sent / already reviewed" status that replaces the tier buttons. */
+  .pro-section .pro-status {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--bg); border: 1px solid var(--accent);
+    border-radius: 10px; padding: 12px 14px;
+  }
+  .pro-section .pro-status-icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--accent); color: #0c1226;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 16px; flex-shrink: 0;
+  }
+  .pro-section .pro-status-text { flex: 1; min-width: 0; }
+  .pro-section .pro-status-title { font-size: 14px; font-weight: 800; color: var(--ink); line-height: 1.2; }
+  .pro-section .pro-status-sub { font-size: 11px; color: var(--ink-dim); margin-top: 3px; line-height: 1.4; }
+  .pro-section .pro-status-chev { color: var(--ink-dim); font-size: 20px; }
   @keyframes pp-slidein { 0% { transform: translateX(120px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
   @keyframes pp-pulse   { 0%,100% { box-shadow: 0 4px 14px rgba(255,126,182,0.25); } 50% { box-shadow: 0 4px 14px rgba(255,126,182,0.55); } }
   .pro-popup {
@@ -2022,7 +2046,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.4";
+const APP_VERSION = "v1.2.5";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -5545,12 +5569,38 @@ function injectAskAPro(out) {
       <button type="button" class="pro-tier" data-tier="voice"><div class="pt-name">Voice memo</div><div class="pt-price">$15</div></button>
     </div>`;
   out.appendChild(sec);
-  sec.querySelectorAll(".pro-tier").forEach(btn => {
-    btn.onclick = () => {
-      track("pro_cta_clicked", { surface: "section", tier: btn.dataset.tier });
-      openCheckoutModal(btn.dataset.tier);
-    };
-  });
+  // If this saved hand already has a review, replace the tier buttons with a
+  // status panel — one review per hand, no double-sends.
+  const existingForThisHand = (typeof loadReviews === "function" && currentSavedHand && currentSavedHand.id)
+    ? loadReviews().find(r => r.savedHandId === currentSavedHand.id && r.status !== "refunded")
+    : null;
+  if (existingForThisHand) {
+    const tiersEl = sec.querySelector(".pro-tiers");
+    if (tiersEl) {
+      const isReady = existingForThisHand.status === "delivered";
+      tiersEl.outerHTML = `
+        <div class="pro-status" data-rid="${existingForThisHand.id}">
+          <div class="pro-status-icon">${isReady ? "✓" : "⏳"}</div>
+          <div class="pro-status-text">
+            <div class="pro-status-title">${isReady ? "Casillas reviewed this hand" : "Sent to Casillas"}</div>
+            <div class="pro-status-sub">${isReady ? "Tap to read his street-by-street notes" : "He's on it &mdash; you'll get the review back within 48h"}</div>
+          </div>
+          <div class="pro-status-chev">${isReady ? "›" : ""}</div>
+        </div>`;
+      const card = sec.querySelector(".pro-status");
+      if (card && isReady) {
+        card.style.cursor = "pointer";
+        card.onclick = () => openReviewViewer(existingForThisHand.id);
+      }
+    }
+  } else {
+    sec.querySelectorAll(".pro-tier").forEach(btn => {
+      btn.onclick = () => {
+        track("pro_cta_clicked", { surface: "section", tier: btn.dataset.tier });
+        openCheckoutModal(btn.dataset.tier);
+      };
+    });
+  }
   track("pro_cta_seen", { surface: "section" });
 
   // On mobile (≤600px), ensure the pro section ALWAYS sits below the viewport fold on
@@ -5685,6 +5735,32 @@ async function snapshotCurrentHandDataUrl() {
   return null;
 }
 
+// Produce a small, web-ready thumbnail of the current hand image. We embed
+// this in the review record (~30-60 KB) so that pro.html can always show
+// the hand even when running in a different browser/device that doesn't have
+// the user's My hands store. Falls back to the full image if downsizing fails.
+async function snapshotHandThumbnailDataUrl(fullDataUrl) {
+  if (!fullDataUrl) return null;
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = reject;
+      i.src = fullDataUrl;
+    });
+    const MAX_W = 720;   // wide enough to read action lines, small enough to stay <100 KB
+    const scale = Math.min(1, MAX_W / img.naturalWidth);
+    const w = Math.round(img.naturalWidth * scale);
+    const h = Math.round(img.naturalHeight * scale);
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    c.getContext("2d").drawImage(img, 0, 0, w, h);
+    return c.toDataURL("image/jpeg", 0.55);
+  } catch (_) {
+    return fullDataUrl;
+  }
+}
+
 // Look up the image for a review. New reviews reference the saved hand by id —
 // the image lives once in My hands and we read it on demand here. Older review
 // records (pre-v1.2.3) may still carry an embedded handImageDataUrl; we fall
@@ -5783,29 +5859,48 @@ document.getElementById("ckConfirm").onclick = async () => {
       all.push(hand);
       if (!saveHands(all)) return;
       savedHandId = hand.id;
+      // IMPORTANT: now that this hand has a permanent home, treat it as a saved
+      // hand going forward. Without this, a second click of $5/$15 would create
+      // ANOTHER saved hand + ANOTHER review record — the duplicate-send bug.
+      currentSavedHand = hand;
     } catch (e) {
       console.warn("Auto-save on checkout failed:", e);
     }
   }
 
+  // One review per hand. If this hand already has a pending or delivered
+  // review, don't create a new one — open the existing one (or just toast).
+  if (savedHandId) {
+    const existing = loadReviews().find(r => r.savedHandId === savedHandId && r.status !== "refunded");
+    if (existing) {
+      closeCheckoutModal();
+      if (existing.status === "delivered") {
+        if (typeof showToast === "function") showToast("Casillas already reviewed this hand");
+        openReviewViewer(existing.id);
+      } else {
+        if (typeof showToast === "function") showToast("Already sent to Casillas — he's on it");
+      }
+      return;
+    }
+  }
+
   const summary = snapshotHandSummary();
+  // Embed a small thumbnail in the review record so the pro's dashboard always
+  // has the image — works across browsers and devices, not just same-origin
+  // same-storage. The full-quality image still lives once in My hands.
+  const thumbDataUrl = await snapshotHandThumbnailDataUrl(imageDataUrl);
   const review = {
     id: "rv_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7),
     userEmail: email,
     tier: _ckTier,
     amountCents: _ckTier === "voice" ? 1500 : 500,
     source: "real",
-    // No handImageDataUrl — the image lives in My hands and is fetched on
-    // demand via savedHandId. Storing it twice was blowing the 5 MB localStorage
-    // quota after a few submissions. For production, the image will travel to
-    // the pro via the API instead.
     handTitle: snapshotHandTitle(),
     summary: summary,
     savedHandId: savedHandId,
-    // Fallback: if we somehow couldn't auto-save the hand, embed the image so
-    // the review viewer still has something to show. Will be removed when the
-    // backend lands.
-    handImageDataUrl: savedHandId ? null : imageDataUrl,
+    // Compressed thumbnail (~30-60 KB) for pro.html to display. The full image
+    // is still in My hands; the user viewer uses that when available.
+    handImageDataUrl: thumbDataUrl,
     createdAt: Date.now(),
     status: "paid",
     deliveredAt: null,
@@ -5958,17 +6053,20 @@ function updateMyHandsMenuBadge() {
 }
 
 // One-shot migration for users coming from v1.2.0–v1.2.2: those builds embedded
-// the hand image directly in every review record, which doubled storage usage
-// and triggered "Storage error" after a few submissions. v1.2.3 looks up the
-// image via savedHandId instead, so we can safely strip the embedded copy here.
+// the FULL hand image (200–500 KB) in every review record, which doubled
+// storage usage and triggered "Storage error" after a few submissions. v1.2.5+
+// embeds a compressed thumbnail (~30–60 KB) instead — small enough to keep.
+// We detect legacy bloat by size: anything > 80 KB is the full image.
 (function migrateReviewImages() {
   try {
     const arr = loadReviews();
     let changed = false;
     let savedBytes = 0;
     for (const r of arr) {
-      if (r.handImageDataUrl && r.savedHandId) {
+      if (r.handImageDataUrl && r.handImageDataUrl.length > 80000) {
         savedBytes += r.handImageDataUrl.length;
+        // If we have a savedHandId, we can drop entirely; otherwise null out
+        // and let pro fall back to whatever's available.
         r.handImageDataUrl = null;
         changed = true;
       }

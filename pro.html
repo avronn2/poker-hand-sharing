@@ -743,6 +743,36 @@ window.addEventListener("storage", (e) => {
     if ($("#dashboardView").style.display !== "none") renderDashboard();
   }
 });
+
+// iOS Safari doesn't always fire the 'storage' event between tabs reliably,
+// especially after the tab has been backgrounded. Re-render whenever the user
+// brings this tab into focus or visibility changes — guarantees the queue is
+// fresh by the time they're looking at it.
+function refreshIfDashboard() {
+  if ($("#dashboardView").style.display !== "none") renderDashboard();
+}
+window.addEventListener("focus", refreshIfDashboard);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) refreshIfDashboard();
+});
+
+// Manual refresh button in the topbar as a last-resort fallback for users
+// who switch tabs / devices and want to verify they're on the latest queue.
+(function addRefreshButton() {
+  const topbar = document.querySelector(".topbar");
+  if (!topbar || document.getElementById("proRefresh")) return;
+  const btn = document.createElement("button");
+  btn.id = "proRefresh";
+  btn.type = "button";
+  btn.title = "Refresh queue";
+  btn.style.cssText = "background:var(--panel-2);border:1px solid var(--line);border-radius:8px;color:var(--ink-dim);width:30px;height:30px;font-size:14px;margin-left:6px;flex-shrink:0;";
+  btn.innerHTML = "⟳";
+  btn.onclick = () => { refreshIfDashboard(); showToast("Refreshed"); };
+  // Insert before the identity block on the right
+  const identity = topbar.querySelector(".identity");
+  if (identity) topbar.insertBefore(btn, identity);
+  else topbar.appendChild(btn);
+})();
 </script>
 </body>
 </html>
