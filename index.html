@@ -2022,7 +2022,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.2";
+const APP_VERSION = "v1.2.3";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -5631,9 +5631,36 @@ function loadReviews() {
   try { return JSON.parse(localStorage.getItem(REVIEWS_KEY)) || []; }
   catch (_) { return []; }
 }
+// Returns true on success, false if localStorage quota was hit. On failure we
+// show a friendly dialog that explains the cause and offers a one-click cleanup
+// of older delivered reviews to free space.
 function saveReviews(arr) {
-  try { localStorage.setItem(REVIEWS_KEY, JSON.stringify(arr)); }
-  catch (e) { if (typeof showAlert === "function") showAlert("Couldn't save review: " + e.message, "Storage error"); }
+  try {
+    localStorage.setItem(REVIEWS_KEY, JSON.stringify(arr));
+    return true;
+  }
+  catch (e) {
+    const usedMB = Math.round(JSON.stringify(arr).length / 1024 / 102.4) / 10;
+    if (typeof showConfirm === "function") {
+      showConfirm(
+        `Your browser ran out of room for new reviews (~${usedMB} MB in use). ` +
+        `Drop the older delivered reviews to free space?`,
+        { title: "Storage full", confirmLabel: "Clear old reviews", danger: true }
+      ).then(ok => {
+        if (!ok) return;
+        // Keep only reviews from the last 24h or still pending; drop the rest.
+        const cutoff = Date.now() - 24 * 3600 * 1000;
+        const kept = arr.filter(r => r.status !== "delivered" || (r.deliveredAt || r.createdAt || 0) > cutoff);
+        try { localStorage.setItem(REVIEWS_KEY, JSON.stringify(kept)); } catch (_) {}
+        if (typeof showToast === "function") showToast("Cleared older reviews");
+        if (typeof checkAndRenderReviewBanner === "function") checkAndRenderReviewBanner();
+        if (typeof updateMyHandsMenuBadge === "function") updateMyHandsMenuBadge();
+      });
+    } else if (typeof showAlert === "function") {
+      showAlert("Couldn't save review: " + e.message, "Storage error");
+    }
+    return false;
+  }
 }
 function loadBannerDismissed() {
   try { return JSON.parse(localStorage.getItem(PRO_BANNER_DISMISS_KEY)) || {}; }
@@ -5650,9 +5677,27 @@ async function snapshotCurrentHandDataUrl() {
   if (typeof lastOutputImageDataUrl !== "undefined" && lastOutputImageDataUrl) return lastOutputImageDataUrl;
   try {
     const canvas = await renderHandToCanvas(currentUpTo);
-    if (canvas) return canvas.toDataURL("image/jpeg", 0.82);
+    // 0.7 quality keeps file size around 100–200KB instead of 400–600KB — important
+    // because both My hands and the review record store the same image and the
+    // browser caps localStorage near 5 MB.
+    if (canvas) return canvas.toDataURL("image/jpeg", 0.7);
   } catch (_) {}
   return null;
+}
+
+// Look up the image for a review. New reviews reference the saved hand by id —
+// the image lives once in My hands and we read it on demand here. Older review
+// records (pre-v1.2.3) may still carry an embedded handImageDataUrl; we fall
+// back to that for backwards compatibility.
+function getReviewImageUrl(review) {
+  if (!review) return null;
+  if (review.savedHandId) {
+    try {
+      const hand = loadHands().find(h => h.id === review.savedHandId);
+      if (hand && hand.imageDataUrl) return hand.imageDataUrl;
+    } catch (_) {}
+  }
+  return review.handImageDataUrl || null;
 }
 
 // Pull a one-line summary of the current hand for the pro to scan in their
@@ -5723,24 +5768,22 @@ document.getElementById("ckConfirm").onclick = async () => {
 
   // Auto-save the hand to "My hands" if we aren't already viewing a saved one.
   // This guarantees every reviewed hand has a permanent home where the pro's
-  // notes can attach. The save is silent — we don't pop the save dialog.
+  // notes can attach. The save is silent — we don't pop the save dialog. If
+  // localStorage is full, saveHands() returns false and the cleanup dialog
+  // appears; we abort the submit so the user can free space and retry.
   let savedHandId = null;
   if (currentSavedHand && currentSavedHand.id) {
     savedHandId = currentSavedHand.id;
   } else {
     try {
       const hand = serializeHand();
-      // No user-typed title — leave hand.title empty so the row falls back to
-      // position + cards (consistent with what a manual "Save" with no title does).
       hand.title = "";
       hand.imageDataUrl = imageDataUrl;
       const all = loadHands();
       all.push(hand);
-      saveHands(all);
+      if (!saveHands(all)) return;
       savedHandId = hand.id;
     } catch (e) {
-      // If we can't auto-save, the review still goes through unlinked. Banner
-      // and viewer work fine; only the My-hands chip is missing.
       console.warn("Auto-save on checkout failed:", e);
     }
   }
@@ -5752,10 +5795,17 @@ document.getElementById("ckConfirm").onclick = async () => {
     tier: _ckTier,
     amountCents: _ckTier === "voice" ? 1500 : 500,
     source: "real",
-    handImageDataUrl: imageDataUrl,
+    // No handImageDataUrl — the image lives in My hands and is fetched on
+    // demand via savedHandId. Storing it twice was blowing the 5 MB localStorage
+    // quota after a few submissions. For production, the image will travel to
+    // the pro via the API instead.
     handTitle: snapshotHandTitle(),
     summary: summary,
     savedHandId: savedHandId,
+    // Fallback: if we somehow couldn't auto-save the hand, embed the image so
+    // the review viewer still has something to show. Will be removed when the
+    // backend lands.
+    handImageDataUrl: savedHandId ? null : imageDataUrl,
     createdAt: Date.now(),
     status: "paid",
     deliveredAt: null,
@@ -5763,7 +5813,10 @@ document.getElementById("ckConfirm").onclick = async () => {
   };
   const all = loadReviews();
   all.push(review);
-  saveReviews(all);
+  if (!saveReviews(all)) {
+    // Storage was full — user has been prompted to clear; abort silently.
+    return;
+  }
   track("pro_review_requested", { tier: _ckTier });
   closeCheckoutModal();
   if (typeof showToast === "function") {
@@ -5858,7 +5911,7 @@ function openReviewViewer(reviewId) {
         <div class="rv-tier">${tierLabel}</div>
       </div>
     </div>
-    ${review.handImageDataUrl ? `<div class="rv-image"><img src="${review.handImageDataUrl}" alt="Hand"></div>` : ""}
+    ${(() => { const img = getReviewImageUrl(review); return img ? `<div class="rv-image"><img src="${img}" alt="Hand"></div>` : ""; })()}
     <div class="rv-streets">
       ${noteHtml || `<div class="rv-empty">Casillas hasn't tagged any streets on this one.</div>`}
     </div>
@@ -7833,8 +7886,8 @@ function loadHands() {
   catch (_) { return []; }
 }
 function saveHands(arr) {
-  try { localStorage.setItem(HANDS_KEY, JSON.stringify(arr)); }
-  catch (e) { showAlert("Couldn't save: " + e.message, "Storage error"); }
+  try { localStorage.setItem(HANDS_KEY, JSON.stringify(arr)); return true; }
+  catch (e) { showAlert("Couldn't save: " + e.message + "\n\nYour browser's storage is full. Try deleting some saved hands first.", "Storage error"); return false; }
 }
 
 /* Hamburger menu */

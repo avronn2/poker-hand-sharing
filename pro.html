@@ -427,6 +427,22 @@ function loadRealReviews() {
 function saveRealReviews(arr) {
   try { localStorage.setItem(REAL_KEY, JSON.stringify(arr)); } catch (_) {}
 }
+// Pull the hand image — either from the review record itself (legacy v1.2.2
+// records embedded it) or by looking up the linked saved hand in shared
+// localStorage. The latter is the v1.2.3+ default since it avoids storing the
+// same image twice and blowing the quota.
+function resolveHandImage(r) {
+  if (r.handImageDataUrl) return r.handImageDataUrl;
+  if (r.savedHandId) {
+    try {
+      const hands = JSON.parse(localStorage.getItem("showdown_hands_v1") || "[]");
+      const h = hands.find(x => x.id === r.savedHandId);
+      if (h && h.imageDataUrl) return h.imageDataUrl;
+    } catch (_) {}
+  }
+  return null;
+}
+
 function normalizeReal(r) {
   // Map index.html review shape → pro.html review shape
   return {
@@ -434,7 +450,7 @@ function normalizeReal(r) {
     userEmail: r.userEmail,
     tier: r.tier,
     createdAt: r.createdAt,
-    handImageDataUrl: r.handImageDataUrl,   // <img src="…"> instead of inline SVG
+    handImageDataUrl: resolveHandImage(r),   // <img src="…"> instead of inline SVG
     handTitle: r.handTitle,
     status: r.status === "delivered" ? "delivered" : "pending",  // "paid" → "pending"
     notes: r.notes || {},
