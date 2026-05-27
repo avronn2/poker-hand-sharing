@@ -719,6 +719,37 @@
   .pro-section .pro-tier:hover { border-color: var(--accent); transform: translateY(-1px); }
   .pro-section .pro-tier .pt-name { font-size: 11px; color: var(--ink-dim); font-weight: 600; }
   .pro-section .pro-tier .pt-price { font-size: 18px; font-weight: 800; color: var(--accent); margin-top: 4px; }
+  /* Compact "Reviewed by Casillas" card — shown below the hand image when
+     a delivered review is attached. Replaces the full pitch section because
+     Casillas's notes are already baked into the hand image above.
+     Color-coded PINK to match Casillas's identity (the same pink-bordered
+     note cards on the canvas). Future pros would get their own color. */
+  .pro-reviewed {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid #ff7eb6;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin: 14px 0 6px;
+  }
+  .pro-reviewed .pr-avatar {
+    flex-shrink: 0;
+    width: 48px; height: 48px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff7eb6, #b07cff);
+    position: relative; overflow: hidden;
+  }
+  .pro-reviewed .pr-avatar img {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  }
+  .pro-reviewed .pr-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .pro-reviewed .pr-name { font-size: 15px; font-weight: 800; color: var(--ink); line-height: 1.2; letter-spacing: -0.1px; }
+  .pro-reviewed .pr-sub { font-size: 11px; color: var(--ink-dim); line-height: 1.35; }
+  .pro-reviewed .pr-status {
+    font-size: 11px; font-weight: 800; color: #ff7eb6;
+    text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px;
+  }
+
   /* "Already sent / already reviewed" status that replaces the tier buttons. */
   .pro-section .pro-status {
     display: flex; align-items: center; gap: 12px;
@@ -860,6 +891,27 @@
   .my-hand-row .row-review-chip.ready:hover { background: rgba(94,234,212,0.25); }
 
   /* ===== Review viewer overlay ===== */
+  /* Header row needs its own scoped avatar — sharing the rb-avatar class with
+     .review-banner was a bug because that selector requires .review-banner
+     as a parent, so the img inside escaped to its natural 512px size. */
+  #reviewViewerOverlay .rv-header-row {
+    display: flex; align-items: center; gap: 8px;
+  }
+  #reviewViewerOverlay .rv-mini-avatar {
+    flex-shrink: 0;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff7eb6, #b07cff);
+    position: relative; overflow: hidden;
+    display: inline-block;
+  }
+  #reviewViewerOverlay .rv-mini-avatar img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+  }
+  #reviewViewerOverlay h3 {
+    margin: 0; font-size: 15px; font-weight: 800; letter-spacing: 0.2px;
+  }
   .review-viewer-body { padding: 16px 18px 24px; }
   .rv-hero {
     display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
@@ -1870,16 +1922,14 @@
   </div>
 </div>
 
-<!-- ASK-A-PRO: REVIEW VIEWER OVERLAY
+<!-- ASK-A-PRO: REVIEW VIEWER OVERLAY (legacy fallback)
      Shows the original hand + Casillas's street-tagged notes inline. -->
 <div class="overlay" id="reviewViewerOverlay">
   <div class="sheet">
     <header>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span class="rb-avatar" style="width:28px;height:28px;">
-          <img src="eyal.jpg" alt="" onerror="this.remove()">
-        </span>
-        <h3 style="font-size:15px;font-weight:800;letter-spacing:.2px;">Review from &ldquo;Casillas&rdquo;</h3>
+      <div class="rv-header-row">
+        <span class="rv-mini-avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"></span>
+        <h3>Review from &ldquo;Casillas&rdquo;</h3>
       </div>
       <button type="button" class="closebtn" id="rvClose" aria-label="Close">&times;</button>
     </header>
@@ -2046,7 +2096,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.7";
+const APP_VERSION = "v1.2.10";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -5550,6 +5600,26 @@ let _proPopupTimer = null;
 function injectAskAPro(out) {
   if (!out) return;
   if (document.getElementById("proSection")) return;     // already injected this render
+  // If this saved hand has a delivered review, show a compact "reviewed by"
+  // card instead of the full pitch — Casillas's notes are already baked into
+  // the hand image above, so no need for the call-to-action.
+  const deliveredReview = (typeof loadReviews === "function" && currentSavedHand && currentSavedHand.id)
+    ? loadReviews().find(r => r.savedHandId === currentSavedHand.id && r.status === "delivered")
+    : null;
+  if (deliveredReview) {
+    const compact = document.createElement("div");
+    compact.id = "proSection";
+    compact.className = "pro-reviewed";
+    compact.innerHTML = `
+      <div class="pr-avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"><span>EE</span></div>
+      <div class="pr-meta">
+        <div class="pr-name">Eyal &ldquo;Casillas&rdquo; Eshkar</div>
+        <div class="pr-sub">3&times; Israel Champion &middot; Over $600K live winnings</div>
+        <div class="pr-status">✓ Reviewed this hand</div>
+      </div>`;
+    out.appendChild(compact);
+    return;
+  }
   const sec = document.createElement("div");
   sec.id = "proSection"; sec.className = "pro-section";
   sec.innerHTML = `
@@ -5957,6 +6027,12 @@ function checkAndRenderReviewBanner() {
   banner.style.display = "flex";
   banner.onclick = (e) => {
     if (e.target.closest(".rb-close")) return;
+    // Open the saved hand directly — the review notes are baked into its image.
+    if (top.savedHandId) {
+      const hand = loadHands().find(h => h.id === top.savedHandId);
+      if (hand) { openSavedHand(hand); return; }
+    }
+    // Fallback for reviews without a linked saved hand (shouldn't happen in v1.2.7+)
     openReviewViewer(top.id);
   };
   document.getElementById("reviewBannerClose").onclick = (e) => {
@@ -6882,6 +6958,45 @@ function sdDrawTimeline(ctx, top_y, columns, heroPos) {
         cy += row_h + 4;
       }
     }
+    // Pro note for this street, rendered as a styled card below actions/equity.
+    // Pink left-border to distinguish from hero commentary (mint). The text
+    // wraps inside the column width. Font size matches the action labels
+    // (~17px) so it reads as part of the same visual hierarchy.
+    if (c.proNote && typeof c.proNote === "string" && c.proNote.trim()) {
+      const note = c.proNote.trim();
+      const noteFont = `17px -apple-system, "Segoe UI", sans-serif`;
+      const labelFont = `bold 12px -apple-system, "Segoe UI", sans-serif`;
+      const padTop = 28, padX = 12, padBottom = 12;
+      const lineH = 22;
+      const maxW = col_w - padX * 2;
+      ctx.font = noteFont;
+      // Word-wrap
+      const words = note.split(/\s+/);
+      const noteLines = []; let cur = "";
+      for (const wd of words) {
+        const test = cur ? cur + " " + wd : wd;
+        if (!cur || ctx.measureText(test).width <= maxW) cur = test;
+        else { noteLines.push(cur); cur = wd; }
+      }
+      if (cur) noteLines.push(cur);
+      const box_h = padTop + lineH * noteLines.length + padBottom;
+      // Card with pink accent on the left, distinguishes from mint hero commentary
+      _sdTile(ctx, x, cy, col_w, box_h, 8, "#221d33", "#19142a", "#ff7eb6", 1.5);
+      ctx.fillStyle = "#ff7eb6";
+      ctx.fillRect(x, cy, 3, box_h);
+      // "CASILLAS" label at the top of the card
+      ctx.font = labelFont;
+      ctx.fillStyle = "#ff7eb6";
+      ctx.textAlign = "left"; ctx.textBaseline = "top";
+      ctx.fillText("CASILLAS", x + padX, cy + 7);
+      // Note text
+      ctx.font = noteFont;
+      ctx.fillStyle = "#e8e3f2";
+      for (let i = 0; i < noteLines.length; i++) {
+        ctx.fillText(noteLines[i], x + padX, cy + padTop + i * lineH);
+      }
+      cy += box_h + 4;
+    }
     if (cy > maxBottom) maxBottom = cy;
   }
   return maxBottom;
@@ -6891,8 +7006,9 @@ function sdDrawTimeline(ctx, top_y, columns, heroPos) {
 // upTo: "preflop" | "flop" | "turn" | "river" | "full" (default "full") — when not
 // "full", the renderer hides spoilers past that street (no villain reveal, no winner
 // badge, no hand-strength notes, no equity %) so the share can ask "what would you do?".
-async function sdBuildRenderData(upTo) {
+async function sdBuildRenderData(upTo, proNotes) {
   upTo = upTo || "full";
+  proNotes = proNotes || null;   // optional map: { preflop, flop, turn, river }
   const stageRank = { preflop: 0, flop: 1, turn: 2, river: 3, full: 4 };
   const upToRank = stageRank[upTo] ?? 4;
   const isAsking = upToRank < 4;
@@ -7280,6 +7396,11 @@ async function sdBuildRenderData(upTo) {
     if (sname !== "preflop" && sprByStreet[sname] && sprByStreet[sname] >= 0.1) {
       col.spr = "SPR " + fmt(Math.round(sprByStreet[sname] * 10) / 10);
     }
+    // Casillas's note for this street, if any. Rendered as a pink-bordered card
+    // below the actions/equity by sdDrawTimeline.
+    if (proNotes && proNotes[sname] && typeof proNotes[sname] === "string") {
+      col.proNote = proNotes[sname];
+    }
     timeline.push(col);
   }
   // If 0 timeline columns, force a preflop placeholder so output isn't blank
@@ -7428,8 +7549,8 @@ function sdWrapText(ctx, text, maxW) {
   return lines;
 }
 
-async function renderHandToCanvas(upTo) {
-  const data = await sdBuildRenderData(upTo);
+async function renderHandToCanvas(upTo, proNotes) {
+  const data = await sdBuildRenderData(upTo, proNotes);
   if (!data) return null;
   // NOTE: We deliberately do not drawImage any external bitmaps on this canvas.
   // Loading logo-header.png / feather-only.png and painting them taints the canvas
@@ -8540,12 +8661,7 @@ function renderMyHandsList() {
     `;
     row.addEventListener("click", (e) => {
       if (e.target.closest(".row-trash")) return;
-      // Clicking the "Review ready" chip opens the review viewer directly,
-      // skipping the saved-hand overlay.
-      if (e.target.closest(".row-review-chip.ready")) {
-        const ready = linkedReviews.find(r => r.status === "delivered");
-        if (ready) { openReviewViewer(ready.id); return; }
-      }
+      // Always open the saved hand — review notes are now baked into its image.
       openSavedHand(h);
     });
     list.appendChild(row);
@@ -8581,7 +8697,60 @@ function formatHandDate(iso) {
 
 /* Saved-hand open flow */
 let currentSavedHand = null;
-function openSavedHand(hand) {
+// When opening a saved hand that has a delivered review, re-render its image
+// with Casillas's notes baked into the street columns (Leo-style). This runs
+// once per review; the result is cached on the hand record (notesBakedAt). The
+// re-render temporarily loads the saved hand's state so the renderer can read
+// the same data the user originally generated from; we snapshot+restore
+// surrounding state so the form behind the overlay isn't disturbed.
+async function maybeBakeReviewNotesIntoHand(hand) {
+  try {
+    const review = loadReviews().find(r => r.savedHandId === hand.id && r.status === "delivered");
+    if (!review) return hand;
+    if (hand.notesBakedAt && hand.notesBakedAt >= (review.deliveredAt || 0)) return hand;
+    // Collect text notes per street (voice can't render to canvas — handled
+    // separately via inline audio controls in the saved-hand viewer).
+    const proNotes = {};
+    let hasAny = false;
+    ["preflop", "flop", "turn", "river"].forEach(s => {
+      const n = (review.notes && review.notes[s]) || {};
+      if (n.text && n.text.trim()) {
+        proNotes[s] = n.text.trim();
+        hasAny = true;
+      }
+    });
+    if (!hasAny) return hand;
+    // Snapshot the current form/state so we can restore after rendering.
+    let snapshot = null;
+    try { snapshot = serializeHand(); } catch (_) {}
+    try {
+      loadHandData(hand);
+      const canvas = await renderHandToCanvas("full", proNotes);
+      if (canvas) {
+        const newImg = canvas.toDataURL("image/jpeg", 0.7);
+        const all = loadHands();
+        const idx = all.findIndex(h => h.id === hand.id);
+        if (idx >= 0) {
+          all[idx].imageDataUrl = newImg;
+          all[idx].notesBakedAt = Date.now();
+          if (saveHands(all)) {
+            hand.imageDataUrl = newImg;
+            hand.notesBakedAt = all[idx].notesBakedAt;
+          }
+        }
+      }
+    } finally {
+      if (snapshot) { try { loadHandData(snapshot); } catch (_) {} }
+    }
+  } catch (e) {
+    console.warn("Couldn't bake review notes:", e);
+  }
+  return hand;
+}
+
+async function openSavedHand(hand) {
+  // Re-render with notes baked in if there's a fresh delivered review.
+  hand = await maybeBakeReviewNotesIntoHand(hand);
   currentSavedHand = hand;
   lastOutput = { html: hand.outputHtml || "", text: hand.outputText || "" };
   const out = $("#output");
@@ -8590,14 +8759,46 @@ function openSavedHand(hand) {
   } else {
     out.innerHTML = lastOutput.html;
   }
-  // Inject the Ask-a-Pro section below the image so the user can request a
-  // review on this saved hand the same way they can on a fresh one. The tier
-  // buttons inside route through openCheckoutModal() which uses currentSavedHand.
+  // If there's a delivered review with voice notes, surface audio controls
+  // below the image (voice can't be baked into the PNG).
+  try {
+    const review = loadReviews().find(r => r.savedHandId === hand.id && r.status === "delivered");
+    if (review && review.notes) {
+      const voiceParts = [];
+      ["preflop", "flop", "turn", "river"].forEach(s => {
+        const n = review.notes[s];
+        if (n && n.audio) voiceParts.push({ street: s, audio: n.audio });
+      });
+      if (voiceParts.length) {
+        const wrap = document.createElement("div");
+        wrap.style.cssText = "margin:0 auto 14px;max-width:520px;display:flex;flex-direction:column;gap:8px;";
+        wrap.innerHTML = `<div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:0.6px;display:flex;align-items:center;gap:6px;">
+          <span style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#ff7eb6,#b07cff);position:relative;overflow:hidden;display:inline-block;"><img src="eyal.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" onerror="this.remove()"></span>
+          Voice notes from Casillas
+        </div>` +
+        voiceParts.map(v => `<div style="background:var(--panel-2);border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:10px;padding:8px 10px;">
+          <div style="font-size:10px;font-weight:800;color:var(--ink-dim);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">${v.street}</div>
+          <audio controls preload="metadata" src="${v.audio}" style="width:100%;"></audio>
+        </div>`).join("");
+        out.appendChild(wrap);
+      }
+    }
+  } catch (_) {}
+  // Inject Ask-a-Pro section (shows "Review ready" status if already reviewed)
   if (typeof injectAskAPro === "function") {
     try { injectAskAPro(out); } catch (_) {}
   }
   setOutputSheetMode("saved");
   $("#overlay").classList.add("on");
+  // Dismiss the banner for this review automatically (user has now seen it)
+  try {
+    const review = loadReviews().find(r => r.savedHandId === hand.id && r.status === "delivered");
+    if (review) {
+      const map = loadBannerDismissed();
+      map[review.id] = 1;
+      saveBannerDismissed(map);
+    }
+  } catch (_) {}
 }
 
 function setOutputSheetMode(mode) {

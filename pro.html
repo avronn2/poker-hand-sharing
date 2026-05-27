@@ -113,24 +113,26 @@ button { cursor: pointer; }
 }
 .detail-title { font-size: 17px; font-weight: 800; margin: 0 0 3px; letter-spacing: -0.2px; }
 .detail-sub { font-size: 12px; color: var(--ink-dim); margin: 0 0 14px; }
-/* Sticky hand image — pinned at the bottom of the viewport so Casillas can
-   always see the table while writing notes. The note columns scroll above it.
-   Collapse button on the right edge to free space if it gets in the way. */
+/* Sticky hand reference — pinned at the TOP of the viewport. By default shows
+   only the bottom half of the canvas (the street action timeline, which is
+   what Casillas references most while writing notes). Tap header to expand
+   and see the full table; tap again to shrink. Action buttons stay sticky at
+   the bottom of the viewport via .detail-actions. */
 .hand-image {
   position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
   left: 12px; right: 12px;
-  bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   max-width: 736px;
   margin: 0 auto;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 12px;
-  box-shadow: 0 -6px 22px rgba(0,0,0,0.45);
-  max-height: 38vh;
+  box-shadow: 0 6px 22px rgba(0,0,0,0.45);
+  max-height: 28vh;
   overflow: hidden;
   z-index: 9;
   display: flex; flex-direction: column;
-  transition: transform 0.25s ease, max-height 0.25s ease;
+  transition: max-height 0.25s ease;
 }
 .hand-image .hand-image-head {
   flex: 0 0 auto;
@@ -139,31 +141,73 @@ button { cursor: pointer; }
   border-bottom: 1px solid var(--line);
   font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
   text-transform: uppercase; color: var(--ink-dim);
+  cursor: pointer;
+  user-select: none;
 }
 .hand-image .hand-image-collapse {
   background: transparent; border: 0; color: var(--ink-dim);
   font-size: 14px; padding: 2px 6px; cursor: pointer; line-height: 1;
+  transition: transform 0.2s ease;
 }
 .hand-image .hand-image-body {
   flex: 1; min-height: 0;
-  display: flex; align-items: center; justify-content: center;
-  padding: 6px;
   overflow: hidden;
+  position: relative;
 }
-.hand-image img, .hand-image svg {
+/* Default (streets-only): the image fills the container width at its natural
+   aspect ratio and is bottom-anchored via flex align-items:flex-end. Overflow
+   at the top gets clipped, so only the BOTTOM of the image is visible. This
+   approach is reliable across all image aspect ratios (object-fit cover and
+   absolute positioning both have edge cases). */
+.hand-image.streets-only .hand-image-body {
+  flex: 0 0 24vh;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+}
+.hand-image.streets-only .hand-image-body img,
+.hand-image.streets-only .hand-image-body svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  flex-shrink: 0;   /* don't let flex squish the image vertically */
+  max-width: 100%;
+}
+
+/* Expanded: show the full image at natural aspect, capped to the body height
+   via object-fit: contain. */
+.hand-image.expanded {
+  max-height: 56vh;
+}
+.hand-image.expanded .hand-image-body {
+  height: 52vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+}
+.hand-image.expanded .hand-image-body img,
+.hand-image.expanded .hand-image-body svg {
   display: block;
   max-width: 100%;
   max-height: 100%;
-  object-fit: contain;
   width: auto;
   height: auto;
+  object-fit: contain;
 }
+.hand-image.expanded .hand-image-collapse { transform: rotate(180deg); }
 .hand-image.collapsed { max-height: 38px; }
 .hand-image.collapsed .hand-image-body { display: none; }
 .hand-image.collapsed .hand-image-collapse { transform: rotate(180deg); }
-/* The note columns need bottom padding so the fixed image doesn't cover them. */
-.streets-grid { padding-bottom: calc(42vh + env(safe-area-inset-bottom, 0px)); }
-.streets-grid.image-collapsed { padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
+/* The note columns need top padding so the fixed image doesn't cover them. */
+.streets-grid { padding-top: calc(30vh + env(safe-area-inset-top, 0px)); padding-bottom: 90px; }
+.streets-grid.image-expanded { padding-top: calc(52vh + env(safe-area-inset-top, 0px)); }
+.streets-grid.image-collapsed { padding-top: 60px; }
+
+/* Override the default streets-title margin so it sits below the sticky image. */
+.streets-title { margin-top: 4px !important; }
 
 .streets-title {
   font-size: 11px; font-weight: 800; text-transform: uppercase;
@@ -368,12 +412,14 @@ textarea.street-input:focus { outline: none; border-color: var(--accent); }
     </div>
     <h2 class="detail-title" id="detailTitle"></h2>
     <p class="detail-sub" id="detailSub"></p>
-    <!-- Sticky hand reference at the bottom of the viewport. Casillas can
-         collapse it via the chevron if he needs more room for typing. -->
-    <div class="hand-image" id="detailImage">
+    <!-- Sticky hand reference at the TOP of the viewport. Three states:
+         streets-only (default, shows just the action timeline), expanded
+         (full table + timeline), collapsed (just the header bar). Tap header
+         to cycle. -->
+    <div class="hand-image streets-only" id="detailImage">
       <div class="hand-image-head">
-        <span>Hand reference</span>
-        <button type="button" class="hand-image-collapse" id="handImageCollapse" aria-label="Collapse">▼</button>
+        <span>Hand reference &middot; <span id="handImageHint" style="color:var(--ink-dim);font-weight:600;text-transform:none;letter-spacing:0;">Tap to see full table</span></span>
+        <button type="button" class="hand-image-collapse" id="handImageCollapse" aria-label="Toggle">▼</button>
       </div>
       <div class="hand-image-body" id="detailImageBody"></div>
     </div>
@@ -685,27 +731,47 @@ function closeReview() {
 }
 $("#backBtn").addEventListener("click", closeReview);
 
-// Collapse / expand the sticky hand image. Remembers its state across renders
-// via localStorage so Casillas doesn't have to re-collapse on every review.
-const HAND_COLLAPSE_KEY = "showdown_pro_hand_collapsed";
-function applyHandCollapseState() {
-  const collapsed = localStorage.getItem(HAND_COLLAPSE_KEY) === "1";
+// Three-state toggle for the sticky hand reference: "streets" (bottom-half
+// only, default), "expanded" (full image — table + timeline), "collapsed" (just
+// the header bar). Tap header to cycle: streets → expanded → collapsed →
+// streets. State persists across reviews via localStorage.
+const HAND_STATE_KEY = "showdown_pro_hand_state";
+function applyHandImageState() {
+  const state = localStorage.getItem(HAND_STATE_KEY) || "streets";
   const img = $("#detailImage"); const grid = $("#streetsList");
-  if (img) img.classList.toggle("collapsed", collapsed);
-  if (grid) grid.classList.toggle("image-collapsed", collapsed);
+  if (img) {
+    img.classList.toggle("streets-only", state === "streets");
+    img.classList.toggle("expanded", state === "expanded");
+    img.classList.toggle("collapsed", state === "collapsed");
+  }
+  if (grid) {
+    grid.classList.toggle("image-expanded", state === "expanded");
+    grid.classList.toggle("image-collapsed", state === "collapsed");
+  }
+  // Update header hint
+  const hint = $("#handImageHint");
+  if (hint) {
+    hint.textContent = state === "streets" ? "Tap to see full table"
+                     : state === "expanded" ? "Tap to collapse"
+                     : "Tap to expand";
+  }
+}
+function cycleHandImageState() {
+  const order = ["streets", "expanded", "collapsed"];
+  const cur = localStorage.getItem(HAND_STATE_KEY) || "streets";
+  const next = order[(order.indexOf(cur) + 1) % order.length];
+  localStorage.setItem(HAND_STATE_KEY, next);
+  applyHandImageState();
 }
 $("#handImageCollapse").addEventListener("click", (e) => {
   e.stopPropagation();
-  const cur = localStorage.getItem(HAND_COLLAPSE_KEY) === "1";
-  localStorage.setItem(HAND_COLLAPSE_KEY, cur ? "0" : "1");
-  applyHandCollapseState();
+  cycleHandImageState();
 });
-// Tap the head bar (anywhere) to toggle too
 $("#detailImage .hand-image-head").addEventListener("click", (e) => {
   if (e.target.closest("#handImageCollapse")) return;
-  $("#handImageCollapse").click();
+  cycleHandImageState();
 });
-applyHandCollapseState();
+applyHandImageState();
 
 /* ---------- streets ----------
    Column-grid layout: one card per street (preflop/flop/turn/river). Each card
