@@ -2022,7 +2022,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.3";
+const APP_VERSION = "v1.2.4";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -5957,6 +5957,29 @@ function updateMyHandsMenuBadge() {
   badge.style.display = "";
 }
 
+// One-shot migration for users coming from v1.2.0–v1.2.2: those builds embedded
+// the hand image directly in every review record, which doubled storage usage
+// and triggered "Storage error" after a few submissions. v1.2.3 looks up the
+// image via savedHandId instead, so we can safely strip the embedded copy here.
+(function migrateReviewImages() {
+  try {
+    const arr = loadReviews();
+    let changed = false;
+    let savedBytes = 0;
+    for (const r of arr) {
+      if (r.handImageDataUrl && r.savedHandId) {
+        savedBytes += r.handImageDataUrl.length;
+        r.handImageDataUrl = null;
+        changed = true;
+      }
+    }
+    if (changed) {
+      try { localStorage.setItem(REVIEWS_KEY, JSON.stringify(arr)); } catch (_) {}
+      console.log(`[showdown] migrated ${arr.length} review(s); reclaimed ~${Math.round(savedBytes/1024)} KB`);
+    }
+  } catch (_) {}
+})();
+
 // Run on load + whenever localStorage changes from another tab (pro.html flipping a review to delivered)
 checkAndRenderReviewBanner();
 updateMyHandsMenuBadge();
@@ -7887,7 +7910,36 @@ function loadHands() {
 }
 function saveHands(arr) {
   try { localStorage.setItem(HANDS_KEY, JSON.stringify(arr)); return true; }
-  catch (e) { showAlert("Couldn't save: " + e.message + "\n\nYour browser's storage is full. Try deleting some saved hands first.", "Storage error"); return false; }
+  catch (e) {
+    // Storage is full. Most common cause is bloat in the Ask-a-Pro sandbox
+    // stores from older builds (embedded images, mock reviews, etc.) — those
+    // are safe to clear. Offer the user a one-click reset before asking them
+    // to delete their actual hands.
+    let sandboxBytes = 0;
+    try {
+      sandboxBytes += (localStorage.getItem("showdown_reviews_v1") || "").length;
+      sandboxBytes += (localStorage.getItem("showdown_pro_sandbox_v1") || "").length;
+    } catch (_) {}
+    const sandboxKB = Math.round(sandboxBytes / 1024);
+    if (typeof showConfirm === "function" && sandboxBytes > 0) {
+      showConfirm(
+        `Your browser's storage is full. The Ask-a-Pro sandbox is taking ~${sandboxKB} KB ` +
+        `that's safe to clear (mock data + old reviews). Clear it and try again?`,
+        { title: "Storage full", confirmLabel: "Clear sandbox data", danger: true }
+      ).then(ok => {
+        if (!ok) return;
+        try { localStorage.removeItem("showdown_reviews_v1"); } catch (_) {}
+        try { localStorage.removeItem("showdown_pro_sandbox_v1"); } catch (_) {}
+        try { localStorage.removeItem("showdown_pro_banner_dismissed"); } catch (_) {}
+        if (typeof showToast === "function") showToast("Sandbox cleared — try Send again");
+        if (typeof checkAndRenderReviewBanner === "function") checkAndRenderReviewBanner();
+        if (typeof updateMyHandsMenuBadge === "function") updateMyHandsMenuBadge();
+      });
+    } else {
+      showAlert("Couldn't save: " + e.message + "\n\nYour browser's storage is full. Try deleting some saved hands first.", "Storage error");
+    }
+    return false;
+  }
 }
 
 /* Hamburger menu */
@@ -8443,6 +8495,12 @@ function openSavedHand(hand) {
     out.innerHTML = `<img id="outputImagePreview" src="${hand.imageDataUrl}" alt="Hand summary" style="display:block;width:100%;max-width:520px;margin:0 auto 14px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.4);">`;
   } else {
     out.innerHTML = lastOutput.html;
+  }
+  // Inject the Ask-a-Pro section below the image so the user can request a
+  // review on this saved hand the same way they can on a fresh one. The tier
+  // buttons inside route through openCheckoutModal() which uses currentSavedHand.
+  if (typeof injectAskAPro === "function") {
+    try { injectAskAPro(out); } catch (_) {}
   }
   setOutputSheetMode("saved");
   $("#overlay").classList.add("on");
