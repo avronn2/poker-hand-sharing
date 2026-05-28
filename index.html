@@ -2096,7 +2096,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.13";
+const APP_VERSION = "v1.2.14";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -6010,12 +6010,23 @@ document.getElementById("ckConfirm").onclick = async () => {
   }
   track("pro_review_requested", { tier: _ckTier });
   closeCheckoutModal();
-  if (typeof showToast === "function") {
-    showToast(savedHandId && !currentSavedHand ? "Hand saved & sent to Casillas (sandbox)" : "Sent to Casillas (sandbox)");
-  }
+  if (typeof showToast === "function") showToast("Sent to Casillas (sandbox)");
   haptic(12);
   // Refresh the menu badge — there's a new pending review tied to a hand now.
   if (typeof updateMyHandsMenuBadge === "function") updateMyHandsMenuBadge();
+  // Swap the output overlay from "fresh hand mode" (Save / Save image / Share)
+  // to "saved hand mode" (Delete / Edit / Save image / Share) — the same view
+  // the user gets when opening this hand from My hands. The compact "Sent ·
+  // Pending" card renders below the image because injectAskAPro now sees the
+  // review record. This makes it crystal clear the hand has been sent and is
+  // now archived alongside My hands.
+  try {
+    const savedHand = savedHandId ? loadHands().find(h => h.id === savedHandId) : null;
+    if (savedHand) {
+      // openSavedHand re-renders the overlay with the saved-hand layout
+      await openSavedHand(savedHand);
+    }
+  } catch (e) { console.warn("Post-send view swap failed:", e); }
 };
 
 // ---------- Delivery banner ----------

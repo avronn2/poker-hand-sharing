@@ -56,6 +56,11 @@ button { cursor: pointer; }
   font-size: 9px; font-weight: 800; padding: 3px 7px; border-radius: 4px;
   letter-spacing: .6px; flex-shrink: 0;
 }
+.version-tag {
+  font-size: 10px; color: var(--ink-dim); font-weight: 600;
+  letter-spacing: 0.3px; flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
 
 .container { max-width: 760px; margin: 0 auto; padding: 16px; }
 
@@ -209,9 +214,8 @@ button { cursor: pointer; }
   height: auto;
 }
 .hand-image.expanded .hand-image-collapse { transform: rotate(180deg); }
-.hand-image.collapsed { max-height: 38px; }
-.hand-image.collapsed .hand-image-body { display: none; }
-.hand-image.collapsed .hand-image-collapse { transform: rotate(180deg); }
+/* (Removed the .collapsed state — the hand reference is always needed while
+   writing notes, so there's no "fully hidden" mode. Only streets-only ↔ expanded.) */
 /* The note columns need top padding so the fixed image doesn't cover them. */
 /* Hand-image is now position: sticky so it lives in normal flow — no padding-top
    calculation needed on the notes grid. Just leave space at the bottom for the
@@ -393,6 +397,7 @@ textarea.street-input:focus { outline: none; border-color: var(--accent); }
 <div class="topbar">
   <div class="brand">SHOWDOWN<small>PRO</small></div>
   <span class="sandbox-tag">SANDBOX</span>
+  <span class="version-tag" id="proVersion"></span>
   <div class="identity">
     <div class="avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"><span>EE</span></div>
     <div class="name">Casillas</div>
@@ -453,9 +458,13 @@ textarea.street-input:focus { outline: none; border-color: var(--accent); }
 
 <script>
 const $ = sel => document.querySelector(sel);
+const PRO_VERSION = "v1.2.14";   // keep in sync with APP_VERSION in index.html
 const STORAGE_KEY = "showdown_pro_sandbox_v1";   // mock reviews + Casillas's drafts
 const REAL_KEY = "showdown_reviews_v1";          // bus shared with index.html (real submissions)
 const STREETS = ["preflop", "flop", "turn", "river"];
+
+// Stamp version into the topbar
+(() => { const el = document.getElementById("proVersion"); if (el) el.textContent = PRO_VERSION; })();
 
 function showToast(msg, isErr) {
   const t = $("#toast");
