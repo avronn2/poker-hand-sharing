@@ -77,11 +77,27 @@
     display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 4px;
     cursor: pointer; padding: 0;
+    position: relative;
   }
   .hamburger span {
     width: 18px; height: 2px; background: var(--ink);
     border-radius: 1px;
     transition: transform 0.2s, opacity 0.2s;
+  }
+  /* Red dot indicator that overrides the third bar's positioning. Shown when
+     there are unseen delivered reviews. */
+  @keyframes hamburger-dot-pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(255, 80, 100, 0.55); }
+    50%     { box-shadow: 0 0 0 5px rgba(255, 80, 100, 0); }
+  }
+  .hamburger .hamburger-dot {
+    position: absolute;
+    top: 6px; right: 6px;
+    width: 9px; height: 9px;
+    background: #ff5064;
+    border-radius: 50%;
+    border: 1.5px solid var(--panel);
+    animation: hamburger-dot-pulse 1.6s ease-in-out infinite;
   }
   .hamburger:hover { background: var(--panel-2); }
   header.top .brand .mark {
@@ -792,6 +808,13 @@
     background: transparent; border: 0; color: var(--ink-dim);
     font-size: 18px; cursor: pointer; padding: 0 6px; margin-left: 2px; line-height: 1;
   }
+  .pro-popup.fade-out {
+    animation: pp-fadeout .4s ease-out forwards;
+    pointer-events: none;
+  }
+  @keyframes pp-fadeout {
+    to { opacity: 0; transform: translateX(20px); }
+  }
   .waitlist-form input[type="email"] { width: 100%; box-sizing: border-box; }
 
   /* ===== Ask-a-Pro: sandbox checkout modal ===== */
@@ -830,7 +853,7 @@
     font-size: 11px; color: var(--ink-dim); line-height: 1.5;
   }
   .checkout-body .ck-note b { color: var(--accent); font-weight: 700; }
-  /* "Help Casillas" inline context fields */
+  /* "Help Casillas" toggle-buttons + collapsible sub-forms */
   .checkout-body .ck-context {
     margin-top: 14px; padding: 12px; border-radius: 10px;
     background: rgba(176,124,255,0.08); border: 1px solid rgba(176,124,255,0.28);
@@ -839,17 +862,56 @@
     font-size: 12px; color: var(--ink-dim); line-height: 1.5; margin-bottom: 10px;
   }
   .checkout-body .ck-context-head b { color: var(--ink); font-weight: 700; }
-  .checkout-body .ck-field { margin-bottom: 10px; }
-  .checkout-body .ck-field:last-child { margin-bottom: 0; }
-  .checkout-body .ck-field input,
-  .checkout-body .ck-field textarea {
+  .checkout-body .ck-toggle-row { margin-bottom: 8px; }
+  .checkout-body .ck-toggle-row:last-child { margin-bottom: 0; }
+  .checkout-body .ck-toggle-btn {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+    color: var(--ink); padding: 10px 12px;
+    font: inherit; font-size: 13px; font-weight: 700;
+    cursor: pointer; text-align: left;
+  }
+  .checkout-body .ck-toggle-btn:hover { border-color: var(--accent); }
+  .checkout-body .ck-toggle-btn.filled { border-color: var(--accent); }
+  .checkout-body .ck-toggle-icon {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: #0c1226;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; flex-shrink: 0;
+  }
+  .checkout-body .ck-toggle-btn.filled .ck-toggle-icon { content: "✓"; }
+  .checkout-body .ck-toggle-label { flex: 1; min-width: 0; }
+  .checkout-body .ck-toggle-status {
+    font-size: 11px; color: var(--ink-dim); font-weight: 500;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 50%;
+  }
+  .checkout-body .ck-sub-form {
+    margin-top: 8px; padding: 12px; border-radius: 10px;
+    background: var(--bg); border: 1px solid var(--line);
+  }
+  .checkout-body .ck-sub-form label {
+    display: block; font-size: 11px; margin: 8px 0 4px;
+    color: var(--ink-dim); font-weight: 600;
+  }
+  .checkout-body .ck-sub-form label:first-child { margin-top: 0; }
+  .checkout-body .ck-sub-form input,
+  .checkout-body .ck-sub-form select,
+  .checkout-body .ck-sub-form textarea {
     width: 100%; box-sizing: border-box;
-    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
-    color: var(--ink); padding: 9px 11px; font: inherit; font-size: 13px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    color: var(--ink); padding: 8px 10px; font: inherit; font-size: 13px;
     resize: vertical;
   }
-  .checkout-body .ck-field input:focus,
-  .checkout-body .ck-field textarea:focus { outline: none; border-color: var(--accent); }
+  .checkout-body .ck-sub-form input:focus,
+  .checkout-body .ck-sub-form select:focus,
+  .checkout-body .ck-sub-form textarea:focus { outline: none; border-color: var(--accent); }
+  .checkout-body .ck-sub-save {
+    margin-top: 10px; width: 100%;
+    background: var(--accent); color: #0c1226;
+    border: 0; border-radius: 8px; padding: 9px;
+    font: inherit; font-size: 13px; font-weight: 800; cursor: pointer;
+  }
 
   /* ===== Delivery banner on main page =====
      Big, friendly, Casillas-photo-first. Lives at the top of the page so the
@@ -887,6 +949,33 @@
   .review-banner .rb-close {
     background: transparent; border: 0; color: var(--ink-dim);
     font-size: 20px; cursor: pointer; padding: 0 6px; line-height: 1;
+  }
+
+  /* Section headers + NEW badge in My hands list */
+  .my-hand-section-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    margin: 14px 4px 8px;
+    font-size: 11px; font-weight: 800; color: var(--ink-dim);
+    text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .my-hand-section-head:first-child { margin-top: 4px; }
+  .my-hand-section-head .my-hand-section-count {
+    background: var(--panel); color: var(--ink-dim);
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 1px 8px; font-size: 10px; font-weight: 800;
+  }
+  .my-hand-row.row-new {
+    border-color: rgba(255,126,182,0.45);
+    box-shadow: 0 0 0 1px rgba(255,126,182,0.12);
+  }
+  .my-hand-row.row-new .row-title { font-weight: 800; }
+  .row-new-badge {
+    display: inline-block; vertical-align: middle;
+    background: #ff7eb6; color: #1c1b2c;
+    font-size: 9px; font-weight: 800;
+    padding: 2px 6px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.6px;
+    margin-right: 6px;
   }
 
   /* ===== Saved-hand row review badges =====
@@ -1222,7 +1311,14 @@
     display: flex; align-items: center; gap: 10px;
     padding: 4px 4px 18px;
   }
-  .my-hands-header h2 { margin: 0; font-size: 18px; font-weight: 800; }
+  .my-hands-header h2 { margin: 0; font-size: 18px; font-weight: 800; flex: 1; }
+  .my-hands-cta {
+    background: var(--accent); color: #062f29;
+    border: 0; border-radius: 10px; padding: 8px 14px;
+    font: inherit; font-size: 13px; font-weight: 800; cursor: pointer;
+    flex-shrink: 0;
+  }
+  .my-hands-cta:hover { filter: brightness(1.08); }
   .iconbtn {
     background: var(--panel); border: 1px solid var(--line);
     border-radius: 10px; padding: 0;
@@ -1626,6 +1722,7 @@
   </div>
   <button class="hamburger" id="menuOpen" aria-label="Open menu">
     <span></span><span></span><span></span>
+    <span class="hamburger-dot" id="hamburgerDot" style="display:none"></span>
   </button>
 </header>
 
@@ -1938,25 +2035,48 @@
       <label class="ck-label" for="ckEmail">Where should we send the review?</label>
       <input type="email" id="ckEmail" placeholder="you@example.com" autocomplete="email">
 
-      <!-- Context fields: shown when tournament details / hand title / hand
-           notes haven't been filled in. Saves into state, the hand image is
-           re-rendered before sending so the pro sees the context. -->
-      <div class="ck-context" id="ckContext" style="display:none">
+      <!-- Context: toggle buttons that expand to show the same fields as the
+           main app's tournament-details + title/note popovers. Saves into state
+           and re-renders the hand image before sending so the pro sees them. -->
+      <div class="ck-context" id="ckContext">
         <div class="ck-context-head">
           <b>Help Casillas get the full picture.</b><br>
           <span>The more context he has, the better the review.</span>
         </div>
-        <div class="ck-field" id="ckFieldTournament" style="display:none">
-          <label class="ck-label">Tournament details (stage, event)</label>
-          <input type="text" id="ckTournamentStage" placeholder="e.g. WSOP Main, Day 3, ~42 left" maxlength="80">
+        <!-- Tournament details: button + collapsible form -->
+        <div class="ck-toggle-row" id="ckToggleTourney">
+          <button type="button" class="ck-toggle-btn" id="ckOpenTourney">
+            <span class="ck-toggle-icon">+</span>
+            <span class="ck-toggle-label">Tournament details</span>
+            <span class="ck-toggle-status" id="ckTourneyStatus"></span>
+          </button>
+          <div class="ck-sub-form" id="ckTourneyForm" style="display:none">
+            <label class="ck-label">Type</label>
+            <select id="ckOtType"></select>
+            <label class="ck-label">Buy-in <span style="opacity:.5;font-weight:400">(optional)</span></label>
+            <div style="display:flex;gap:6px">
+              <input type="text" inputmode="numeric" id="ckOtAmt" placeholder="200" style="flex:1">
+              <select id="ckOtCur" style="flex:0 0 70px"></select>
+            </div>
+            <label class="ck-label">Stage</label>
+            <select id="ckOtStage"></select>
+            <button type="button" class="ck-sub-save" id="ckSaveTourney">Save</button>
+          </div>
         </div>
-        <div class="ck-field" id="ckFieldTitle" style="display:none">
-          <label class="ck-label">Hand title</label>
-          <input type="text" id="ckHandTitle" placeholder="e.g. crazy 4-bet vs HJ" maxlength="80">
-        </div>
-        <div class="ck-field" id="ckFieldNote" style="display:none">
-          <label class="ck-label">What were you thinking? Anything Casillas should know?</label>
-          <textarea id="ckHandNote" rows="3" maxlength="240" placeholder="e.g. I was card dead all session, opponent had been 3-betting light…"></textarea>
+        <!-- Hand title + note: button + collapsible form -->
+        <div class="ck-toggle-row" id="ckToggleNotes">
+          <button type="button" class="ck-toggle-btn" id="ckOpenNotes">
+            <span class="ck-toggle-icon">+</span>
+            <span class="ck-toggle-label">Hand notes</span>
+            <span class="ck-toggle-status" id="ckNotesStatus"></span>
+          </button>
+          <div class="ck-sub-form" id="ckNotesForm" style="display:none">
+            <label class="ck-label">Title <span style="opacity:.5;font-weight:400">(optional)</span></label>
+            <input type="text" id="ckHandTitle" maxlength="60" placeholder="e.g. crazy 4-bet vs HJ">
+            <label class="ck-label">Note <span style="opacity:.5;font-weight:400">(optional)</span></label>
+            <textarea id="ckHandNote" rows="3" maxlength="240" placeholder="What were you thinking? Anything Casillas should know?"></textarea>
+            <button type="button" class="ck-sub-save" id="ckSaveNotes">Save</button>
+          </div>
         </div>
       </div>
 
@@ -1989,6 +2109,7 @@
   <div class="my-hands-header">
     <button type="button" class="iconbtn" id="myHandsBack" aria-label="Back">←</button>
     <h2>My hands</h2>
+    <button type="button" class="my-hands-cta" id="myHandsNewBtn">+ New hand</button>
   </div>
   <div id="myHandsList" class="my-hands-list"></div>
   <div id="myHandsEmpty" class="my-hands-empty" style="display:none">
@@ -2143,7 +2264,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.16";
+const APP_VERSION = "v1.2.17";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -5782,6 +5903,15 @@ function injectAskAPro(out) {
       if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
       popup.remove();   // tap dismisses the popup — it would otherwise cover the pro section
     };
+    // Auto-dismiss after 5s so the popup doesn't linger forever on screen.
+    // Uses a CSS fade-out class for a graceful exit. Doesn't set the
+    // sessionStorage flag — the user might still want to engage on the next
+    // hand they generate this session.
+    setTimeout(() => {
+      if (!document.getElementById("proPopup")) return;
+      popup.classList.add("fade-out");
+      setTimeout(() => { if (popup.parentNode) popup.remove(); }, 400);
+    }, 5000);
   }, 3000);
 }
 
@@ -5949,6 +6079,58 @@ function snapshotHandTitle() {
 
 // ---------- Checkout modal ----------
 let _ckTier = null;
+
+// Populate the tournament-details select options once (cached after first call)
+function _ensureCkSelectsPopulated() {
+  const ckOtType = document.getElementById("ckOtType");
+  if (!ckOtType || ckOtType.dataset.populated) return;
+  const opt = (v, label) => `<option value="${v}">${label}</option>`;
+  ckOtType.innerHTML = opt("", "— none —") +
+    (typeof TOURNEY_TYPES !== "undefined" ? TOURNEY_TYPES.map(t => opt(t, t)).join("") : "");
+  const ckOtCur = document.getElementById("ckOtCur");
+  if (ckOtCur && typeof TOURNEY_CURS !== "undefined") {
+    ckOtCur.innerHTML = TOURNEY_CURS.map(([v, sym]) => opt(v, sym)).join("");
+  }
+  const ckOtStage = document.getElementById("ckOtStage");
+  if (ckOtStage) {
+    ckOtStage.innerHTML = opt("", "— none —") +
+      (typeof TOURNEY_STAGES !== "undefined" ? TOURNEY_STAGES.map(s => opt(s, s)).join("") : "");
+  }
+  ckOtType.dataset.populated = "1";
+}
+
+// Update the "Tournament details" toggle button to show summary + ✓/+ state
+function _refreshCkTourneyButton() {
+  const btn = document.getElementById("ckOpenTourney");
+  const status = document.getElementById("ckTourneyStatus");
+  if (!btn || !status) return;
+  // Hide entirely for cash games — no tournament details to capture
+  if (state.gameType !== "mtt") { btn.parentElement.style.display = "none"; return; }
+  btn.parentElement.style.display = "";
+  const parts = [];
+  const typeVal = $("#tournamentType") && $("#tournamentType").value;
+  if (typeVal) parts.push(typeVal);
+  if (state.stage) parts.push(state.stage);
+  const filled = parts.length > 0;
+  status.textContent = filled ? parts.join(" · ") : "";
+  btn.classList.toggle("filled", filled);
+  const icon = btn.querySelector(".ck-toggle-icon");
+  if (icon) icon.textContent = filled ? "✓" : "+";
+}
+
+function _refreshCkNotesButton() {
+  const btn = document.getElementById("ckOpenNotes");
+  const status = document.getElementById("ckNotesStatus");
+  if (!btn || !status) return;
+  const title = (state.handTitle || "").trim();
+  const note = (state.handNote || "").trim();
+  const filled = !!(title || note);
+  status.textContent = title || (note ? (note.slice(0, 40) + (note.length > 40 ? "…" : "")) : "");
+  btn.classList.toggle("filled", filled);
+  const icon = btn.querySelector(".ck-toggle-icon");
+  if (icon) icon.textContent = filled ? "✓" : "+";
+}
+
 async function openCheckoutModal(tier) {
   _ckTier = tier;
   const isVoice = tier === "voice";
@@ -5959,39 +6141,58 @@ async function openCheckoutModal(tier) {
   const last = loadReviews().slice(-1)[0];
   if (last && last.userEmail) emailInput.value = last.userEmail;
 
-  // Surface inline inputs for any context the pro would want but isn't set yet.
-  // We check tournament stage (MTT only), hand title, and hand note — these
-  // appear in the rendered hand image header that the pro will read.
-  const isMTT = state.gameType === "mtt";
-  const stageVal = (state.stage || "").trim();
-  const titleVal = (state.handTitle || "").trim();
-  const noteVal = (state.handNote || "").trim();
+  // Populate selects and pre-fill all sub-form values from state
+  _ensureCkSelectsPopulated();
+  const ckOtType = document.getElementById("ckOtType");
+  const ckOtCur = document.getElementById("ckOtCur");
+  const ckOtAmt = document.getElementById("ckOtAmt");
+  const ckOtStage = document.getElementById("ckOtStage");
+  if (ckOtType) ckOtType.value = ($("#tournamentType") && $("#tournamentType").value) || "";
+  if (ckOtCur) ckOtCur.value = ($("#buyinCurrency") && $("#buyinCurrency").value) || "USD";
+  if (ckOtAmt) ckOtAmt.value = ($("#buyinAmount") && $("#buyinAmount").value) || "";
+  if (ckOtStage) ckOtStage.value = state.stage || "";
+  document.getElementById("ckHandTitle").value = state.handTitle || "";
+  document.getElementById("ckHandNote").value = state.handNote || "";
 
-  const ctxEl = document.getElementById("ckContext");
-  const fieldTournament = document.getElementById("ckFieldTournament");
-  const fieldTitle = document.getElementById("ckFieldTitle");
-  const fieldNote = document.getElementById("ckFieldNote");
-
-  const showTournament = isMTT && !stageVal;
-  const showTitle = !titleVal;
-  const showNote = !noteVal;
-
-  if (fieldTournament) fieldTournament.style.display = showTournament ? "" : "none";
-  if (fieldTitle) fieldTitle.style.display = showTitle ? "" : "none";
-  if (fieldNote) fieldNote.style.display = showNote ? "" : "none";
-  if (ctxEl) ctxEl.style.display = (showTournament || showTitle || showNote) ? "" : "none";
-
-  // Pre-fill inputs with existing state values just in case
-  const ckStage = document.getElementById("ckTournamentStage");
-  const ckTitle = document.getElementById("ckHandTitle");
-  const ckNote = document.getElementById("ckHandNote");
-  if (ckStage) ckStage.value = stageVal;
-  if (ckTitle) ckTitle.value = titleVal;
-  if (ckNote) ckNote.value = noteVal;
+  // Forms start collapsed; toggle buttons reflect filled/empty state
+  document.getElementById("ckTourneyForm").style.display = "none";
+  document.getElementById("ckNotesForm").style.display = "none";
+  _refreshCkTourneyButton();
+  _refreshCkNotesButton();
 
   document.getElementById("checkoutOverlay").classList.add("on", "dialog-mode");
   setTimeout(() => emailInput.focus(), 80);
 }
+
+// Toggle / save handlers for the sub-forms inside the checkout modal
+document.getElementById("ckOpenTourney").addEventListener("click", () => {
+  const form = document.getElementById("ckTourneyForm");
+  form.style.display = form.style.display === "none" ? "" : "none";
+});
+document.getElementById("ckOpenNotes").addEventListener("click", () => {
+  const form = document.getElementById("ckNotesForm");
+  form.style.display = form.style.display === "none" ? "" : "none";
+});
+document.getElementById("ckSaveTourney").addEventListener("click", () => {
+  // Mirror the changes into the main form's hidden inputs + state, just like
+  // the existing tourney-form popover does. The hand image is re-rendered on
+  // Pay so the new tournament header appears in what the pro receives.
+  if ($("#tournamentType")) _setSelectValue($("#tournamentType"), document.getElementById("ckOtType").value);
+  if ($("#buyinAmount")) $("#buyinAmount").value = document.getElementById("ckOtAmt").value.trim();
+  if ($("#buyinCurrency")) _setSelectValue($("#buyinCurrency"), document.getElementById("ckOtCur").value);
+  state.stage = document.getElementById("ckOtStage").value;
+  if ($("#stage")) _setSelectValue($("#stage"), state.stage);
+  document.getElementById("ckTourneyForm").style.display = "none";
+  _refreshCkTourneyButton();
+  haptic(10);
+});
+document.getElementById("ckSaveNotes").addEventListener("click", () => {
+  state.handTitle = document.getElementById("ckHandTitle").value.trim();
+  state.handNote = document.getElementById("ckHandNote").value.trim();
+  document.getElementById("ckNotesForm").style.display = "none";
+  _refreshCkNotesButton();
+  haptic(10);
+});
 function closeCheckoutModal() {
   document.getElementById("checkoutOverlay").classList.remove("on", "dialog-mode");
 }
@@ -6011,30 +6212,15 @@ document.getElementById("ckConfirm").onclick = async () => {
     return;
   }
 
-  // Pull any inline context the user filled in (tournament stage / hand title /
-  // hand note) back into state. If anything changed, invalidate the cached
-  // image so it's re-rendered with the new context baked into the header.
-  let contextChanged = false;
-  const ckStage = document.getElementById("ckTournamentStage");
-  const ckTitle = document.getElementById("ckHandTitle");
-  const ckNote = document.getElementById("ckHandNote");
-  if (ckStage && ckStage.offsetParent !== null && ckStage.value.trim() && state.gameType === "mtt") {
-    state.stage = ckStage.value.trim();
-    if ($("#stage")) $("#stage").value = state.stage;
-    contextChanged = true;
-  }
-  if (ckTitle && ckTitle.offsetParent !== null && ckTitle.value.trim()) {
-    state.handTitle = ckTitle.value.trim();
-    contextChanged = true;
-  }
-  if (ckNote && ckNote.offsetParent !== null && ckNote.value.trim()) {
-    state.handNote = ckNote.value.trim();
-    contextChanged = true;
-  }
-  if (contextChanged) {
-    // Force re-render with updated state
-    lastOutputImageDataUrl = null;
-  }
+  // If either sub-form is still open with unsaved changes, click Save first so
+  // we don't lose what the user typed. State is the source of truth from here.
+  const tForm = document.getElementById("ckTourneyForm");
+  if (tForm && tForm.style.display !== "none") document.getElementById("ckSaveTourney").click();
+  const nForm = document.getElementById("ckNotesForm");
+  if (nForm && nForm.style.display !== "none") document.getElementById("ckSaveNotes").click();
+  // Force a fresh image render so any new tournament/title context is baked
+  // into the header that gets sent to the pro.
+  lastOutputImageDataUrl = null;
 
   const imageDataUrl = await snapshotCurrentHandDataUrl();
   if (!imageDataUrl) {
@@ -6141,19 +6327,14 @@ document.getElementById("ckConfirm").onclick = async () => {
   haptic(12);
   // Refresh the menu badge — there's a new pending review tied to a hand now.
   if (typeof updateMyHandsMenuBadge === "function") updateMyHandsMenuBadge();
-  // Swap the output overlay from "fresh hand mode" (Save / Save image / Share)
-  // to "saved hand mode" (Delete / Edit / Save image / Share) — the same view
-  // the user gets when opening this hand from My hands. The compact "Sent ·
-  // Pending" card renders below the image because injectAskAPro now sees the
-  // review record. This makes it crystal clear the hand has been sent and is
-  // now archived alongside My hands.
+  // Close the output overlay and bounce to My hands — the hand now lives there
+  // tagged "Pending review" in the Pending section.
   try {
-    const savedHand = savedHandId ? loadHands().find(h => h.id === savedHandId) : null;
-    if (savedHand) {
-      // openSavedHand re-renders the overlay with the saved-hand layout
-      await openSavedHand(savedHand);
-    }
-  } catch (e) { console.warn("Post-send view swap failed:", e); }
+    const overlay = document.getElementById("overlay");
+    if (overlay) overlay.classList.remove("on");
+    currentSavedHand = null;   // reset for the next fresh-hand session
+    if (typeof openMyHands === "function") openMyHands();
+  } catch (e) { console.warn("Post-send bounce failed:", e); }
 };
 
 // ---------- Delivery banner ----------
@@ -6277,19 +6458,22 @@ if (typeof escapeHTML !== "function") {
   };
 }
 
-// Show a notification badge on the hamburger's "My hands" item: count of
-// reviews that have come back from Casillas but haven't been opened yet.
-// We treat "seen" the same way as the banner dismissal — once the user opens
-// the review viewer for that id, it's marked seen and the badge ticks down.
+// Show a notification badge on the hamburger's "My hands" item + a red dot
+// on the hamburger button itself: count of reviews that have come back from
+// Casillas but haven't been opened yet. "Seen" tracks the same dismissed map
+// the banner uses, so opening a review ticks both down at once.
 function updateMyHandsMenuBadge() {
   const badge = document.getElementById("myHandsMenuBadge");
-  if (!badge) return;
+  const dot = document.getElementById("hamburgerDot");
   const reviews = loadReviews();
   const seen = loadBannerDismissed();
   const unseenReady = reviews.filter(r => r.status === "delivered" && !seen[r.id]);
-  if (unseenReady.length === 0) { badge.style.display = "none"; return; }
-  badge.textContent = String(unseenReady.length);
-  badge.style.display = "";
+  const n = unseenReady.length;
+  if (badge) {
+    if (n === 0) { badge.style.display = "none"; }
+    else { badge.textContent = String(n); badge.style.display = ""; }
+  }
+  if (dot) dot.style.display = n > 0 ? "" : "none";
 }
 
 // One-shot migration for users coming from v1.2.0–v1.2.2: those builds embedded
@@ -8735,88 +8919,155 @@ function closeMyHands() {
   document.body.classList.remove("viewing-myhands");
 }
 $("#myHandsBack").addEventListener("click", closeMyHands);
+// "+ New hand" CTA in My hands header — same flow as the hamburger New hand item
+$("#myHandsNewBtn").addEventListener("click", async () => {
+  const isSaved = !!(currentSavedHand && currentSavedHand.id);
+  const hasContent = parseChips($("#bb").value) > 0 || state.villains.length > 0 ||
+    Object.keys(state.cards).length > 0 ||
+    ["preflop","flop","turn","river"].some(s => state.streets[s].complete);
+  if (hasContent && !isSaved) {
+    const ok = await showConfirm(
+      "Start a new hand? Anything not saved will be lost.",
+      { title: "New hand?", confirmLabel: "New hand", danger: true }
+    );
+    if (!ok) return;
+  }
+  closeMyHands();
+  location.reload();
+});
+
+// Build the inner HTML for a single My-hands row.  Extracted so we can render
+// the same row layout across the three sections (New / Pending / Reviewed).
+function _buildHandRowHTML(h, opts) {
+  opts = opts || {};
+  const summary = h.summary || {};
+  const dt = formatHandDate(h.savedAt);
+  const cardsHTML = summary.cards
+    ? summary.cards.split(" ").map(t => {
+        if (!t) return "";
+        const r = t.charAt(0), s = t.slice(1);
+        const suit = SUITS.find(x => x.glyph === s);
+        if (!suit) return t;
+        return cardInlineHTML({ rank: r, suit: suit.s });
+      }).join(" ")
+    : "";
+  const posLabel = summary.heroPos ? `<span style="color:var(--ink-dim)">${summary.heroPos}</span> ` : "";
+  let outcomeCls = "";
+  if (summary.outcome && summary.outcome.startsWith("+")) outcomeCls = "outcome-win";
+  else if (summary.outcome && summary.outcome.startsWith("-")) outcomeCls = "outcome-lose";
+  else if (summary.outcome && summary.outcome.startsWith("chop")) outcomeCls = "outcome-chop";
+  const titleStr = h.title ? escapeHTML(h.title) : (cardsHTML ? `${posLabel}${cardsHTML}` : "Untitled hand");
+  let context = "";
+  if (summary.gameType === "cash") {
+    context = summary.cashStakes ? `${summary.cashStakes} NLHE` : "Cash";
+  } else if (summary.gameType === "mtt") {
+    const parts = ["MTT"];
+    if (summary.buyinTag) parts.push(summary.buyinTag);
+    if (summary.tournamentType) parts.push(summary.tournamentType);
+    if (summary.stage) parts.push(summary.stage);
+    context = parts.join(" · ");
+  }
+  const tinyFace = `<span class="rc-avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"></span>`;
+  let reviewChipHtml = "";
+  if (opts.category === "new") {
+    reviewChipHtml = `<div class="row-review-chip ready">${tinyFace}Casillas &middot; ready</div>`;
+  } else if (opts.category === "pending") {
+    reviewChipHtml = `<div class="row-review-chip pending">${tinyFace}Casillas &middot; pending</div>`;
+  } else if (opts.category === "reviewed-seen") {
+    reviewChipHtml = `<div class="row-review-chip ready">${tinyFace}Casillas &middot; ready</div>`;
+  }
+  const newBadge = opts.category === "new"
+    ? `<span class="row-new-badge">NEW</span>` : "";
+  return `
+    <div class="row-main">
+      <div class="row-title">${newBadge}${titleStr}</div>
+      <div class="row-meta">
+        <span>${escapeHTML(dt)}</span>
+        ${h.title && cardsHTML ? `<span>${posLabel}${cardsHTML}</span>` : ""}
+        ${summary.outcome ? `<span class="${outcomeCls}">${summary.outcome}</span>` : ""}
+      </div>
+      ${context ? `<div class="row-context">${escapeHTML(context)}</div>` : ""}
+      ${reviewChipHtml}
+    </div>
+    <button type="button" class="row-trash" data-trash="${h.id}" aria-label="Delete">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6l-1.7 14.1A2 2 0 0 1 15.3 22H8.7a2 2 0 0 1-2-1.9L5 6"></path>
+        <path d="M10 11v6"></path>
+        <path d="M14 11v6"></path>
+        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+      </svg>
+    </button>`;
+}
 
 function renderMyHandsList() {
   const list = $("#myHandsList");
   const empty = $("#myHandsEmpty");
-  const hands = loadHands().sort((a, b) => (b.savedAt || "").localeCompare(a.savedAt || ""));
+  const hands = loadHands();
   if (hands.length === 0) {
     list.innerHTML = "";
     empty.style.display = "";
     return;
   }
   empty.style.display = "none";
-  list.innerHTML = "";
+
+  // Categorize each hand. Three buckets:
+  //   New        = delivered review NOT yet seen
+  //   Pending    = paid (sent) review
+  //   Reviewed   = delivered review already seen, OR saved hand with no review
+  const reviews = loadReviews();
+  const seen = loadBannerDismissed();
+  const byHand = {};
+  reviews.forEach(r => {
+    if (!r.savedHandId) return;
+    (byHand[r.savedHandId] = byHand[r.savedHandId] || []).push(r);
+  });
+  const newHands = [], pendingHands = [], reviewedHands = [];
   for (const h of hands) {
-    const summary = h.summary || {};
-    const dt = formatHandDate(h.savedAt);
-    const cardsHTML = summary.cards
-      ? summary.cards.split(" ").map(t => {
-          if (!t) return "";
-          const r = t.charAt(0), s = t.slice(1);
-          const suit = SUITS.find(x => x.glyph === s);
-          if (!suit) return t;
-          return cardInlineHTML({ rank: r, suit: suit.s });
-        }).join(" ")
-      : "";
-    const posLabel = summary.heroPos ? `<span style="color:var(--ink-dim)">${summary.heroPos}</span> ` : "";
-    let outcomeCls = "";
-    if (summary.outcome && summary.outcome.startsWith("+")) outcomeCls = "outcome-win";
-    else if (summary.outcome && summary.outcome.startsWith("-")) outcomeCls = "outcome-lose";
-    else if (summary.outcome && summary.outcome.startsWith("chop")) outcomeCls = "outcome-chop";
-    const titleStr = h.title ? escapeHTML(h.title) : (cardsHTML ? `${posLabel}${cardsHTML}` : "Untitled hand");
-    // Build a small game-context line (Cash, or MTT details). Older saved hands
-    // (without these fields) just get nothing — backward compatible.
-    let context = "";
-    if (summary.gameType === "cash") {
-      context = summary.cashStakes ? `${summary.cashStakes} NLHE` : "Cash";
-    } else if (summary.gameType === "mtt") {
-      const parts = ["MTT"];
-      if (summary.buyinTag) parts.push(summary.buyinTag);
-      if (summary.tournamentType) parts.push(summary.tournamentType);
-      if (summary.stage) parts.push(summary.stage);
-      context = parts.join(" · ");
+    const linked = byHand[h.id] || [];
+    const delivered = linked.find(r => r.status === "delivered");
+    const pending = linked.find(r => r.status === "paid");
+    if (delivered && !seen[delivered.id]) {
+      newHands.push({ h, review: delivered });
+    } else if (pending) {
+      pendingHands.push({ h, review: pending });
+    } else {
+      // Already-seen review OR saved hand with no review attached
+      reviewedHands.push({ h, review: delivered || null });
     }
-    // Show a chip if there's a pro review tied to this hand (matched by savedHandId).
-    // Includes a tiny Casillas face so users see at a glance whose review it is.
-    const linkedReviews = loadReviews().filter(r => r.savedHandId === h.id);
-    let reviewChipHtml = "";
-    const tinyFace = `<span class="rc-avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"></span>`;
-    if (linkedReviews.some(r => r.status === "delivered")) {
-      reviewChipHtml = `<div class="row-review-chip ready">${tinyFace}Casillas &middot; ready</div>`;
-    } else if (linkedReviews.some(r => r.status === "paid")) {
-      reviewChipHtml = `<div class="row-review-chip pending">${tinyFace}Casillas &middot; pending</div>`;
-    }
-    const row = document.createElement("div");
-    row.className = "my-hand-row";
-    row.innerHTML = `
-      <div class="row-main">
-        <div class="row-title">${titleStr}</div>
-        <div class="row-meta">
-          <span>${escapeHTML(dt)}</span>
-          ${h.title && cardsHTML ? `<span>${posLabel}${cardsHTML}</span>` : ""}
-          ${summary.outcome ? `<span class="${outcomeCls}">${summary.outcome}</span>` : ""}
-        </div>
-        ${context ? `<div class="row-context">${escapeHTML(context)}</div>` : ""}
-        ${reviewChipHtml}
-      </div>
-      <button type="button" class="row-trash" data-trash="${h.id}" aria-label="Delete">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6l-1.7 14.1A2 2 0 0 1 15.3 22H8.7a2 2 0 0 1-2-1.9L5 6"></path>
-          <path d="M10 11v6"></path>
-          <path d="M14 11v6"></path>
-          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
-        </svg>
-      </button>
-    `;
-    row.addEventListener("click", (e) => {
-      if (e.target.closest(".row-trash")) return;
-      // Always open the saved hand — review notes are now baked into its image.
-      openSavedHand(h);
-    });
-    list.appendChild(row);
   }
+  // Sort each section per spec: New = newest first, Pending = OLDEST first
+  // (sympathy — see how long they've been waiting), Reviewed = newest first.
+  newHands.sort((a, b) => (b.review.deliveredAt || 0) - (a.review.deliveredAt || 0));
+  pendingHands.sort((a, b) => (a.review.createdAt || 0) - (b.review.createdAt || 0));
+  reviewedHands.sort((a, b) => {
+    const aT = (a.review && a.review.deliveredAt) || new Date(a.h.savedAt || 0).getTime();
+    const bT = (b.review && b.review.deliveredAt) || new Date(b.h.savedAt || 0).getTime();
+    return bT - aT;
+  });
+
+  list.innerHTML = "";
+  const section = (label, items, category) => {
+    if (!items.length) return;
+    const hdr = document.createElement("div");
+    hdr.className = "my-hand-section-head";
+    hdr.innerHTML = `<span>${label}</span><span class="my-hand-section-count">${items.length}</span>`;
+    list.appendChild(hdr);
+    items.forEach(({ h }) => {
+      const row = document.createElement("div");
+      row.className = "my-hand-row" + (category === "new" ? " row-new" : "");
+      row.innerHTML = _buildHandRowHTML(h, { category });
+      row.addEventListener("click", (e) => {
+        if (e.target.closest(".row-trash")) return;
+        openSavedHand(h);
+      });
+      list.appendChild(row);
+    });
+  };
+  section("Casillas reviewed &mdash; new", newHands, "new");
+  section("Pending review", pendingHands, "pending");
+  section("Saved hands", reviewedHands, "reviewed-seen");
+
   list.querySelectorAll("[data-trash]").forEach(b => {
     b.addEventListener("click", async () => {
       const id = b.dataset.trash;
