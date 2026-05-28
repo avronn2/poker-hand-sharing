@@ -440,7 +440,7 @@ textarea.street-input:focus { outline: none; border-color: var(--accent); }
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
         </button>
-        <span class="hand-image-title">Hand reference</span>
+        <span class="hand-image-title" id="handImageSla"></span>
         <button type="button" class="hand-image-collapse" id="handImageCollapse" aria-label="Toggle full view">▼</button>
       </div>
       <div class="hand-image-body" id="detailImageBody"></div>
@@ -458,7 +458,7 @@ textarea.street-input:focus { outline: none; border-color: var(--accent); }
 
 <script>
 const $ = sel => document.querySelector(sel);
-const PRO_VERSION = "v1.2.14";   // keep in sync with APP_VERSION in index.html
+const PRO_VERSION = "v1.2.15";   // keep in sync with APP_VERSION in index.html
 const STORAGE_KEY = "showdown_pro_sandbox_v1";   // mock reviews + Casillas's drafts
 const REAL_KEY = "showdown_reviews_v1";          // bus shared with index.html (real submissions)
 const STREETS = ["preflop", "flop", "turn", "river"];
@@ -772,7 +772,12 @@ function openReview(id) {
   $("#detailTitle").textContent = `${tierWord} for ${r.userEmail}`;
   $("#detailSub").textContent = r.handTitle || "";
   const s = r.status === "pending" ? sla(r.createdAt) : { cls: "green", label: "Delivered" };
-  $("#detailSla").innerHTML = `<span class="sla ${s.cls}"><span class="dot"></span>${s.label}</span>${r.source === "real" ? ` <span class="tier-badge" style="background:var(--pink);color:#1c1b2c;border-color:var(--pink);margin-left:6px;">LIVE</span>` : ""}`;
+  const slaHtml = `<span class="sla ${s.cls}"><span class="dot"></span>${s.label}</span>${r.source === "real" ? ` <span class="tier-badge" style="background:var(--pink);color:#1c1b2c;border-color:var(--pink);margin-left:6px;">LIVE</span>` : ""}`;
+  $("#detailSla").innerHTML = slaHtml;
+  // Surface the SLA in the sticky hand-reference header too, so Casillas always
+  // sees the countdown while writing notes (the detail header is hidden).
+  const headerSla = $("#handImageSla");
+  if (headerSla) headerSla.innerHTML = slaHtml;
   $("#detailImageBody").innerHTML = thumbHtml(r);
   renderStreets(r);
   $("#sendBtn").disabled = r.status === "delivered";

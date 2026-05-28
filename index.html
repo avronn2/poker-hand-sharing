@@ -826,6 +826,26 @@
     font-size: 11px; color: var(--ink-dim); line-height: 1.5;
   }
   .checkout-body .ck-note b { color: var(--accent); font-weight: 700; }
+  /* "Help Casillas" inline context fields */
+  .checkout-body .ck-context {
+    margin-top: 14px; padding: 12px; border-radius: 10px;
+    background: rgba(176,124,255,0.08); border: 1px solid rgba(176,124,255,0.28);
+  }
+  .checkout-body .ck-context-head {
+    font-size: 12px; color: var(--ink-dim); line-height: 1.5; margin-bottom: 10px;
+  }
+  .checkout-body .ck-context-head b { color: var(--ink); font-weight: 700; }
+  .checkout-body .ck-field { margin-bottom: 10px; }
+  .checkout-body .ck-field:last-child { margin-bottom: 0; }
+  .checkout-body .ck-field input,
+  .checkout-body .ck-field textarea {
+    width: 100%; box-sizing: border-box;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    color: var(--ink); padding: 9px 11px; font: inherit; font-size: 13px;
+    resize: vertical;
+  }
+  .checkout-body .ck-field input:focus,
+  .checkout-body .ck-field textarea:focus { outline: none; border-color: var(--accent); }
 
   /* ===== Delivery banner on main page =====
      Big, friendly, Casillas-photo-first. Lives at the top of the page so the
@@ -1913,6 +1933,29 @@
       </div>
       <label class="ck-label" for="ckEmail">Where should we send the review?</label>
       <input type="email" id="ckEmail" placeholder="you@example.com" autocomplete="email">
+
+      <!-- Context fields: shown when tournament details / hand title / hand
+           notes haven't been filled in. Saves into state, the hand image is
+           re-rendered before sending so the pro sees the context. -->
+      <div class="ck-context" id="ckContext" style="display:none">
+        <div class="ck-context-head">
+          <b>Help Casillas get the full picture.</b><br>
+          <span>The more context he has, the better the review.</span>
+        </div>
+        <div class="ck-field" id="ckFieldTournament" style="display:none">
+          <label class="ck-label">Tournament details (stage, event)</label>
+          <input type="text" id="ckTournamentStage" placeholder="e.g. WSOP Main, Day 3, ~42 left" maxlength="80">
+        </div>
+        <div class="ck-field" id="ckFieldTitle" style="display:none">
+          <label class="ck-label">Hand title</label>
+          <input type="text" id="ckHandTitle" placeholder="e.g. crazy 4-bet vs HJ" maxlength="80">
+        </div>
+        <div class="ck-field" id="ckFieldNote" style="display:none">
+          <label class="ck-label">What were you thinking? Anything Casillas should know?</label>
+          <textarea id="ckHandNote" rows="3" maxlength="240" placeholder="e.g. I was card dead all session, opponent had been 3-betting light…"></textarea>
+        </div>
+      </div>
+
       <div class="ck-note"><b>Sandbox mode.</b> Nothing's actually charged. This simulates the full loop &mdash; Casillas's dashboard will see your hand and you'll get the review back here.</div>
     </div>
     <div class="dialog-foot">
@@ -2096,7 +2139,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.14";
+const APP_VERSION = "v1.2.15";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -5888,6 +5931,37 @@ async function openCheckoutModal(tier) {
   // Pre-fill from the last review's email if we have one
   const last = loadReviews().slice(-1)[0];
   if (last && last.userEmail) emailInput.value = last.userEmail;
+
+  // Surface inline inputs for any context the pro would want but isn't set yet.
+  // We check tournament stage (MTT only), hand title, and hand note — these
+  // appear in the rendered hand image header that the pro will read.
+  const isMTT = state.gameType === "mtt";
+  const stageVal = (state.stage || "").trim();
+  const titleVal = (state.handTitle || "").trim();
+  const noteVal = (state.handNote || "").trim();
+
+  const ctxEl = document.getElementById("ckContext");
+  const fieldTournament = document.getElementById("ckFieldTournament");
+  const fieldTitle = document.getElementById("ckFieldTitle");
+  const fieldNote = document.getElementById("ckFieldNote");
+
+  const showTournament = isMTT && !stageVal;
+  const showTitle = !titleVal;
+  const showNote = !noteVal;
+
+  if (fieldTournament) fieldTournament.style.display = showTournament ? "" : "none";
+  if (fieldTitle) fieldTitle.style.display = showTitle ? "" : "none";
+  if (fieldNote) fieldNote.style.display = showNote ? "" : "none";
+  if (ctxEl) ctxEl.style.display = (showTournament || showTitle || showNote) ? "" : "none";
+
+  // Pre-fill inputs with existing state values just in case
+  const ckStage = document.getElementById("ckTournamentStage");
+  const ckTitle = document.getElementById("ckHandTitle");
+  const ckNote = document.getElementById("ckHandNote");
+  if (ckStage) ckStage.value = stageVal;
+  if (ckTitle) ckTitle.value = titleVal;
+  if (ckNote) ckNote.value = noteVal;
+
   document.getElementById("checkoutOverlay").classList.add("on", "dialog-mode");
   setTimeout(() => emailInput.focus(), 80);
 }
@@ -5909,6 +5983,32 @@ document.getElementById("ckConfirm").onclick = async () => {
     if (typeof showToast === "function") showToast("Enter a valid email");
     return;
   }
+
+  // Pull any inline context the user filled in (tournament stage / hand title /
+  // hand note) back into state. If anything changed, invalidate the cached
+  // image so it's re-rendered with the new context baked into the header.
+  let contextChanged = false;
+  const ckStage = document.getElementById("ckTournamentStage");
+  const ckTitle = document.getElementById("ckHandTitle");
+  const ckNote = document.getElementById("ckHandNote");
+  if (ckStage && ckStage.offsetParent !== null && ckStage.value.trim() && state.gameType === "mtt") {
+    state.stage = ckStage.value.trim();
+    if ($("#stage")) $("#stage").value = state.stage;
+    contextChanged = true;
+  }
+  if (ckTitle && ckTitle.offsetParent !== null && ckTitle.value.trim()) {
+    state.handTitle = ckTitle.value.trim();
+    contextChanged = true;
+  }
+  if (ckNote && ckNote.offsetParent !== null && ckNote.value.trim()) {
+    state.handNote = ckNote.value.trim();
+    contextChanged = true;
+  }
+  if (contextChanged) {
+    // Force re-render with updated state
+    lastOutputImageDataUrl = null;
+  }
+
   const imageDataUrl = await snapshotCurrentHandDataUrl();
   if (!imageDataUrl) {
     if (typeof showToast === "function") showToast("Couldn't capture the hand image — try again");
@@ -8195,11 +8295,14 @@ document.querySelectorAll("[data-menu]").forEach(b => {
     else if (which === "tour") startCoachTour();
     else if (which === "profile") openProfile();
     else if (which === "newhand") {
-      // If form has data, confirm before clearing
+      // If form has data AND it's not already saved, confirm before clearing.
+      // When currentSavedHand is set (the user is viewing/just-sent a saved
+      // hand), the data is safely in My hands — no need to warn.
+      const isSaved = !!(currentSavedHand && currentSavedHand.id);
       const hasContent = parseChips($("#bb").value) > 0 || state.villains.length > 0 ||
         Object.keys(state.cards).length > 0 ||
         ["preflop","flop","turn","river"].some(s => state.streets[s].complete);
-      if (hasContent) {
+      if (hasContent && !isSaved) {
         const ok = await showConfirm(
           "Start a new hand? Anything not saved will be lost.",
           { title: "New hand?", confirmLabel: "New hand", danger: true }
@@ -8828,12 +8931,12 @@ function setOutputSheetMode(mode) {
   const stageToggle = $("#stageToggle");
   if (stageToggle) stageToggle.style.display = (mode === "saved") ? "none" : "";
   if (mode === "saved") {
-    // Lock editing once Casillas has reviewed the hand — the canvas now carries
-    // his commentary baked in, and editing the underlying hand would orphan
-    // those notes. The user can still Delete the hand if they want to start
-    // over (which would also drop the review).
+    // Lock editing the moment a review is attached (pending OR delivered) —
+    // editing after sending would either orphan Casillas's pending work or
+    // corrupt his already-baked-in notes. The user can still Delete the hand
+    // if they want to start over (which would also drop the review).
     const isReviewed = currentSavedHand && (typeof loadReviews === "function") &&
-      loadReviews().some(r => r.savedHandId === currentSavedHand.id && r.status === "delivered");
+      loadReviews().some(r => r.savedHandId === currentSavedHand.id && r.status !== "refunded");
     foot.innerHTML = `
       <button type="button" class="btn-danger-outline" id="savedDeleteBtn">Delete</button>
       ${isReviewed ? "" : `<button type="button" class="btn-secondary" id="savedEditBtn">Edit</button>`}
