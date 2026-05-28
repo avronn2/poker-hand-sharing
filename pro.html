@@ -458,7 +458,7 @@ textarea.street-input:focus { outline: none; border-color: var(--accent); }
 
 <script>
 const $ = sel => document.querySelector(sel);
-const PRO_VERSION = "v1.2.15";   // keep in sync with APP_VERSION in index.html
+const PRO_VERSION = "v1.2.16";   // keep in sync with APP_VERSION in index.html
 const STORAGE_KEY = "showdown_pro_sandbox_v1";   // mock reviews + Casillas's drafts
 const REAL_KEY = "showdown_reviews_v1";          // bus shared with index.html (real submissions)
 const STREETS = ["preflop", "flop", "turn", "river"];
@@ -935,9 +935,22 @@ function wireRecorder(row, r) {
         startedAt = Date.now();
         btn.classList.add("recording");
         btn.innerHTML = `<span class="pulse"></span><span>Stop</span>`;
+        const MAX_SEC = 120;   // hard cap at 2 minutes
+        const WARN_SEC = 90;   // amber at 1:30, red at 1:55
         tick = setInterval(() => {
           const sec = Math.floor((Date.now() - startedAt) / 1000);
           timeEl.textContent = `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, "0")}`;
+          // Visual warning as we approach the cap
+          if (sec >= MAX_SEC - 5)      timeEl.style.color = "var(--danger)";
+          else if (sec >= WARN_SEC)    timeEl.style.color = "var(--warn)";
+          else                          timeEl.style.color = "";
+          // Auto-stop at the cap
+          if (sec >= MAX_SEC && recorder && recorder.state === "recording") {
+            try { recorder.stop(); } catch (_) {}
+            clearInterval(tick);
+            btn.classList.remove("recording");
+            showToast("Stopped at 2-minute cap", false);
+          }
         }, 250);
       } catch (e) {
         showToast("Microphone permission required", true);

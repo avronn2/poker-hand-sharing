@@ -749,6 +749,10 @@
     font-size: 11px; font-weight: 800; color: #ff7eb6;
     text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px;
   }
+  .pro-reviewed .pr-status .pr-ago {
+    color: var(--ink-dim); font-weight: 600; letter-spacing: 0.2px;
+    text-transform: none;
+  }
 
   /* "Already sent / already reviewed" status that replaces the tier buttons. */
   .pro-section .pro-status {
@@ -2139,7 +2143,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.15";
+const APP_VERSION = "v1.2.16";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -5643,6 +5647,12 @@ let _proPopupTimer = null;
 function injectAskAPro(out) {
   if (!out) return;
   if (document.getElementById("proSection")) return;     // already injected this render
+  // Cancel any pending popup timer and remove any already-rendered popup BEFORE
+  // the early-return below — otherwise a timer scheduled on an un-reviewed render
+  // can fire after a review has been created (e.g. user clicks $5, completes
+  // checkout, openSavedHand re-injects), popping the CTA on a reviewed hand.
+  if (_proPopupTimer) { clearTimeout(_proPopupTimer); _proPopupTimer = null; }
+  const _existingPopup = document.getElementById("proPopup"); if (_existingPopup) _existingPopup.remove();
   // If this saved hand already has a Casillas review (pending OR delivered),
   // show a compact card instead of the full pitch — the user has already
   // committed; no need for the big call-to-action.
@@ -5651,6 +5661,17 @@ function injectAskAPro(out) {
     : null;
   if (existingReview) {
     const isDelivered = existingReview.status === "delivered";
+    // Tiny relative-time helper: "2h ago" / "3d ago" / "just now"
+    const fmtAgo = (ms) => {
+      if (!ms) return "";
+      const s = Math.max(0, (Date.now() - ms) / 1000);
+      if (s < 60) return "just now";
+      if (s < 3600) return `${Math.round(s / 60)}m ago`;
+      if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+      return `${Math.round(s / 86400)}d ago`;
+    };
+    const stampMs = isDelivered ? (existingReview.deliveredAt || existingReview.createdAt) : existingReview.createdAt;
+    const stamp = fmtAgo(stampMs);
     const compact = document.createElement("div");
     compact.id = "proSection";
     compact.className = "pro-reviewed";
@@ -5659,7 +5680,7 @@ function injectAskAPro(out) {
       <div class="pr-meta">
         <div class="pr-name">Eyal &ldquo;Casillas&rdquo; Eshkar</div>
         <div class="pr-sub">3&times; Israel Champion &middot; Over $600K live winnings</div>
-        <div class="pr-status">${isDelivered ? "&check; Reviewed this hand" : "&middot; Sent &middot; Pending review (48h)"}</div>
+        <div class="pr-status">${isDelivered ? "&check; Reviewed this hand" : "&middot; Sent &middot; Pending review (48h)"}${stamp ? ` <span class="pr-ago">&middot; ${stamp}</span>` : ""}</div>
       </div>`;
     out.appendChild(compact);
     return;
@@ -5723,8 +5744,8 @@ function injectAskAPro(out) {
 
   // Floating reminder pop-up that slides in ~3s after the picture is in place,
   // unless the user dismissed it earlier this session.
-  if (_proPopupTimer) { clearTimeout(_proPopupTimer); _proPopupTimer = null; }
-  const existing = document.getElementById("proPopup"); if (existing) existing.remove();
+  // (Timer-cancel + popup-removal cleanup now lives at the top of the function
+  // so it runs even when we early-return for an already-reviewed hand.)
   if (sessionStorage.getItem("proPopupDismissed") === "1") return;
   // Don't pop the "Ask Casillas" CTA on a hand that's already been sent or
   // reviewed — would be confusing on top of the compact "Pending/Reviewed" card.
@@ -5735,6 +5756,12 @@ function injectAskAPro(out) {
   _proPopupTimer = setTimeout(() => {
     const overlay = document.getElementById("overlay");
     if (!overlay || !overlay.classList.contains("on")) return;
+    // Re-check review state at fire time — between scheduling and firing, the
+    // user may have completed checkout (which writes a "paid" review record).
+    if (currentSavedHand && currentSavedHand.id && typeof loadReviews === "function") {
+      const nowHasReview = loadReviews().some(r => r.savedHandId === currentSavedHand.id && r.status !== "refunded");
+      if (nowHasReview) return;
+    }
     const sheet = overlay.querySelector(".sheet");
     if (!sheet || document.getElementById("proPopup")) return;
     const popup = document.createElement("div");
