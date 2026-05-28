@@ -576,8 +576,34 @@ function resolveHandImage(r) {
   return null;
 }
 
+// Detect which streets had action by inspecting the saved hand record. Used
+// as a fallback for legacy reviews that didn't stamp streetsPlayed at checkout.
+function detectStreetsFromSavedHand(savedHandId) {
+  if (!savedHandId) return null;
+  try {
+    const hands = JSON.parse(localStorage.getItem("showdown_hands_v1") || "[]");
+    const h = hands.find(x => x.id === savedHandId);
+    if (!h || !h.streets) return null;
+    const played = [];
+    ["preflop", "flop", "turn", "river"].forEach(s => {
+      const st = h.streets[s];
+      if (st && ((st.actions && st.actions.length > 0) || (st.board && st.board.length > 0))) {
+        played.push(s);
+      }
+    });
+    return played.length ? played : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 function normalizeReal(r) {
   // Map index.html review shape → pro.html review shape
+  let streetsPlayed = r.streetsPlayed;
+  if (!Array.isArray(streetsPlayed) || !streetsPlayed.length) {
+    // Legacy review (pre v1.2.11) — try to detect from the linked saved hand
+    streetsPlayed = detectStreetsFromSavedHand(r.savedHandId) || ["preflop", "flop", "turn", "river"];
+  }
   return {
     id: r.id,
     userEmail: r.userEmail,
@@ -588,11 +614,7 @@ function normalizeReal(r) {
     status: r.status === "delivered" ? "delivered" : "pending",  // "paid" → "pending"
     notes: r.notes || {},
     deliveredAt: r.deliveredAt || 0,
-    // Which streets the pro should be asked about. Falls back to all 4 if the
-    // review record predates this field (legacy v1.2.9 and earlier).
-    streetsPlayed: Array.isArray(r.streetsPlayed) && r.streetsPlayed.length
-      ? r.streetsPlayed
-      : ["preflop", "flop", "turn", "river"],
+    streetsPlayed,
     source: "real",
     _raw: r   // keep a handle to write back to the shared bus on Send
   };
