@@ -149,23 +149,23 @@ button { cursor: pointer; }
   user-select: none;
 }
 .hand-image .hand-image-back {
-  background: var(--panel-2); color: var(--accent);
-  border: 1px solid var(--line); border-radius: 6px;
-  padding: 4px 8px; font-size: 11px; font-weight: 800;
-  letter-spacing: 0.3px; text-transform: none;
-  flex-shrink: 0; cursor: pointer;
+  background: var(--panel-2); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 8px;
+  width: 30px; height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; cursor: pointer; padding: 0;
 }
+.hand-image .hand-image-back:hover { background: var(--bg); }
 .hand-image .hand-image-title {
   flex: 1; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  cursor: pointer;
 }
 .hand-image .hand-image-collapse {
   background: transparent; border: 0; color: var(--ink-dim);
-  font-size: 14px; padding: 2px 6px; cursor: pointer; line-height: 1;
-  transition: transform 0.2s ease;
+  font-size: 14px; padding: 4px 8px; cursor: pointer; line-height: 1;
   flex-shrink: 0;
 }
+.hand-image .hand-image-collapse:hover { color: var(--accent); }
 .hand-image .hand-image-body {
   flex: 1; min-height: 0;
   overflow: hidden;
@@ -430,9 +430,13 @@ textarea.street-input:focus { outline: none; border-color: var(--accent); }
          to cycle, back button on the left returns to the queue. -->
     <div class="hand-image streets-only" id="detailImage">
       <div class="hand-image-head">
-        <button type="button" class="hand-image-back" id="handImageBack" aria-label="Back to queue">‹ Queue</button>
-        <span class="hand-image-title">Hand reference &middot; <span id="handImageHint" style="color:var(--ink-dim);font-weight:600;text-transform:none;letter-spacing:0;">Tap to see full table</span></span>
-        <button type="button" class="hand-image-collapse" id="handImageCollapse" aria-label="Toggle">▼</button>
+        <button type="button" class="hand-image-back" id="handImageBack" aria-label="Back">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <span class="hand-image-title">Hand reference</span>
+        <button type="button" class="hand-image-collapse" id="handImageCollapse" aria-label="Toggle full view">▼</button>
       </div>
       <div class="hand-image-body" id="detailImageBody"></div>
     </div>
@@ -751,6 +755,10 @@ function openReview(id) {
   currentReviewId = id;
   $("#dashboardView").style.display = "none";
   $("#detailView").style.display = "block";
+  // Always reset the hand-image to the default streets-only view when opening
+  // a new review — don't carry over expanded/collapsed state from a prior one.
+  _handImageState = "streets";
+  applyHandImageState();
   const tierWord = r.tier === "voice" ? "Voice memo" : "Written note";
   $("#detailTitle").textContent = `${tierWord} for ${r.userEmail}`;
   $("#detailSub").textContent = r.handTitle || "";
@@ -771,45 +779,35 @@ function closeReview() {
 }
 $("#backBtn").addEventListener("click", closeReview);
 
-// Three-state toggle for the sticky hand reference: "streets" (bottom-half
-// only, default), "expanded" (full image — table + timeline), "collapsed" (just
-// the header bar). Tap header to cycle: streets → expanded → collapsed →
-// streets. State persists across reviews via localStorage.
-const HAND_STATE_KEY = "showdown_pro_hand_state";
+// Two-state toggle for the sticky hand reference: "streets" (bottom of felt +
+// timeline, default) ↔ "expanded" (full table + timeline). No "collapsed"
+// option — the hand reference is always needed while writing notes. State
+// resets to "streets" on every review open (see openReview below) so Casillas
+// never lands on a reviewed hand with a stale expand-state from a prior one.
+let _handImageState = "streets";   // session-local, not persisted
 function applyHandImageState() {
-  const state = localStorage.getItem(HAND_STATE_KEY) || "streets";
   const img = $("#detailImage"); const grid = $("#streetsList");
   if (img) {
-    img.classList.toggle("streets-only", state === "streets");
-    img.classList.toggle("expanded", state === "expanded");
-    img.classList.toggle("collapsed", state === "collapsed");
+    img.classList.toggle("streets-only", _handImageState === "streets");
+    img.classList.toggle("expanded", _handImageState === "expanded");
+    img.classList.remove("collapsed");
   }
   if (grid) {
-    grid.classList.toggle("image-expanded", state === "expanded");
-    grid.classList.toggle("image-collapsed", state === "collapsed");
+    grid.classList.toggle("image-expanded", _handImageState === "expanded");
+    grid.classList.remove("image-collapsed");
   }
-  // Update header hint
-  const hint = $("#handImageHint");
-  if (hint) {
-    hint.textContent = state === "streets" ? "Tap to see full table"
-                     : state === "expanded" ? "Tap to collapse"
-                     : "Tap to expand";
-  }
+  // Update chevron direction — up arrow when expanded (tap to shrink), down when collapsed-ish
+  const chev = $("#handImageCollapse");
+  if (chev) chev.textContent = _handImageState === "expanded" ? "▲" : "▼";
 }
-function cycleHandImageState() {
-  const order = ["streets", "expanded", "collapsed"];
-  const cur = localStorage.getItem(HAND_STATE_KEY) || "streets";
-  const next = order[(order.indexOf(cur) + 1) % order.length];
-  localStorage.setItem(HAND_STATE_KEY, next);
+function toggleHandImageExpanded() {
+  _handImageState = _handImageState === "expanded" ? "streets" : "expanded";
   applyHandImageState();
 }
+// Only the chevron toggles — title bar is no longer clickable
 $("#handImageCollapse").addEventListener("click", (e) => {
   e.stopPropagation();
-  cycleHandImageState();
-});
-// Title bar (not the back/collapse buttons) toggles state
-$("#detailImage .hand-image-title").addEventListener("click", (e) => {
-  cycleHandImageState();
+  toggleHandImageExpanded();
 });
 // Back button — returns to the dashboard
 $("#handImageBack").addEventListener("click", (e) => {

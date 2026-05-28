@@ -2096,7 +2096,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.12";
+const APP_VERSION = "v1.2.13";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -5600,13 +5600,14 @@ let _proPopupTimer = null;
 function injectAskAPro(out) {
   if (!out) return;
   if (document.getElementById("proSection")) return;     // already injected this render
-  // If this saved hand has a delivered review, show a compact "reviewed by"
-  // card instead of the full pitch — Casillas's notes are already baked into
-  // the hand image above, so no need for the call-to-action.
-  const deliveredReview = (typeof loadReviews === "function" && currentSavedHand && currentSavedHand.id)
-    ? loadReviews().find(r => r.savedHandId === currentSavedHand.id && r.status === "delivered")
+  // If this saved hand already has a Casillas review (pending OR delivered),
+  // show a compact card instead of the full pitch — the user has already
+  // committed; no need for the big call-to-action.
+  const existingReview = (typeof loadReviews === "function" && currentSavedHand && currentSavedHand.id)
+    ? loadReviews().find(r => r.savedHandId === currentSavedHand.id && r.status !== "refunded")
     : null;
-  if (deliveredReview) {
+  if (existingReview) {
+    const isDelivered = existingReview.status === "delivered";
     const compact = document.createElement("div");
     compact.id = "proSection";
     compact.className = "pro-reviewed";
@@ -5615,7 +5616,7 @@ function injectAskAPro(out) {
       <div class="pr-meta">
         <div class="pr-name">Eyal &ldquo;Casillas&rdquo; Eshkar</div>
         <div class="pr-sub">3&times; Israel Champion &middot; Over $600K live winnings</div>
-        <div class="pr-status">✓ Reviewed this hand</div>
+        <div class="pr-status">${isDelivered ? "&check; Reviewed this hand" : "&middot; Sent &middot; Pending review (48h)"}</div>
       </div>`;
     out.appendChild(compact);
     return;
@@ -5643,38 +5644,15 @@ function injectAskAPro(out) {
       <button type="button" class="pro-tier" data-tier="voice"><div class="pt-name">Voice memo</div><div class="pt-price">$15</div></button>
     </div>`;
   out.appendChild(sec);
-  // If this saved hand already has a review, replace the tier buttons with a
-  // status panel — one review per hand, no double-sends.
-  const existingForThisHand = (typeof loadReviews === "function" && currentSavedHand && currentSavedHand.id)
-    ? loadReviews().find(r => r.savedHandId === currentSavedHand.id && r.status !== "refunded")
-    : null;
-  if (existingForThisHand) {
-    const tiersEl = sec.querySelector(".pro-tiers");
-    if (tiersEl) {
-      const isReady = existingForThisHand.status === "delivered";
-      tiersEl.outerHTML = `
-        <div class="pro-status" data-rid="${existingForThisHand.id}">
-          <div class="pro-status-icon">${isReady ? "✓" : "⏳"}</div>
-          <div class="pro-status-text">
-            <div class="pro-status-title">${isReady ? "Casillas reviewed this hand" : "Sent to Casillas"}</div>
-            <div class="pro-status-sub">${isReady ? "Tap to read his street-by-street notes" : "He's on it &mdash; you'll get the review back within 48h"}</div>
-          </div>
-          <div class="pro-status-chev">${isReady ? "›" : ""}</div>
-        </div>`;
-      const card = sec.querySelector(".pro-status");
-      if (card && isReady) {
-        card.style.cursor = "pointer";
-        card.onclick = () => openReviewViewer(existingForThisHand.id);
-      }
-    }
-  } else {
-    sec.querySelectorAll(".pro-tier").forEach(btn => {
-      btn.onclick = () => {
-        track("pro_cta_clicked", { surface: "section", tier: btn.dataset.tier });
-        openCheckoutModal(btn.dataset.tier);
-      };
-    });
-  }
+  // The check at the top of this function returns early if there's already a
+  // review on this hand, so reaching this point means it's a fresh hand. Just
+  // wire the tier buttons to open checkout.
+  sec.querySelectorAll(".pro-tier").forEach(btn => {
+    btn.onclick = () => {
+      track("pro_cta_clicked", { surface: "section", tier: btn.dataset.tier });
+      openCheckoutModal(btn.dataset.tier);
+    };
+  });
   track("pro_cta_seen", { surface: "section" });
 
   // On mobile (≤600px), ensure the pro section ALWAYS sits below the viewport fold on
@@ -5705,6 +5683,12 @@ function injectAskAPro(out) {
   if (_proPopupTimer) { clearTimeout(_proPopupTimer); _proPopupTimer = null; }
   const existing = document.getElementById("proPopup"); if (existing) existing.remove();
   if (sessionStorage.getItem("proPopupDismissed") === "1") return;
+  // Don't pop the "Ask Casillas" CTA on a hand that's already been sent or
+  // reviewed — would be confusing on top of the compact "Pending/Reviewed" card.
+  if (currentSavedHand && currentSavedHand.id && typeof loadReviews === "function") {
+    const hasReview = loadReviews().some(r => r.savedHandId === currentSavedHand.id && r.status !== "refunded");
+    if (hasReview) return;
+  }
   _proPopupTimer = setTimeout(() => {
     const overlay = document.getElementById("overlay");
     if (!overlay || !overlay.classList.contains("on")) return;
@@ -5980,16 +5964,26 @@ document.getElementById("ckConfirm").onclick = async () => {
   const thumbDataUrl = await snapshotHandThumbnailDataUrl(imageDataUrl);
   // Which streets were actually played? A preflop fold means no flop/turn/river
   // were dealt; we shouldn't ask the pro to comment on streets that don't exist.
-  const streetsPlayed = [];
+  // Mirrors the canvas timeline renderer's logic: include a non-preflop street
+  // only if it has REAL actions (not just placeholders) or board cards. We
+  // also filter out actions where the player isn't in the hand anymore.
+  const streetsPlayed = ["preflop"];
   try {
-    ["preflop", "flop", "turn", "river"].forEach(s => {
+    ["flop", "turn", "river"].forEach(s => {
       const st = state.streets && state.streets[s];
-      if (st && ((st.actions && st.actions.length > 0) || (st.board && st.board.length > 0))) {
+      if (!st) return;
+      const actsCount = Array.isArray(st.actions)
+        ? st.actions.filter(a => a && (a.verb || a.amountAdded || a.calledAllIn)).length
+        : 0;
+      const boardCount = Array.isArray(st.board)
+        ? st.board.filter(c => c && c.rank && c.suit).length
+        : 0;
+      if (st.complete || actsCount > 0 || boardCount > 0) {
         streetsPlayed.push(s);
       }
     });
   } catch (_) {}
-  if (streetsPlayed.length === 0) streetsPlayed.push("preflop");
+  console.log("[showdown] sending review for streets:", streetsPlayed);
   const review = {
     id: "rv_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7),
     userEmail: email,
