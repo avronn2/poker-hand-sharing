@@ -51,7 +51,7 @@
   }
   header.top {
     /* Stays pinned at top, sits below the iPhone dynamic island/notch via safe-area-inset-top. */
-    position: sticky; top: 0; z-index: 50;
+    position: sticky; top: 0; z-index: 150;
     padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 14px;
     margin: 0 -14px 14px;
     display: flex; align-items: center; gap: 12px;
@@ -563,6 +563,220 @@
     display: flex; flex-direction: column;
     box-shadow: 0 -8px 32px rgba(0,0,0,0.45);
   }
+  /* Output overlay (the hand viewer) gets full-screen treatment — fills below
+     the sticky topbar (which now has z-index 150 > 100). Header pills + stage
+     toggle are hidden so the hand image is the focus. Bottom action bar stays. */
+  #overlay.on {
+    align-items: stretch;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 76px);
+  }
+  #overlay > .sheet {
+    max-height: none;
+    height: 100%;
+    border-radius: 0;
+    border-top: 0;
+  }
+  /* Hero + Villain input overlays = MODALS, not full-screen. Sit as bottom-sheets
+     with content-fit height; the main form is dimmed behind via the regular
+     .overlay backdrop. Teal accent border + subtle glow frames the whole module
+     so it reads as "the input that matters right now". */
+  #heroInputOverlay > .sheet,
+  #villainInputOverlay > .sheet,
+  #vsdCardsOverlay > .sheet,
+  #gameSettingsOverlay > .sheet {
+    max-height: 92vh;
+    height: auto;
+    border: 1.5px solid var(--accent);
+    border-bottom: 0;
+    box-shadow: 0 -10px 36px rgba(0,0,0,0.55), 0 0 24px rgba(94,234,212,0.18);
+  }
+  #gameSettingsOverlay .floating-close,
+  #vsdCardsOverlay .floating-close { /* match hero/villain X styling */ }
+  #vsdCardsOverlay .floating-close {
+    position: absolute; top: 10px; right: 10px;
+    width: 30px; height: 30px;
+    background: var(--panel-2); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 20px; line-height: 1; padding: 0; cursor: pointer;
+    z-index: 5;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.30);
+  }
+  /* Greyed-out position pills when that seat is already taken by hero or
+     another villain. Still tappable visually-greyed but the JS no-ops. */
+  .hi-pos-row button.taken {
+    opacity: 0.32;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  /* Villain row — summary card, tap to open the focused villain overlay */
+  .villain-row {
+    position: relative;
+    background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 12px; padding: 10px 40px 10px 38px;
+    margin-bottom: 8px; cursor: pointer;
+    transition: border-color 0.12s;
+  }
+  .villain-row:hover { border-color: var(--accent); }
+  .villain-row .tag {
+    position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+    font-size: 11px; font-weight: 800; color: var(--ink-dim);
+    letter-spacing: 0.5px;
+  }
+  .villain-row .del {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    width: 24px; height: 24px; border-radius: 50%;
+    background: transparent; border: 0; color: var(--ink-dim);
+    font-size: 16px; line-height: 1; cursor: pointer;
+  }
+  .villain-row .del:hover { color: var(--red); background: rgba(255,107,138,0.1); }
+  .villain-row .villain-summary { font-size: 14px; }
+  .villain-row .villain-line { font-size: 14px; color: var(--ink); }
+  .villain-row .villain-line b { font-weight: 800; color: var(--ink); }
+  /* Hero input overlay body + footer */
+  .hero-input-sheet {
+    position: relative;
+    display: flex; flex-direction: column;
+  }
+  /* Small circular X in the top-right corner of the modal */
+  #heroInputOverlay .floating-close,
+  #villainInputOverlay .floating-close,
+  #gameSettingsOverlay .floating-close,
+  #vsdCardsOverlay .floating-close {
+    position: absolute; top: 10px; right: 10px;
+    width: 30px; height: 30px;
+    background: var(--panel-2); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 20px; line-height: 1; padding: 0; cursor: pointer;
+    z-index: 5;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.30);
+  }
+  #heroInputOverlay .floating-close:hover,
+  #villainInputOverlay .floating-close:hover,
+  #gameSettingsOverlay .floating-close:hover,
+  #vsdCardsOverlay .floating-close:hover { background: var(--panel); }
+  /* Game-context pill at top of form — read-only display + tap-to-edit */
+  .game-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin: 0 0 12px;
+    background: var(--panel); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 8px 14px 8px 12px;
+    font-size: 13px; font-weight: 700;
+    cursor: pointer;
+  }
+  .game-pill:hover { border-color: var(--accent); }
+  .game-pill .pencil-icon {
+    width: 14px; height: 14px; color: var(--ink-dim);
+    flex-shrink: 0;
+  }
+  .game-pill .pill-label { font-weight: 800; color: var(--accent); }
+  .hi-body {
+    flex: 0 1 auto;          /* don't stretch; size to content */
+    overflow-y: auto;        /* only scrolls if the content actually exceeds 92vh */
+    padding: 22px 18px 16px;
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .hi-section { display: flex; flex-direction: column; }
+  .hi-label {
+    font-size: 17px; color: var(--ink);
+    font-weight: 800; letter-spacing: -0.2px;
+    margin-bottom: 12px;
+  }
+  .hi-positions { display: flex; flex-direction: column; gap: 6px; }
+  .hi-pos-row { display: flex; gap: 6px; }
+  .hi-pos-row button {
+    flex: 1; min-width: 0;
+    background: var(--panel); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 13px 4px; font: inherit; font-size: 13px; font-weight: 800;
+    cursor: pointer; letter-spacing: 0.3px;
+    transition: border-color 0.12s, background 0.12s;
+  }
+  .hi-pos-row button:hover { border-color: var(--accent); }
+  .hi-pos-row button.on {
+    background: var(--accent); color: #062f29;
+    border-color: var(--accent);
+  }
+  .hi-stack-wrap { position: relative; }
+  #hiStack {
+    width: 100%; box-sizing: border-box;
+    font-size: 22px; font-weight: 800;
+    padding: 14px 44px 14px 18px;   /* room on the right for the pencil */
+    background: var(--bg); border: 1px solid var(--line);
+    border-radius: 12px; color: var(--ink);
+    text-align: left; font-family: inherit;
+  }
+  #hiStack::placeholder {
+    color: var(--ink-dim); font-weight: 600; font-size: 16px;
+    letter-spacing: 0;
+  }
+  #hiStack:focus { outline: none; border-color: var(--accent); }
+  .hi-stack-pencil {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    color: var(--ink-dim); pointer-events: none;
+  }
+  #hiStack:focus ~ .hi-stack-pencil,
+  #viStack:focus ~ .hi-stack-pencil { color: var(--accent); }
+  /* Villain stack input — same styling as hero stack */
+  #viStack {
+    width: 100%; box-sizing: border-box;
+    font-size: 22px; font-weight: 800;
+    padding: 14px 44px 14px 18px;
+    background: var(--bg); border: 1px solid var(--line);
+    border-radius: 12px; color: var(--ink);
+    text-align: left; font-family: inherit;
+  }
+  #viStack::placeholder {
+    color: var(--ink-dim); font-weight: 600; font-size: 16px; letter-spacing: 0;
+  }
+  #viStack:focus { outline: none; border-color: var(--accent); }
+  #viNotes:focus { outline: none; border-color: var(--accent); }
+  .hi-card-grid { row-gap: 8px !important; }
+  .hi-foot {
+    flex-shrink: 0;
+    padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 14px);
+    border-top: 1px solid var(--line);
+    background: var(--bg);
+    display: flex; gap: 10px;
+  }
+  .hi-foot button { flex: 1; padding: 14px; font-size: 14px; font-weight: 800; }
+  /* CTA button inside the Hero section that opens the focused overlay */
+  .hi-open-cta {
+    display: flex; align-items: center; gap: 12px;
+    width: 100%; box-sizing: border-box;
+    background: linear-gradient(135deg, rgba(94,234,212,0.15), rgba(176,124,255,0.08));
+    border: 1px solid rgba(94,234,212,0.4);
+    border-radius: 12px; padding: 14px 16px;
+    color: var(--ink); font: inherit; cursor: pointer;
+    margin: 0 0 16px;
+  }
+  .hi-open-cta:hover { border-color: var(--accent); }
+  .hi-open-icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--accent); color: #0c1226;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 800; flex-shrink: 0;
+  }
+  .hi-open-text { flex: 1; min-width: 0; text-align: left; display: flex; flex-direction: column; gap: 2px; }
+  .hi-open-label { font-size: 14px; font-weight: 800; color: var(--ink); }
+  .hi-open-hint { font-size: 11px; color: var(--ink-dim); }
+  /* The header (with helper pills) and stage-toggle inside the output overlay
+     are hidden — the user enters context via the checkout modal now. */
+  #overlay > .sheet > header { display: none !important; }
+  #overlay > .sheet #stageToggle { display: none !important; }
+  /* Add a small floating close button at the top-right so the user can dismiss. */
+  #overlay > .sheet { position: relative; }
+  #overlay .floating-close {
+    position: absolute; top: 8px; right: 8px; z-index: 5;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(31, 28, 48, 0.85); color: var(--ink);
+    border: 1px solid var(--line);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 22px; line-height: 1; padding: 0; cursor: pointer;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
   /* Drag handle indicator — visual cue that the sheet is dismissable */
   .sheet .drag-handle {
     width: 38px; height: 4px;
@@ -913,42 +1127,53 @@
     font: inherit; font-size: 13px; font-weight: 800; cursor: pointer;
   }
 
-  /* ===== Delivery banner on main page =====
-     Big, friendly, Casillas-photo-first. Lives at the top of the page so the
-     user can't miss it after he delivers their review. */
+  /* ===== Delivery notification popup =====
+     Fixed at the bottom-right of the viewport so it surfaces over ANY screen
+     (form, My hands, even the full-screen output overlay). Slides in from the
+     right, auto-fades after 5 seconds, click opens the reviewed hand. */
   @keyframes rb-pulse-glow {
     0%,100% { box-shadow: 0 0 0 0 rgba(94,234,212,0.55); }
     50%     { box-shadow: 0 0 0 8px rgba(94,234,212,0); }
   }
-  .review-banner {
-    margin: 0 0 14px; padding: 12px 14px;
-    background: linear-gradient(135deg, rgba(94,234,212,0.22), rgba(176,124,255,0.10));
-    border: 1px solid rgba(94,234,212,0.45); border-radius: 14px;
+  @keyframes rp-slidein  { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes rp-slideout { from { transform: translateX(0); opacity: 1; }   to { transform: translateX(110%); opacity: 0; } }
+  .review-popup {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+    right: 14px;
+    z-index: 250;   /* above overlay (100) and topbar (150) */
+    max-width: 340px;
+    padding: 12px 14px;
+    background: linear-gradient(135deg, rgba(94,234,212,0.22), rgba(176,124,255,0.16)), var(--panel);
+    border: 1px solid rgba(94,234,212,0.55); border-radius: 14px;
     display: flex; align-items: center; gap: 12px; cursor: pointer;
     font-size: 13px; color: var(--ink);
-    box-shadow: 0 4px 14px rgba(94,234,212,0.10);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+    animation: rp-slidein .35s ease-out;
   }
-  .review-banner .rb-avatar {
+  .review-popup.fading {
+    animation: rp-slideout .35s ease-in forwards;
+    pointer-events: none;
+  }
+  .review-popup .rb-avatar {
     flex-shrink: 0; position: relative;
     width: 42px; height: 42px; border-radius: 50%;
     background: linear-gradient(135deg, #ff7eb6, #b07cff);
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(176, 124, 255, 0.30);
   }
-  .review-banner .rb-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .review-banner .rb-avatar .rb-pulse {
-    /* Tiny mint pulse dot on the bottom-right of the avatar — a "new" indicator. */
+  .review-popup .rb-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .review-popup .rb-avatar .rb-pulse {
     position: absolute; right: -2px; bottom: -2px;
     width: 12px; height: 12px; border-radius: 50%;
     background: var(--accent); border: 2px solid var(--bg);
     animation: rb-pulse-glow 1.8s ease-in-out infinite;
   }
-  .review-banner .rb-text { flex: 1; min-width: 0; font-size: 14px; }
-  .review-banner .rb-text b { color: var(--accent); }
-  .review-banner .rb-chev { color: var(--ink-dim); font-size: 20px; font-weight: 600; }
-  .review-banner .rb-close {
+  .review-popup .rb-text { flex: 1; min-width: 0; font-size: 13px; line-height: 1.4; }
+  .review-popup .rb-text b { color: var(--accent); }
+  .review-popup .rb-close {
     background: transparent; border: 0; color: var(--ink-dim);
-    font-size: 20px; cursor: pointer; padding: 0 6px; line-height: 1;
+    font-size: 18px; cursor: pointer; padding: 0 4px; line-height: 1;
   }
 
   /* Section headers + NEW badge in My hands list */
@@ -1726,12 +1951,23 @@
   </button>
 </header>
 
-<!-- ASK-A-PRO: delivery banner. Populated by checkAndRenderReviewBanner() on load. -->
-<div id="reviewBanner" class="review-banner" style="display:none">
+<!-- ASK-A-PRO: delivery notification popup. Fixed at the bottom-right of the
+     viewport so it pops in over ANY screen (form, My hands, output overlay).
+     Auto-fades after 5s. Click opens the reviewed hand. Populated by
+     checkAndRenderReviewBanner() on load + storage events. -->
+<div id="reviewBanner" class="review-popup" style="display:none">
   <span class="rb-avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"><span class="rb-pulse"></span></span>
   <div class="rb-text" id="reviewBannerText"></div>
-  <span class="rb-chev">›</span>
   <button type="button" class="rb-close" id="reviewBannerClose" aria-label="Dismiss">&times;</button>
+</div>
+
+<!-- GAME-CONTEXT PILL (shown when saved game settings exist; tap to override for this hand) -->
+<div id="gameContextPill" class="game-pill" style="display:none;">
+  <svg class="pencil-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M12 20h9"></path>
+    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+  </svg>
+  <span class="pill-label" id="gameContextLabel">—</span>
 </div>
 
 <!-- GAME -->
@@ -1871,6 +2107,152 @@
   </div>
 </div>
 
+<!-- HERO INPUT OVERLAY (full-screen focused input: position + stack + cards) -->
+<div class="overlay" id="heroInputOverlay">
+  <div class="sheet hero-input-sheet">
+    <button type="button" class="floating-close" id="hiClose" aria-label="Close">&times;</button>
+    <div class="hi-body">
+      <div class="hi-section">
+        <div class="hi-label">Your position</div>
+        <div class="hi-positions" id="hiPositions">
+          <div class="hi-pos-row">
+            <button type="button" data-pos="UTG">UTG</button>
+            <button type="button" data-pos="UTG+1">UTG+1</button>
+            <button type="button" data-pos="UTG+2">UTG+2</button>
+            <button type="button" data-pos="LJ">LJ</button>
+            <button type="button" data-pos="HJ">HJ</button>
+          </div>
+          <div class="hi-pos-row">
+            <button type="button" data-pos="CO">CO</button>
+            <button type="button" data-pos="BTN">BTN</button>
+            <button type="button" data-pos="SB">SB</button>
+            <button type="button" data-pos="BB">BB</button>
+          </div>
+        </div>
+      </div>
+      <div class="hi-section">
+        <div class="hi-label">Your stack <span id="hiStackUnit" style="font-size:13px;font-weight:600;letter-spacing:0;opacity:.65;"></span></div>
+        <div class="hi-stack-wrap">
+          <input type="text" inputmode="numeric" autocomplete="off" id="hiStack" placeholder="Input your stack size">
+          <svg class="hi-stack-pencil" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+        </div>
+      </div>
+      <div class="hi-section">
+        <div class="hi-label">Your hole cards <span id="hiCardsPreview" style="float:right;font-weight:700;font-size:16px;letter-spacing:0;text-transform:none;"></span></div>
+        <div class="pick-grid hi-card-grid" id="hiCardGrid"></div>
+      </div>
+    </div>
+    <div class="hi-foot">
+      <button type="button" class="btn-primary" id="hiConfirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- VILLAIN INPUT OVERLAY (focused: position + stack + optional notes) -->
+<div class="overlay" id="villainInputOverlay">
+  <div class="sheet hero-input-sheet">
+    <button type="button" class="floating-close" id="viClose" aria-label="Close">&times;</button>
+    <div class="hi-body">
+      <div class="hi-section">
+        <div class="hi-label" id="viTitleLabel">Villain position</div>
+        <div class="hi-positions" id="viPositions">
+          <div class="hi-pos-row">
+            <button type="button" data-pos="UTG">UTG</button>
+            <button type="button" data-pos="UTG+1">UTG+1</button>
+            <button type="button" data-pos="UTG+2">UTG+2</button>
+            <button type="button" data-pos="LJ">LJ</button>
+            <button type="button" data-pos="HJ">HJ</button>
+          </div>
+          <div class="hi-pos-row">
+            <button type="button" data-pos="CO">CO</button>
+            <button type="button" data-pos="BTN">BTN</button>
+            <button type="button" data-pos="SB">SB</button>
+            <button type="button" data-pos="BB">BB</button>
+          </div>
+        </div>
+      </div>
+      <div class="hi-section">
+        <div class="hi-label">Villain stack <span id="viStackUnit" style="font-size:13px;font-weight:600;letter-spacing:0;opacity:.65;"></span></div>
+        <div class="hi-stack-wrap">
+          <input type="text" inputmode="numeric" autocomplete="off" id="viStack" placeholder="Input villain's stack">
+          <svg class="hi-stack-pencil" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+        </div>
+      </div>
+      <div class="hi-section">
+        <div class="hi-label">Notes <span style="font-size:13px;font-weight:600;letter-spacing:0;opacity:.65;">(optional)</span></div>
+        <input type="text" id="viNotes" placeholder="e.g. aggressive, just won a pot" maxlength="120" style="width:100%;box-sizing:border-box;font-size:14px;padding:12px 14px;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:inherit;">
+      </div>
+    </div>
+    <div class="hi-foot">
+      <button type="button" class="btn-secondary" id="viAddAnother">+ Add another villain</button>
+      <button type="button" class="btn-primary" id="viStartHand">Start hand →</button>
+    </div>
+  </div>
+</div>
+
+<!-- GAME SETTINGS OVERLAY (saved defaults: game type, unit, blinds, currency) -->
+<div class="overlay" id="gameSettingsOverlay">
+  <div class="sheet hero-input-sheet">
+    <button type="button" class="floating-close" id="gsClose" aria-label="Close">&times;</button>
+    <div class="hi-body">
+      <div class="hi-section">
+        <div class="hi-label">Game type</div>
+        <div class="hi-pos-row" id="gsGameType">
+          <button type="button" data-val="mtt">MTT</button>
+          <button type="button" data-val="cash">Cash</button>
+        </div>
+      </div>
+      <div class="hi-section" id="gsUnitSection">
+        <div class="hi-label">How you enter amounts</div>
+        <div class="hi-pos-row" id="gsUnit">
+          <button type="button" data-val="bb">Big blinds</button>
+          <button type="button" data-val="chips">Chips</button>
+        </div>
+      </div>
+      <div class="hi-section" id="gsBlindsSection" style="display:none">
+        <div class="hi-label">Blinds <span style="font-size:13px;font-weight:600;letter-spacing:0;opacity:.65;">SB / BB</span></div>
+        <div style="display:flex;gap:10px;">
+          <input type="text" inputmode="numeric" id="gsSb" placeholder="Small blind" style="flex:1;box-sizing:border-box;font-size:18px;padding:12px 14px;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:inherit;">
+          <input type="text" inputmode="numeric" id="gsBb" placeholder="Big blind" style="flex:1;box-sizing:border-box;font-size:18px;padding:12px 14px;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:inherit;">
+        </div>
+      </div>
+      <div class="hi-section" id="gsCashCurSection" style="display:none">
+        <div class="hi-label">Currency</div>
+        <select id="gsCashCur" style="width:100%;box-sizing:border-box;font-size:16px;padding:12px 14px;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:inherit;">
+          <option value="USD">$ USD</option>
+          <option value="EUR">€ EUR</option>
+          <option value="NIS">₪ NIS</option>
+        </select>
+      </div>
+    </div>
+    <div class="hi-foot">
+      <button type="button" class="btn-primary" id="gsConfirm">Save settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- VILLAIN SHOWDOWN CARDS OVERLAY (focused 52-card grid for a single villain) -->
+<div class="overlay" id="vsdCardsOverlay">
+  <div class="sheet hero-input-sheet">
+    <button type="button" class="floating-close" id="vsdClose" aria-label="Close">&times;</button>
+    <div class="hi-body">
+      <div class="hi-section">
+        <div class="hi-label"><span id="vsdPos">Villain</span> showed <span id="vsdCardsPreview" style="float:right;font-weight:700;font-size:16px;letter-spacing:0;text-transform:none;"></span></div>
+        <div class="pick-grid hi-card-grid" id="vsdCardGrid"></div>
+      </div>
+    </div>
+    <div class="hi-foot">
+      <button type="button" class="btn-primary" id="vsdConfirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <!-- BOARD CARD PICKER OVERLAY (bottom sheet) -->
 <div class="overlay" id="cardOverlay">
   <div class="sheet picker-sheet">
@@ -1902,6 +2284,8 @@
 <!-- OUTPUT OVERLAY -->
 <div class="overlay" id="overlay">
   <div class="sheet">
+    <!-- Floating close button at top-right (header pills are hidden in full-screen mode) -->
+    <button type="button" class="floating-close" id="overlayFloatClose" aria-label="Close">&times;</button>
     <header>
       <button type="button" id="headerTourneyBtn" class="header-tourney-btn" style="display:none;">+ Tournament Details</button>
       <button type="button" id="headerNoteBtn" class="header-tourney-btn" style="display:none;">+ Hand Title &amp; Notes</button>
@@ -1939,6 +2323,7 @@
       <li><button type="button" data-menu="newhand">New hand</button></li>
       <li><button type="button" data-menu="myhands">My hands<span class="menu-badge" id="myHandsMenuBadge" style="display:none">0</span></button></li>
       <li><button type="button" data-menu="tour">Example walkthrough</button></li>
+      <li><button type="button" data-menu="gamesettings">Settings</button></li>
     </ul>
     <!-- Build/version marker so we can confirm production is on the latest deploy -->
     <div id="appVersion" style="margin-top:auto;padding:14px 18px 18px;font-size:11px;color:rgba(255,255,255,0.35);"></div>
@@ -2104,17 +2489,17 @@
   </div>
 </div>
 
-<!-- MY HANDS VIEW (separate page-like view, swapped with main form) -->
+<!-- MY HANDS VIEW (home view — back button removed; "+ New hand" CTA is the
+     way out, hamburger > New hand also works). -->
 <div id="myHandsView">
   <div class="my-hands-header">
-    <button type="button" class="iconbtn" id="myHandsBack" aria-label="Back">←</button>
     <h2>My hands</h2>
     <button type="button" class="my-hands-cta" id="myHandsNewBtn">+ New hand</button>
   </div>
   <div id="myHandsList" class="my-hands-list"></div>
   <div id="myHandsEmpty" class="my-hands-empty" style="display:none">
-    <p>No saved hands yet.</p>
-    <p class="sub">Generate a hand and tap <b>Save</b> in the output to keep it here.</p>
+    <p>No hands yet.</p>
+    <p class="sub">Tap <b>+ New hand</b> above to record your first one.</p>
   </div>
 </div>
 
@@ -2200,6 +2585,20 @@ const SUITS = [
   {s:"d", glyph:"♦", red:true},
   {s:"c", glyph:"♣", red:false},
 ];
+// Display ordering for hole cards: higher rank goes on the LEFT, then by suit
+// (♠ → ♥ → ♦ → ♣). Used everywhere two hole cards are shown together (canvas
+// hero/villain hole cards, My hands list, text output). Doesn't mutate state.
+const _DISPLAY_RANK = Object.fromEntries(RANKS.map((r, i) => [r, i]));
+const _DISPLAY_SUIT = { s:0, h:1, d:2, c:3 };
+function orderCardsForDisplay(c1, c2) {
+  if (!c1 || !c2 || !c1.rank || !c2.rank) return [c1, c2];
+  const r1 = _DISPLAY_RANK[c1.rank] ?? 99;
+  const r2 = _DISPLAY_RANK[c2.rank] ?? 99;
+  if (r1 !== r2) return r1 <= r2 ? [c1, c2] : [c2, c1];
+  const s1 = _DISPLAY_SUIT[c1.suit] ?? 99;
+  const s2 = _DISPLAY_SUIT[c2.suit] ?? 99;
+  return s1 <= s2 ? [c1, c2] : [c2, c1];
+}
 
 /* Card-entry mode. true  = single-tap 52-card grid (every card visible).
  *                  false = original two-step Rank-then-Suit picker.
@@ -2264,7 +2663,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.17";
+const APP_VERSION = "v1.2.34";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -2513,69 +2912,59 @@ function renderVillains() {
   wrap.innerHTML = "";
   state.villains.forEach((v, idx) => {
     const row = document.createElement("div");
-    row.className = "villain";
+    row.className = "villain villain-row";
+    const posLabel = v.pos ? `<b>${escapeHTML(v.pos)}</b>` : `<span style="color:var(--ink-dim);font-style:italic;">no position</span>`;
+    let stackLabel = "";
+    if (v.stack) {
+      const n = parseChips(v.stack);
+      stackLabel = isFinite(n) ? (typeof fmtBB === "function" && state.unit === "bb" ? fmtBB(n) : `${fmt(n)}${state.unit === "bb" ? " bb" : ""}`) : v.stack;
+    } else {
+      stackLabel = `<span style="color:var(--ink-dim);font-style:italic;">no stack</span>`;
+    }
+    const noteLabel = v.notes
+      ? `<div class="villain-note" style="font-size:11px;color:var(--ink-dim);margin-top:3px;">${escapeHTML(v.notes.slice(0,80))}${v.notes.length>80?"…":""}</div>`
+      : "";
     row.innerHTML = `
       <span class="tag">V${idx+1}</span>
-      <button class="del" type="button" data-del="${v.id}">×</button>
-      <div class="row" style="margin-top:6px;">
-        <div>
-          <label>Position</label>
-          <select data-vfield="pos" data-vid="${v.id}"></select>
-        </div>
-        <div>
-          <label>Stack<span class="vstack-unit"></span><span class="opt-note">optional</span></label>
-          <input type="text" inputmode="numeric" autocomplete="off" data-vfield="stack" data-vid="${v.id}" value="${v.stack ? fmt(parseChips(v.stack)) : ""}" placeholder="optional">
-        </div>
+      <button class="del" type="button" data-del="${v.id}" aria-label="Remove villain">×</button>
+      <div class="villain-summary" data-edit="${v.id}">
+        <div class="villain-line">${posLabel} <span style="color:var(--ink-dim);margin:0 6px;">·</span> ${stackLabel}</div>
+        ${noteLabel}
       </div>
-      <label style="margin-top:8px;">Notes (optional)</label>
-      <input type="text" data-vfield="notes" data-vid="${v.id}" value="${(v.notes||"").replace(/"/g,'&quot;')}" placeholder="e.g. aggressive, VPIP 50%, just won a pot">
     `;
     wrap.appendChild(row);
-    fillPosSelect(row.querySelector("[data-vfield='pos']"), v.pos, v.pos);
-    attachChipInput(row.querySelector("[data-vfield='stack']"));
   });
-  wrap.querySelectorAll("[data-vfield]").forEach(el => {
-    const commit = () => {
-      const id = +el.dataset.vid;
-      const v = state.villains.find(x => x.id === id);
-      if (!v) return;
-      // For the chip field, store the parsed numeric value so completeness checks
-      // pass as soon as the user types — no need to click away ("enter") first.
-      if (el.dataset.vfield === "stack") {
-        const n = parseChips(el.value);
-        v.stack = (isFinite(n) && n > 0) ? String(n) : el.value;
-        invalidateStreetsAfter(null);
-      } else if (el.dataset.vfield === "pos") {
-        v.pos = el.value;
-        refreshAllPositionSelects();
-        renderShowdownVillains();
-        invalidateStreetsAfter(null);
-      } else {
-        v[el.dataset.vfield] = el.value; // notes: no invalidation
-      }
-      // Re-evaluate setup completeness so "Start hand →" enables/disables live.
-      if (typeof refreshAll === "function") refreshAll();
-    };
-    // Listen on both: "input" updates state live while typing; "change" catches
-    // blur-time reformatting and select changes.
-    el.addEventListener("input", commit);
-    el.addEventListener("change", commit);
+  // Tap the summary anywhere to edit
+  wrap.querySelectorAll("[data-edit]").forEach(el => {
+    el.addEventListener("click", () => {
+      const id = +el.dataset.edit;
+      if (typeof openVillainInput === "function") openVillainInput(id);
+    });
   });
   wrap.querySelectorAll("[data-del]").forEach(b => {
-    b.addEventListener("click", () => {
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
       const id = +b.dataset.del;
       state.villains = state.villains.filter(x => x.id !== id);
       renderVillains();
       refreshAllPositionSelects();
       renderShowdownVillains();
       invalidateStreetsAfter(null);
+      if (typeof refreshAll === "function") refreshAll();
     });
   });
   $("#addVillain").disabled = state.villains.length >= 8;
-  // Newly rendered rows need the current unit/currency applied to their stack labels.
-  if (typeof setStackLabels === "function") setStackLabels();
 }
-$("#addVillain").addEventListener("click", () => {
+$("#addVillain").addEventListener("click", (e) => {
+  // Hand off to the focused villain input overlay instead of adding a row
+  // inline. The overlay's Confirm handler creates the villain record.
+  if (typeof openVillainInput === "function") {
+    e.preventDefault && e.preventDefault();
+    e.stopImmediatePropagation && e.stopImmediatePropagation();
+    openVillainInput(null);
+    return;
+  }
+  // Legacy fallback (kept just in case the overlay isn't loaded yet)
   if (state.villains.length >= 8) return;
   const newId = state.nextVid++;
   state.villains.push({
@@ -2586,7 +2975,6 @@ $("#addVillain").addEventListener("click", () => {
   refreshAllPositionSelects();
   renderShowdownVillains();
   invalidateStreetsAfter(null);
-  // Open the position picker for the just-added villain so the user doesn't have to tap it.
   const sel = document.querySelector(`select[data-vfield="pos"][data-vid="${newId}"]`);
   if (sel) {
     sel.focus();
@@ -2612,7 +3000,9 @@ function renderShowdownVillains() {
   // In an MTT, all-in players are required to expose their cards (live poker rule).
   // We force showdownResult → "showed" and disable the Mucked button.
   const mttForceShow = state.gameType === "mtt" && anyoneAllIn();
-  state.villains.forEach((v) => {
+  // Defensive filter: never render a villain without a position. Position is
+  // required at entry now, but legacy state may still carry empty records.
+  state.villains.filter(v => v && v.pos).forEach((v) => {
     const isFolded = folded.has("v"+v.id);
     const row = document.createElement("div");
     row.className = "sd-row" + (isFolded ? " folded" : "");
@@ -2661,8 +3051,6 @@ function renderShowdownVillains() {
       <div class="sd-body" data-sdbody="${v.id}" ${result === 'showed' ? '' : "style='display:none'"}>
         <label>Hole cards</label>
         <div class="hole-chips" data-vholes="${v.id}"></div>
-        <label style="margin-top:6px;">Hand strength (optional)</label>
-        <input type="text" data-sdstr="${v.id}" value="${(v.strength||"").replace(/"/g,'&quot;')}" placeholder="e.g. set of 8s">
       </div>
     `;
     wrap.appendChild(row);
@@ -2675,15 +3063,31 @@ function renderShowdownVillains() {
       btn.addEventListener("click", () => {
         const val = btn.dataset.val;
         v.showdownResult = val;
-        // Also clear cards if mucking
         if (val === "mucked") {
           state.cards["v"+v.id+"_c1"] = {};
           state.cards["v"+v.id+"_c2"] = {};
         }
         renderShowdownVillains();
         refreshShowdownStatus();
+        // When user picks "Showed cards", open the focused 52-card overlay so
+        // they can fill in both cards in one focused step.
+        if (val === "showed" && typeof openVillainShowdownCards === "function") {
+          setTimeout(() => openVillainShowdownCards(v.id), 100);
+        }
       });
     });
+    // Tapping the existing inline "Hole cards" area also opens the focused overlay
+    const sdBody = row.querySelector(`[data-sdbody="${v.id}"]`);
+    if (sdBody) {
+      const holesEl = sdBody.querySelector(".hole-chips");
+      if (holesEl) {
+        holesEl.style.cursor = "pointer";
+        holesEl.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (typeof openVillainShowdownCards === "function") openVillainShowdownCards(v.id);
+        }, true);   // capture, so it fires before the chips' own click handlers
+      }
+    }
   });
   wrap.querySelectorAll("[data-sdstr]").forEach(inp => {
     inp.addEventListener("input", () => {
@@ -3132,16 +3536,28 @@ function wizAdvanceTo(step) {
     if (!b) return;
     e.preventDefault();
     if (b.dataset.enabled !== "1") { haptic(5); return; }
-    if (b.id === "wizNext0") wizAdvanceTo(1);
+    if (b.id === "wizNext0") {
+      // Open the focused hero input overlay instead of expanding the inline
+      // Hero block. After Confirm, the overlay's confirm handler advances the
+      // wizard to step 2 (villains) directly.
+      if (typeof openHeroInput === "function") openHeroInput();
+      else wizAdvanceTo(1);
+    }
     else if (b.id === "wizNext1") wizAdvanceTo(2);
   }, { passive: false });
 });
 
-// Re-open a collapsed setup section when the user taps its header.
+// Re-open a collapsed setup section when the user taps its header. For the
+// Hero section we open the focused overlay instead of expanding inline so the
+// edit experience matches the original entry experience.
 document.addEventListener("click", e => {
   const h2 = e.target.closest(".setup-section.collapsed h2");
   if (h2) {
     const sec = h2.closest(".setup-section");
+    if (sec && sec.id === "sectionHero" && typeof openHeroInput === "function") {
+      openHeroInput();
+      return;
+    }
     sec.classList.remove("collapsed");
     sec.dataset.userOpen = "1";
     if (typeof _scrollSectionTop === "function") _scrollSectionTop(sec);
@@ -3966,12 +4382,14 @@ function renderInlinePrompt(player, rt) {
   const minIncrement = Math.max(rt.lastRaiseSize || 0, bb);
   const minRaiseTo = (rt.currentBet || 0) + minIncrement;
 
-  // Hide Fold when there's nothing to call (checked-to), and preflop on a player's FIRST
-  // decision facing the open: every villain you entered is in the hand, so they don't fold
-  // to a single raise — they only fold to a 3-bet+ (raiseCount ≥ 2). But once a player has
-  // voluntarily acted this street (e.g. limped) and then faces a raise, folding is a real
-  // option, so we keep Fold for them.
-  const hideFold = (isPreflop && rt.raiseCount <= 1 && !player.actedThisStreet) || canCheck;
+  // Hide Fold only when there's nothing to call (you can never "fold" a check).
+  // Earlier versions also suppressed Fold for any player's FIRST preflop decision
+  // facing a single open, on the theory that "if you added them as a villain
+  // they're in the hand". That assumption blocks two real scenarios the user
+  // wants to record: (1) hero opens and everyone folds, (2) someone opens and
+  // hero folds. So we just trust the user — if they tap Fold, that's what
+  // happened.
+  const hideFold = canCheck;
   // Facing a bet ≥ your stack → only Fold + Call all-in (no raise possible).
   const facingCover = !canCheck && (toCall >= stack - 0.0001);
   // Players (other than this one) who can still act on a raise — if none, a raise can't
@@ -4674,8 +5092,9 @@ function buildOutput(upTo) {
     const pos = heroPos || "";
     const chips = uiToChips(heroStack);
     const stk = isFinite(chips) ? fmtBB(chips) : "—";
-    const c1h = cardInlineHTML(state.cards.hero1), c2h = cardInlineHTML(state.cards.hero2);
-    const c1t = cardText(state.cards.hero1), c2t = cardText(state.cards.hero2);
+    const _hop = orderCardsForDisplay(state.cards.hero1, state.cards.hero2);
+    const c1h = cardInlineHTML(_hop[0]), c2h = cardInlineHTML(_hop[1]);
+    const c1t = cardText(_hop[0]), c2t = cardText(_hop[1]);
     const cardsH = (c1h || c2h) ? ` — ${c1h} ${c2h}`.trimEnd() : "";
     const cardsT = (c1t || c2t) ? ` — ${c1t} ${c2t}`.trimEnd() : "";
     players.push({ pos, text: `- ${pos || "?"} (Hero): ${stk}${cardsT}`, html: `- ${pos || "?"} (Hero): ${stk}${cardsH}` });
@@ -4730,8 +5149,9 @@ function buildOutput(upTo) {
     // Hero line — auto-compute strength from cards + board if available, fall back to manual hint
     const heroHasCards = getHeroHole().length === 2;
     if (heroHasCards && live.some(p => p.id === "hero")) {
-      const h1h = cardInlineHTML(state.cards.hero1), h2h = cardInlineHTML(state.cards.hero2);
-      const h1t = cardText(state.cards.hero1), h2t = cardText(state.cards.hero2);
+      const _shp = orderCardsForDisplay(state.cards.hero1, state.cards.hero2);
+      const h1h = cardInlineHTML(_shp[0]), h2h = cardInlineHTML(_shp[1]);
+      const h1t = cardText(_shp[0]), h2t = cardText(_shp[1]);
       let strength = "";
       if (board.length === 5) {
         const hand = bestOfSeven(getHeroHole().concat(board).map(cardToNum));
@@ -6337,7 +6757,11 @@ document.getElementById("ckConfirm").onclick = async () => {
   } catch (e) { console.warn("Post-send bounce failed:", e); }
 };
 
-// ---------- Delivery banner ----------
+// ---------- Delivery notification popup ----------
+// Pops in from the right whenever there's an unseen delivered review. Visible
+// across ANY screen (form, My hands, output overlay). Auto-fades after 5s.
+// Click → opens the reviewed hand (which marks it seen and removes the popup).
+let _reviewPopupTimer = null;
 function checkAndRenderReviewBanner() {
   const banner = document.getElementById("reviewBanner");
   const txt = document.getElementById("reviewBannerText");
@@ -6346,28 +6770,51 @@ function checkAndRenderReviewBanner() {
   const dismissed = loadBannerDismissed();
   const delivered = reviews.filter(r => r.status === "delivered" && !dismissed[r.id])
     .sort((a, b) => (b.deliveredAt || 0) - (a.deliveredAt || 0));
-  if (!delivered.length) { banner.style.display = "none"; return; }
+  if (!delivered.length) {
+    // Either nothing delivered, or all seen — make sure popup is gone
+    if (_reviewPopupTimer) { clearTimeout(_reviewPopupTimer); _reviewPopupTimer = null; }
+    banner.style.display = "none";
+    banner.classList.remove("fading");
+    return;
+  }
+  // If the popup is already showing (and not fading), don't restart the timer;
+  // we don't want every storage event to reset the 5s clock.
+  if (banner.style.display !== "none" && !banner.classList.contains("fading")) return;
   const top = delivered[0];
   const more = delivered.length > 1 ? ` <span style="color:var(--ink-dim)">(+${delivered.length - 1} more)</span>` : "";
-  txt.innerHTML = `<b>Casillas reviewed your hand.</b>${more} &nbsp;Tap to read it.`;
+  txt.innerHTML = `<b>Casillas reviewed your hand.</b>${more}<br>Tap to read it.`;
+  banner.classList.remove("fading");
   banner.style.display = "flex";
   banner.onclick = (e) => {
     if (e.target.closest(".rb-close")) return;
-    // Open the saved hand directly — the review notes are baked into its image.
     if (top.savedHandId) {
       const hand = loadHands().find(h => h.id === top.savedHandId);
-      if (hand) { openSavedHand(hand); return; }
+      if (hand) {
+        // Opening the saved hand auto-marks the review seen (see openSavedHand)
+        openSavedHand(hand);
+        banner.style.display = "none";
+        return;
+      }
     }
-    // Fallback for reviews without a linked saved hand (shouldn't happen in v1.2.7+)
     openReviewViewer(top.id);
   };
   document.getElementById("reviewBannerClose").onclick = (e) => {
     e.stopPropagation();
-    const map = loadBannerDismissed();
-    delivered.forEach(r => { map[r.id] = 1; });
-    saveBannerDismissed(map);
-    banner.style.display = "none";
+    // Don't mark as seen on X-close — just hide the popup for this session.
+    // The hamburger badge will still nudge the user to open the hand later.
+    banner.classList.add("fading");
+    setTimeout(() => { banner.style.display = "none"; banner.classList.remove("fading"); }, 380);
   };
+  // Auto-fade after 5 seconds on screen
+  if (_reviewPopupTimer) { clearTimeout(_reviewPopupTimer); }
+  _reviewPopupTimer = setTimeout(() => {
+    if (banner.style.display === "none") return;
+    banner.classList.add("fading");
+    setTimeout(() => {
+      banner.style.display = "none";
+      banner.classList.remove("fading");
+    }, 380);
+  }, 5000);
 }
 
 // ---------- Review viewer ----------
@@ -6512,12 +6959,15 @@ window.addEventListener("storage", (e) => {
   }
 });
 
-// Keep badge in sync any time the viewer/banner state mutates locally.
-// (Both code paths call saveBannerDismissed; we wrap it to also refresh the badge.)
+// Keep badge + popup in sync any time the viewer/banner state mutates locally.
+// (Both code paths call saveBannerDismissed; we wrap it to also refresh both.)
 const _origSaveBannerDismissed = saveBannerDismissed;
 saveBannerDismissed = function (map) {
   _origSaveBannerDismissed(map);
   updateMyHandsMenuBadge();
+  // Hide the popup if the dismissal made all unseen reviews go away. If there's
+  // still another unseen one, this'll re-render the popup for that one instead.
+  checkAndRenderReviewBanner();
 };
 
 // Get the current hand's image as a Blob — uses the saved-hand dataURL when viewing
@@ -6553,7 +7003,580 @@ function refreshStageToggleUI() {
     b.classList.toggle("on", b.dataset.up === currentUpTo);
   });
 }
-$("#closeBtn").addEventListener("click", () => $("#overlay").classList.remove("on"));
+// Flag set when the user took the "save before closing" path via the X
+// button — saveConfirm checks this and bounces to My hands after success.
+let _closeOverlayAfterSave = false;
+
+// Save-state-aware close handler for the output overlay.
+//   • Hand already saved (or sent to pro, which auto-saves) → close + go to My hands
+//   • Fresh, unsaved hand → ask "save first?". Yes opens the title prompt;
+//     when that resolves we land on My hands. No → close + go to My hands.
+async function handleOutputOverlayClose() {
+  const overlay = $("#overlay");
+  const isSaved = !!(currentSavedHand && currentSavedHand.id);
+  if (isSaved) {
+    overlay.classList.remove("on");
+    currentSavedHand = null;
+    if (typeof openMyHands === "function") openMyHands();
+    return;
+  }
+  // Fresh hand — ask
+  const wantSave = await showConfirm(
+    "Save this hand to My hands first?",
+    { title: "Close without saving?", confirmLabel: "Save", cancelLabel: "Don't save" }
+  );
+  if (wantSave) {
+    _closeOverlayAfterSave = true;   // saveConfirm checks this flag after success
+    const saveBtn = document.getElementById("saveHandBtn");
+    if (saveBtn) saveBtn.click();
+    return;
+  }
+  overlay.classList.remove("on");
+  currentSavedHand = null;
+  if (typeof openMyHands === "function") openMyHands();
+}
+
+$("#closeBtn").addEventListener("click", handleOutputOverlayClose);
+const _floatClose = document.getElementById("overlayFloatClose");
+if (_floatClose) _floatClose.addEventListener("click", handleOutputOverlayClose);
+
+/* ============================================================================
+   HERO INPUT OVERLAY — focused full-screen entry for position + stack + cards.
+   Live-poker friendly: position pills at top (5+4 rows), big stack input in the
+   middle, 52-card grid at the bottom (tap 2). One Confirm button writes
+   everything back to the main form state.
+   ========================================================================== */
+let _hiSelectedCards = []; // [{rank, suit}], max 2
+
+function openHeroInput() {
+  // Pre-fill position from the existing form
+  const currentPos = $("#heroPos") && $("#heroPos").value;
+  document.querySelectorAll("#hiPositions button").forEach(b => {
+    b.classList.toggle("on", b.dataset.pos === currentPos);
+  });
+  // Pre-fill stack input + unit label
+  const hiStack = $("#hiStack");
+  if (hiStack) hiStack.value = $("#heroStack") ? $("#heroStack").value : "";
+  const unitEl = $("#hiStackUnit");
+  if (unitEl) {
+    const u = state.unit;
+    unitEl.textContent = u === "bb" ? "(big blinds)" : "(chips)";
+  }
+  // Pre-fill selected cards
+  _hiSelectedCards = [];
+  if (state.cards.hero1 && state.cards.hero1.rank && state.cards.hero1.suit) {
+    _hiSelectedCards.push({ rank: state.cards.hero1.rank, suit: state.cards.hero1.suit });
+  }
+  if (state.cards.hero2 && state.cards.hero2.rank && state.cards.hero2.suit) {
+    _hiSelectedCards.push({ rank: state.cards.hero2.rank, suit: state.cards.hero2.suit });
+  }
+  renderHiCardGrid();
+  updateHiCardsPreview();
+  $("#heroInputOverlay").classList.add("on");
+}
+
+function closeHeroInput() { $("#heroInputOverlay").classList.remove("on"); }
+// X in the top-right exits the hero input AND returns to My hands — the user
+// came here to enter a hand; cancelling means they bail on that entirely.
+function exitHeroInputToMyHands() {
+  closeHeroInput();
+  document.body.classList.add("viewing-myhands");
+  if (typeof renderMyHandsList === "function") renderMyHandsList();
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+function renderHiCardGrid() {
+  const grid = $("#hiCardGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+  SUITS.forEach(s => {
+    RANKS.forEach(r => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "gcard" + (s.red ? " red" : "");
+      b.innerHTML = `${r}<span class="gs">${s.glyph}</span>`;
+      const isSelected = _hiSelectedCards.some(c => c.rank === r && c.suit === s.s);
+      if (isSelected) b.classList.add("on");
+      // Mark cards taken by board/villains (not hero, since we're replacing those)
+      try {
+        const dup = findDuplicateLocation({ kind: "hero-input-check" }, r, s.s);
+        if (dup && !/^Hero card/.test(dup) && !isSelected) {
+          b.classList.add("used"); b.disabled = true;
+        }
+      } catch (_) {}
+      b.onclick = () => {
+        if (b.disabled) return;
+        const idx = _hiSelectedCards.findIndex(c => c.rank === r && c.suit === s.s);
+        if (idx >= 0) {
+          _hiSelectedCards.splice(idx, 1);
+        } else if (_hiSelectedCards.length < 2) {
+          _hiSelectedCards.push({ rank: r, suit: s.s });
+        } else {
+          // Both slots filled — replace the OLDEST one
+          _hiSelectedCards.shift();
+          _hiSelectedCards.push({ rank: r, suit: s.s });
+        }
+        renderHiCardGrid();
+        updateHiCardsPreview();
+        haptic(4);
+      };
+      grid.appendChild(b);
+    });
+  });
+}
+
+function updateHiCardsPreview() {
+  const preview = $("#hiCardsPreview");
+  if (!preview) return;
+  if (_hiSelectedCards.length === 0) {
+    preview.textContent = "Tap 2";
+    preview.style.color = "var(--ink-dim)";
+    return;
+  }
+  const ordered = _hiSelectedCards.length === 2
+    ? orderCardsForDisplay(_hiSelectedCards[0], _hiSelectedCards[1])
+    : _hiSelectedCards.slice();
+  preview.innerHTML = ordered.map(c => {
+    const su = SUITS.find(x => x.s === c.suit);
+    const color = su.red ? "var(--red)" : "var(--ink)";
+    return `<span style="color:${color}">${c.rank}${su.glyph}</span>`;
+  }).join(" ");
+  preview.style.color = "";
+}
+
+// Position pill toggles — single-select
+document.querySelectorAll("#hiPositions button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#hiPositions button").forEach(b => b.classList.remove("on"));
+    btn.classList.add("on");
+    haptic(4);
+  });
+});
+
+// X in the top-right cancels the hero entry and returns to My hands.
+$("#hiClose").addEventListener("click", exitHeroInputToMyHands);
+
+/* ============================================================================
+   VILLAIN INPUT OVERLAY — same focused-modal pattern as the hero overlay, but
+   handles add-new + edit-existing via a tracked villain id. Position pills
+   that are taken by hero or other villains are visually greyed out and not
+   tappable. Stack is required (positive number), notes are optional.
+   ========================================================================== */
+let _viEditingVid = null;   // id of the villain being edited; null = adding new
+
+function _viTakenPositions() {
+  // Set of positions occupied by hero or by other villains (excludes the one
+  // being edited so the user can keep its current position).
+  const taken = new Set();
+  const hp = $("#heroPos") && $("#heroPos").value;
+  if (hp) taken.add(hp);
+  state.villains.forEach(v => {
+    if (v.id === _viEditingVid) return;
+    if (v.pos) taken.add(v.pos);
+  });
+  return taken;
+}
+
+function renderViPositions(selectedPos) {
+  const taken = _viTakenPositions();
+  document.querySelectorAll("#viPositions button").forEach(b => {
+    const p = b.dataset.pos;
+    b.classList.toggle("on", p === selectedPos);
+    b.classList.toggle("taken", taken.has(p));
+  });
+}
+
+function openVillainInput(vid) {
+  _viEditingVid = (vid == null) ? null : vid;
+  const isEdit = _viEditingVid != null;
+  const v = isEdit ? state.villains.find(x => x.id === _viEditingVid) : null;
+  $("#viTitleLabel").textContent = isEdit
+    ? `Edit villain V${state.villains.findIndex(x => x.id === _viEditingVid) + 1} — position`
+    : `New villain — position`;
+  renderViPositions(v ? v.pos : "");
+  $("#viStack").value = v && v.stack ? (typeof fmt === "function" ? fmt(parseChips(v.stack)) : v.stack) : "";
+  $("#viNotes").value = v ? (v.notes || "") : "";
+  const unitEl = $("#viStackUnit");
+  if (unitEl) unitEl.textContent = state.unit === "bb" ? "(big blinds)" : "(chips)";
+  $("#villainInputOverlay").classList.add("on");
+}
+
+function closeVillainInput() {
+  $("#villainInputOverlay").classList.remove("on");
+  _viEditingVid = null;
+}
+
+// Position pill toggles (skip taken)
+document.querySelectorAll("#viPositions button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    if (btn.classList.contains("taken")) return;
+    document.querySelectorAll("#viPositions button").forEach(b => b.classList.remove("on"));
+    btn.classList.add("on");
+    haptic(4);
+  });
+});
+
+$("#viClose").addEventListener("click", () => {
+  // If user is adding a NEW villain and bails out, don't leave an empty record
+  if (_viEditingVid == null) closeVillainInput();
+  else closeVillainInput();
+});
+
+// Shared commit helper: validates the form, writes to state, returns true on
+// success. Position is required; stack and notes are optional.
+function _viCommit() {
+  const posBtn = document.querySelector("#viPositions button.on");
+  if (!posBtn) {
+    showToast("Pick villain's position");
+    return false;
+  }
+  const pos = posBtn.dataset.pos;
+  const stackVal = ($("#viStack").value || "").trim();
+  const stackChips = stackVal ? ((typeof parseChips === "function") ? parseChips(stackVal) : Number(stackVal)) : NaN;
+  const stackToSave = (stackVal && isFinite(stackChips) && stackChips > 0) ? String(stackChips) : "";
+  const notes = ($("#viNotes").value || "").trim();
+  if (_viEditingVid == null) {
+    if (state.villains.length >= 8) { showToast("Max 8 villains"); return false; }
+    state.villains.push({
+      id: state.nextVid++,
+      pos, stack: stackToSave, notes,
+      showCards: false, strength: ""
+    });
+  } else {
+    const v = state.villains.find(x => x.id === _viEditingVid);
+    if (v) { v.pos = pos; v.stack = stackToSave; v.notes = notes; }
+  }
+  if (typeof renderVillains === "function") renderVillains();
+  if (typeof refreshAllPositionSelects === "function") refreshAllPositionSelects();
+  if (typeof renderShowdownVillains === "function") renderShowdownVillains();
+  if (typeof invalidateStreetsAfter === "function") invalidateStreetsAfter(null);
+  if (typeof refreshAll === "function") refreshAll();
+  haptic(12);
+  return true;
+}
+
+// "+ Add another villain" — save the current villain, then open the overlay
+// fresh for the next one.
+$("#viAddAnother").addEventListener("click", () => {
+  if (!_viCommit()) return;
+  closeVillainInput();
+  // Briefly let the close animation finish, then re-open fresh
+  setTimeout(() => { openVillainInput(null); }, 60);
+});
+
+/* ============================================================================
+   VILLAIN SHOWDOWN CARDS OVERLAY — opens when the user marks a villain as
+   "Showed cards" at showdown, OR taps the inline hole-cards area on a
+   shown-cards villain. Same 52-card grid pattern as the hero hole cards;
+   tapping each fills one of two slots in order, then user confirms.
+   ========================================================================== */
+let _vsdEditingVid = null;
+let _vsdSelectedCards = [];
+
+function _vsdCardTakenByOthers(rank, suit, vid) {
+  for (const k of ["hero1", "hero2"]) {
+    const c = state.cards[k];
+    if (c && c.rank === rank && c.suit === suit) return true;
+  }
+  for (const sname of ["flop","turn","river"]) {
+    for (const c of (state.streets[sname].board || [])) {
+      if (c && c.rank === rank && c.suit === suit) return true;
+    }
+  }
+  for (const v of state.villains) {
+    if (v.id === vid) continue;
+    for (const k of ["v"+v.id+"_c1", "v"+v.id+"_c2"]) {
+      const c = state.cards[k];
+      if (c && c.rank === rank && c.suit === suit) return true;
+    }
+  }
+  return false;
+}
+
+function openVillainShowdownCards(vid) {
+  _vsdEditingVid = vid;
+  const v = state.villains.find(x => x.id === vid);
+  if (!v) return;
+  document.getElementById("vsdPos").textContent = v.pos || "Villain";
+  _vsdSelectedCards = [];
+  const c1 = state.cards["v"+vid+"_c1"];
+  const c2 = state.cards["v"+vid+"_c2"];
+  if (c1 && c1.rank && c1.suit) _vsdSelectedCards.push({ rank: c1.rank, suit: c1.suit });
+  if (c2 && c2.rank && c2.suit) _vsdSelectedCards.push({ rank: c2.rank, suit: c2.suit });
+  renderVsdCardGrid();
+  updateVsdCardsPreview();
+  $("#vsdCardsOverlay").classList.add("on");
+}
+
+function closeVillainShowdownCards() {
+  $("#vsdCardsOverlay").classList.remove("on");
+  _vsdEditingVid = null;
+}
+
+function renderVsdCardGrid() {
+  const grid = document.getElementById("vsdCardGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+  SUITS.forEach(s => {
+    RANKS.forEach(r => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "gcard" + (s.red ? " red" : "");
+      b.innerHTML = `${r}<span class="gs">${s.glyph}</span>`;
+      const isSelected = _vsdSelectedCards.some(c => c.rank === r && c.suit === s.s);
+      if (isSelected) b.classList.add("on");
+      if (!isSelected && _vsdCardTakenByOthers(r, s.s, _vsdEditingVid)) {
+        b.classList.add("used"); b.disabled = true;
+      }
+      b.onclick = () => {
+        if (b.disabled) return;
+        const idx = _vsdSelectedCards.findIndex(c => c.rank === r && c.suit === s.s);
+        if (idx >= 0) _vsdSelectedCards.splice(idx, 1);
+        else if (_vsdSelectedCards.length < 2) _vsdSelectedCards.push({ rank: r, suit: s.s });
+        else { _vsdSelectedCards.shift(); _vsdSelectedCards.push({ rank: r, suit: s.s }); }
+        renderVsdCardGrid();
+        updateVsdCardsPreview();
+        haptic(4);
+      };
+      grid.appendChild(b);
+    });
+  });
+}
+
+function updateVsdCardsPreview() {
+  const preview = document.getElementById("vsdCardsPreview");
+  if (!preview) return;
+  if (_vsdSelectedCards.length === 0) {
+    preview.textContent = "Tap 2";
+    preview.style.color = "var(--ink-dim)";
+    return;
+  }
+  const ordered = _vsdSelectedCards.length === 2
+    ? orderCardsForDisplay(_vsdSelectedCards[0], _vsdSelectedCards[1])
+    : _vsdSelectedCards.slice();
+  preview.innerHTML = ordered.map(c => {
+    const su = SUITS.find(x => x.s === c.suit);
+    const color = su.red ? "var(--red)" : "var(--ink)";
+    return `<span style="color:${color}">${c.rank}${su.glyph}</span>`;
+  }).join(" ");
+  preview.style.color = "";
+}
+
+$("#vsdClose").addEventListener("click", closeVillainShowdownCards);
+$("#vsdConfirm").addEventListener("click", () => {
+  if (_vsdSelectedCards.length < 2) { showToast("Pick both cards"); return; }
+  if (_vsdEditingVid == null) { closeVillainShowdownCards(); return; }
+  const c1 = _vsdSelectedCards[0], c2 = _vsdSelectedCards[1];
+  state.cards["v"+_vsdEditingVid+"_c1"] = { rank: c1.rank, suit: c1.suit };
+  state.cards["v"+_vsdEditingVid+"_c2"] = { rank: c2.rank, suit: c2.suit };
+  if (typeof renderShowdownVillains === "function") renderShowdownVillains();
+  if (typeof refreshShowdownStatus === "function") refreshShowdownStatus();
+  if (typeof refreshGenerateButton === "function") refreshGenerateButton();
+  haptic(12);
+  closeVillainShowdownCards();
+});
+
+/* ============================================================================
+   GAME SETTINGS OVERLAY — saved defaults for game type, unit, blinds, currency.
+   Opened from the hamburger menu (full save) or from the game-context pill
+   atop the form (override-only for this hand). Both routes share the same UI.
+   ========================================================================== */
+let _gsOverrideOnly = false;   // true = only apply to current form, don't save defaults
+
+function _gsApplyVisibility(gameType, unit) {
+  // MTT: show unit selector. Blinds shown only when unit=chips.
+  // Cash: hide unit (always chips), show blinds, show currency.
+  const unitSec = document.getElementById("gsUnitSection");
+  const blindsSec = document.getElementById("gsBlindsSection");
+  const curSec = document.getElementById("gsCashCurSection");
+  if (gameType === "cash") {
+    unitSec.style.display = "none";
+    blindsSec.style.display = "";
+    curSec.style.display = "";
+  } else {
+    unitSec.style.display = "";
+    blindsSec.style.display = (unit === "chips") ? "" : "none";
+    curSec.style.display = "none";
+  }
+}
+
+function openGameSettings(overrideOnly) {
+  _gsOverrideOnly = !!overrideOnly;
+  // Read current values: if overrideOnly we prefer live form state; else read settings.
+  const settings = loadGameSettings() || {};
+  const cur = overrideOnly ? {
+    gameType: state.gameType || settings.gameType || "mtt",
+    unit: state.unit || settings.unit || "bb",
+    sb: ($("#sb").value || settings.sb || "").toString(),
+    bb: ($("#bb").value || settings.bb || "").toString(),
+    cashCurrency: ($("#cashCurrency") ? $("#cashCurrency").value : "") || settings.cashCurrency || "USD",
+  } : {
+    gameType: settings.gameType || "mtt",
+    unit: settings.unit || "bb",
+    sb: settings.sb || "",
+    bb: settings.bb || "",
+    cashCurrency: settings.cashCurrency || "USD",
+  };
+  // Apply to the overlay UI
+  document.querySelectorAll("#gsGameType button").forEach(b => b.classList.toggle("on", b.dataset.val === cur.gameType));
+  document.querySelectorAll("#gsUnit button").forEach(b => b.classList.toggle("on", b.dataset.val === cur.unit));
+  document.getElementById("gsSb").value = cur.sb;
+  document.getElementById("gsBb").value = cur.bb;
+  document.getElementById("gsCashCur").value = cur.cashCurrency;
+  _gsApplyVisibility(cur.gameType, cur.unit);
+  // Button label changes based on mode
+  document.getElementById("gsConfirm").textContent = overrideOnly ? "Apply to this hand" : "Save settings";
+  document.getElementById("gameSettingsOverlay").classList.add("on");
+}
+function closeGameSettings() { document.getElementById("gameSettingsOverlay").classList.remove("on"); }
+
+// Wire game-type buttons
+document.querySelectorAll("#gsGameType button").forEach(b => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("#gsGameType button").forEach(x => x.classList.remove("on"));
+    b.classList.add("on");
+    const unit = (document.querySelector("#gsUnit button.on") || {}).dataset?.val || "bb";
+    _gsApplyVisibility(b.dataset.val, unit);
+    haptic(4);
+  });
+});
+document.querySelectorAll("#gsUnit button").forEach(b => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("#gsUnit button").forEach(x => x.classList.remove("on"));
+    b.classList.add("on");
+    const gameType = (document.querySelector("#gsGameType button.on") || {}).dataset?.val || "mtt";
+    _gsApplyVisibility(gameType, b.dataset.val);
+    haptic(4);
+  });
+});
+
+$("#gsClose").addEventListener("click", closeGameSettings);
+
+$("#gsConfirm").addEventListener("click", () => {
+  const gameType = (document.querySelector("#gsGameType button.on") || {}).dataset?.val || "mtt";
+  const unit = gameType === "cash" ? "chips" : ((document.querySelector("#gsUnit button.on") || {}).dataset?.val || "bb");
+  const sb = $("#gsSb").value.trim();
+  const bb = $("#gsBb").value.trim();
+  const cashCurrency = $("#gsCashCur").value;
+  // Need bb in chips mode
+  if (unit === "chips" || gameType === "cash") {
+    const bbNum = parseChips(bb);
+    if (!isFinite(bbNum) || bbNum <= 0) { showToast("Enter the Big Blind"); $("#gsBb").focus(); return; }
+  }
+  // Apply to the live form
+  state.gameType = gameType;
+  document.querySelectorAll("#gameType button").forEach(b => b.classList.toggle("on", b.dataset.val === gameType));
+  if ($("#cashCurrency")) $("#cashCurrency").value = cashCurrency;
+  if (typeof applyUnit === "function") applyUnit(unit);
+  $("#bb").value = bb;
+  $("#sb").value = sb;
+  // Trigger downstream updates so the form recomputes summaries and section locks
+  try { $("#bb").dispatchEvent(new Event("input", { bubbles: true })); } catch (_) {}
+  try { $("#sb").dispatchEvent(new Event("input", { bubbles: true })); } catch (_) {}
+  if (typeof refreshAll === "function") refreshAll();
+  // Persist as defaults unless this was an override-only invocation
+  if (!_gsOverrideOnly) {
+    saveGameSettings({ gameType, unit, sb, bb, cashCurrency });
+    showToast("Game settings saved");
+  } else {
+    showToast("Updated for this hand");
+  }
+  if (typeof renderGameContextPill === "function") renderGameContextPill();
+  haptic(10);
+  closeGameSettings();
+});
+
+// Build/refresh the read-only context pill at the top of the form. Reads from
+// the current state (which reflects either saved settings or this-hand overrides).
+function renderGameContextPill() {
+  const pill = document.getElementById("gameContextPill");
+  const label = document.getElementById("gameContextLabel");
+  if (!pill || !label) return;
+  const settings = loadGameSettings();
+  if (!settings) { pill.style.display = "none"; return; }
+  const parts = [];
+  if (state.gameType === "cash") {
+    const cur = ($("#cashCurrency") ? $("#cashCurrency").value : "USD");
+    const sym = (typeof CURRENCY_SYMBOLS !== "undefined" && CURRENCY_SYMBOLS[cur]) ? CURRENCY_SYMBOLS[cur] : "$";
+    const sb = ($("#sb").value || "").trim();
+    const bb = ($("#bb").value || "").trim();
+    parts.push("Cash");
+    if (sb && bb) parts.push(`${sym}${sb}/${sym}${bb}`);
+  } else {
+    parts.push("MTT");
+    const unit = state.unit;
+    if (unit === "bb") parts.push("in bb");
+    else {
+      const sb = ($("#sb").value || "").trim();
+      const bb = ($("#bb").value || "").trim();
+      if (sb && bb) parts.push(`${sb}/${bb}`);
+    }
+  }
+  label.textContent = parts.join(" · ");
+  pill.style.display = "";
+}
+
+// Tap pill → open the settings overlay in override-only mode
+document.getElementById("gameContextPill").addEventListener("click", () => openGameSettings(true));
+
+// "Start hand →" — save the current villain and trigger the existing
+// "Start hand" handoff which moves the wizard from setup to streets.
+$("#viStartHand").addEventListener("click", () => {
+  if (!_viCommit()) return;
+  closeVillainInput();
+  // The handoff function reads the #confirmPlayers button's enabled state;
+  // since we just saved a valid villain, completeness has been recomputed.
+  const btn = document.getElementById("confirmPlayers");
+  if (btn && typeof startHandHandoff === "function") {
+    setTimeout(() => startHandHandoff(btn), 80);
+  }
+});
+
+// Confirm — write everything back to the main form's state, then close.
+// Requires ALL three: position, stack (parseable as positive), and both cards.
+$("#hiConfirm").addEventListener("click", () => {
+  const posBtn = document.querySelector("#hiPositions button.on");
+  if (!posBtn) {
+    showToast("Pick your position");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+  const pos = posBtn.dataset.pos;
+  const stackVal = ($("#hiStack").value || "").trim();
+  const stackChips = (typeof parseChips === "function") ? parseChips(stackVal) : Number(stackVal);
+  if (!stackVal || !isFinite(stackChips) || stackChips <= 0) {
+    showToast("Enter your stack size");
+    const s = $("#hiStack"); if (s) { s.focus(); s.select && s.select(); }
+    return;
+  }
+  if (_hiSelectedCards.length < 2) {
+    showToast("Pick both your hole cards");
+    const grid = $("#hiCardGrid"); if (grid) grid.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  // All validated — write back into the form
+  if (typeof _setSelectValue === "function") _setSelectValue($("#heroPos"), pos);
+  else if ($("#heroPos")) $("#heroPos").value = pos;
+  if ($("#heroStack")) {
+    $("#heroStack").value = stackVal;
+    try { $("#heroStack").dispatchEvent(new Event("input", { bubbles: true })); } catch (_) {}
+  }
+  // Cards — apply with rank/suit ordering preserved as user picked
+  if (_hiSelectedCards.length >= 1) state.cards.hero1 = { rank: _hiSelectedCards[0].rank, suit: _hiSelectedCards[0].suit };
+  else delete state.cards.hero1;
+  if (_hiSelectedCards.length >= 2) state.cards.hero2 = { rank: _hiSelectedCards[1].rank, suit: _hiSelectedCards[1].suit };
+  else delete state.cards.hero2;
+  if (typeof renderHeroHoleChips === "function") { try { renderHeroHoleChips(); } catch (_) {} }
+  if (typeof updateSectionUnlocks === "function") { try { updateSectionUnlocks(); } catch (_) {} }
+  if (typeof refreshAllPositionSelects === "function") { try { refreshAllPositionSelects(); } catch (_) {} }
+  haptic(12);
+  closeHeroInput();
+  // Advance the wizard directly past the inline Hero section to Villains
+  // (the user has just filled in all of Hero in the focused module).
+  if (typeof wizAdvanceTo === "function") { try { wizAdvanceTo(2); } catch (_) {} }
+  // Open the villain input automatically — keeps the focused flow going.
+  setTimeout(() => { try { openVillainInput(null); } catch (_) {} }, 120);
+});
 $("#headerTourneyBtn").addEventListener("click", () => showTourneyForm());
 $("#headerNoteBtn").addEventListener("click", () => showTitleNoteForm());
 $("#headerCheckBtn").addEventListener("click", () => showRangeCheckForm());
@@ -7554,8 +8577,10 @@ async function sdBuildRenderData(upTo, proNotes) {
     let cards = null;
     let showBack = false;
     if (isHero) {
-      const c1 = state.cards.hero1, c2 = state.cards.hero2;
+      let c1 = state.cards.hero1, c2 = state.cards.hero2;
       if (c1 && c2 && c1.rank && c2.rank) {
+        const ordered = orderCardsForDisplay(c1, c2);
+        c1 = ordered[0]; c2 = ordered[1];
         const suitMap = { s:"♠", h:"♥", d:"♦", c:"♣" };
         cards = [[c1.rank, suitMap[c1.suit]], [c2.rank, suitMap[c2.suit]]];
       } else {
@@ -7564,7 +8589,7 @@ async function sdBuildRenderData(upTo, proNotes) {
     } else {
       const vid = pl.id;  // "v1", "v2", etc.
       const v = state.villains.find(vv => "v"+vv.id === vid);
-      const c1 = state.cards[vid+"_c1"], c2 = state.cards[vid+"_c2"];
+      let c1 = state.cards[vid+"_c1"], c2 = state.cards[vid+"_c2"];
       const hasBothCards = !!(c1 && c2 && c1.rank && c1.suit && c2.rank && c2.suit);
       // Reveal villain cards when they've shown them — OR whenever both cards are
       // entered and the villain didn't muck. The latter makes all-in hands robust:
@@ -7572,6 +8597,8 @@ async function sdBuildRenderData(upTo, proNotes) {
       // even if the "Showed" flag never got set. Never reveal in ask-for-advice mode.
       if (!isAsking && v && !isMuck && (showed.has(vid) || hasBothCards)) {
         if (hasBothCards) {
+          const ordered = orderCardsForDisplay(c1, c2);
+          c1 = ordered[0]; c2 = ordered[1];
           const suitMap = { s:"♠", h:"♥", d:"♦", c:"♣" };
           cards = [[c1.rank, suitMap[c1.suit]], [c2.rank, suitMap[c2.suit]]];
         }
@@ -8473,6 +9500,41 @@ function buildTournamentTag() {
 
 const HANDS_KEY = "showdown_hands_v1";
 const WELCOME_SEEN_KEY = "showdown_welcome_seen_v1";
+const GAME_SETTINGS_KEY = "showdown_game_settings_v1";
+
+// Saved game-context defaults — game type, unit, blinds, currency, etc. Used
+// to skip the Game section on new-hand entry so the user goes straight to
+// Hero. The pill at the top of the form lets the user override for one hand
+// (does not write back to localStorage).
+function loadGameSettings() {
+  try { return JSON.parse(localStorage.getItem(GAME_SETTINGS_KEY)) || null; }
+  catch (_) { return null; }
+}
+function saveGameSettings(s) {
+  try { localStorage.setItem(GAME_SETTINGS_KEY, JSON.stringify(s)); return true; }
+  catch (_) { return false; }
+}
+
+// Build a deterministic fingerprint from a hand record's content. Two hands
+// with the same fingerprint are "the same hand" for dedup purposes — same
+// game setup, hero, villains, action history, and board. Title and timestamps
+// (which differ for repeat saves of identical content) are ignored.
+function computeHandFingerprint(hand) {
+  if (!hand) return "";
+  const _norm = v => v == null ? "" : v;
+  const parts = [
+    _norm(hand.gameType),
+    _norm(hand.stage),
+    _norm(hand.unit),
+    _norm(hand.sb), _norm(hand.bb),
+    _norm(hand.heroPos), _norm(hand.heroStack),
+    _norm(hand.tournamentType), _norm(hand.buyinAmount), _norm(hand.buyinCurrency), _norm(hand.cashCurrency),
+    JSON.stringify(hand.cards || {}),
+    JSON.stringify((hand.villains || []).map(v => ({ pos: v.pos, stack: v.stack, notes: v.notes, showdownResult: v.showdownResult, strength: v.strength }))),
+    JSON.stringify(hand.streets || {}),
+  ];
+  return parts.join("|");
+}
 
 function loadHands() {
   try { return JSON.parse(localStorage.getItem(HANDS_KEY)) || []; }
@@ -8505,14 +9567,18 @@ document.querySelectorAll("[data-menu]").forEach(b => {
     else if (which === "welcome") $("#welcomeOverlay").classList.add("on");
     else if (which === "tour") startCoachTour();
     else if (which === "profile") openProfile();
+    else if (which === "gamesettings") openGameSettings(false);
     else if (which === "newhand") {
-      // If form has data AND it's not already saved, confirm before clearing.
-      // When currentSavedHand is set (the user is viewing/just-sent a saved
-      // hand), the data is safely in My hands — no need to warn.
+      // Only warn when the user is in the FORM with in-progress data (not on
+      // My hands, where there's nothing in-flight). Always drops the flag so
+      // the reload lands on the form, not back on My hands.
+      const onMyHands = document.body.classList.contains("viewing-myhands");
       const isSaved = !!(currentSavedHand && currentSavedHand.id);
-      const hasContent = parseChips($("#bb").value) > 0 || state.villains.length > 0 ||
+      const hasContent = !onMyHands && (
+        parseChips($("#bb").value) > 0 || state.villains.length > 0 ||
         Object.keys(state.cards).length > 0 ||
-        ["preflop","flop","turn","river"].some(s => state.streets[s].complete);
+        ["preflop","flop","turn","river"].some(s => state.streets[s].complete)
+      );
       if (hasContent && !isSaved) {
         const ok = await showConfirm(
           "Start a new hand? Anything not saved will be lost.",
@@ -8520,8 +9586,8 @@ document.querySelectorAll("[data-menu]").forEach(b => {
         );
         if (!ok) return;
       }
-      closeMyHands();
-      location.reload();
+      if (typeof startNewHandFlow === "function") startNewHandFlow();
+      else { closeMyHands(); location.reload(); }
     }
   });
 });
@@ -8835,7 +9901,8 @@ function serializeHand() {
 
 function handSummary() {
   const heroPos = $("#heroPos").value || "";
-  const c1 = state.cards.hero1, c2 = state.cards.hero2;
+  const _hp = orderCardsForDisplay(state.cards.hero1, state.cards.hero2);
+  const c1 = _hp[0], c2 = _hp[1];
   const cText = (c) => c && c.rank && c.suit ? `${c.rank}${SUITS.find(s=>s.s===c.suit).glyph}` : "";
   const cards = (c1 && c2) ? `${cText(c1)} ${cText(c2)}` : "";
   const winnerInfo = determineWinner();
@@ -8918,23 +9985,15 @@ function openMyHands() {
 function closeMyHands() {
   document.body.classList.remove("viewing-myhands");
 }
-$("#myHandsBack").addEventListener("click", closeMyHands);
-// "+ New hand" CTA in My hands header — same flow as the hamburger New hand item
-$("#myHandsNewBtn").addEventListener("click", async () => {
-  const isSaved = !!(currentSavedHand && currentSavedHand.id);
-  const hasContent = parseChips($("#bb").value) > 0 || state.villains.length > 0 ||
-    Object.keys(state.cards).length > 0 ||
-    ["preflop","flop","turn","river"].some(s => state.streets[s].complete);
-  if (hasContent && !isSaved) {
-    const ok = await showConfirm(
-      "Start a new hand? Anything not saved will be lost.",
-      { title: "New hand?", confirmLabel: "New hand", danger: true }
-    );
-    if (!ok) return;
-  }
-  closeMyHands();
+// (Back button removed — My hands is the home view.)
+// "+ New hand" CTA in My hands header — drops a flag so the reload lands on
+// the form (not back on My hands), and skips the "unsaved work" warning
+// (there's no in-progress form work when you're already on the My hands page).
+function startNewHandFlow() {
+  try { sessionStorage.setItem("showdown_show_form_next", "1"); } catch (_) {}
   location.reload();
-});
+}
+$("#myHandsNewBtn").addEventListener("click", startNewHandFlow);
 
 // Build the inner HTML for a single My-hands row.  Extracted so we can render
 // the same row layout across the three sections (New / Pending / Reviewed).
@@ -8969,11 +10028,14 @@ function _buildHandRowHTML(h, opts) {
   }
   const tinyFace = `<span class="rc-avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"></span>`;
   let reviewChipHtml = "";
+  // The "Saved hands" section bundles delivered reviews + plain saved-no-review
+  // hands. Only show the Casillas chip when there's actually a review tied to
+  // this hand — opts.hasReview is passed in by the section caller.
   if (opts.category === "new") {
     reviewChipHtml = `<div class="row-review-chip ready">${tinyFace}Casillas &middot; ready</div>`;
   } else if (opts.category === "pending") {
     reviewChipHtml = `<div class="row-review-chip pending">${tinyFace}Casillas &middot; pending</div>`;
-  } else if (opts.category === "reviewed-seen") {
+  } else if (opts.category === "reviewed-seen" && opts.hasReview) {
     reviewChipHtml = `<div class="row-review-chip ready">${tinyFace}Casillas &middot; ready</div>`;
   }
   const newBadge = opts.category === "new"
@@ -9053,10 +10115,10 @@ function renderMyHandsList() {
     hdr.className = "my-hand-section-head";
     hdr.innerHTML = `<span>${label}</span><span class="my-hand-section-count">${items.length}</span>`;
     list.appendChild(hdr);
-    items.forEach(({ h }) => {
+    items.forEach(({ h, review }) => {
       const row = document.createElement("div");
       row.className = "my-hand-row" + (category === "new" ? " row-new" : "");
-      row.innerHTML = _buildHandRowHTML(h, { category });
+      row.innerHTML = _buildHandRowHTML(h, { category, hasReview: !!review });
       row.addEventListener("click", (e) => {
         if (e.target.closest(".row-trash")) return;
         openSavedHand(h);
@@ -9282,16 +10344,35 @@ $("#saveConfirm").onclick = async () => {
   hand.title = $("#saveTitleInput").value.trim();
   // Capture the rendered image so re-opening the saved hand shows the picture, not the text.
   if (!lastOutputImageDataUrl) {
-    // Just in case (e.g. first save before any render finished), try to render now.
     try {
       const canvas = await renderHandToCanvas();
       if (canvas) lastOutputImageDataUrl = canvas.toDataURL("image/jpeg", 0.7);
     } catch (_) {}
   }
   if (lastOutputImageDataUrl) hand.imageDataUrl = lastOutputImageDataUrl;
+  // Fingerprint dedup: if the SAME hand (same setup + same actions) is already
+  // saved, don't create a duplicate. Treat the existing one as "current saved
+  // hand" so subsequent closes don't re-prompt.
+  const fp = computeHandFingerprint(hand);
+  const existing = loadHands().find(h => computeHandFingerprint(h) === fp);
+  if (existing) {
+    currentSavedHand = existing;
+    $("#saveOverlay").classList.remove("on", "dialog-mode");
+    showToast("Already saved");
+    haptic(8);
+    if (_closeOverlayAfterSave) {
+      _closeOverlayAfterSave = false;
+      $("#overlay").classList.remove("on");
+      currentSavedHand = null;
+      if (typeof openMyHands === "function") openMyHands();
+    }
+    return;
+  }
   const all = loadHands();
   all.push(hand);
   saveHands(all);
+  // Mark this as the current saved hand so the X-close handler knows it's safe.
+  currentSavedHand = hand;
   // If the user requested a pro review BEFORE saving (so the review has no
   // savedHandId), retroactively link the most-recent unlinked review whose
   // image matches this save. Cheap heuristic: take the newest unlinked review
@@ -9311,6 +10392,14 @@ $("#saveConfirm").onclick = async () => {
   $("#saveOverlay").classList.remove("on", "dialog-mode");
   showToast("Saved to My hands");
   haptic(12);
+  // If we got here via the X-close "save first" flow, finish the close +
+  // navigate to My hands now.
+  if (_closeOverlayAfterSave) {
+    _closeOverlayAfterSave = false;
+    $("#overlay").classList.remove("on");
+    currentSavedHand = null;
+    if (typeof openMyHands === "function") openMyHands();
+  }
 };
 
 /* Output sheet action handlers (extracted so footer rebuilds can re-bind cleanly) */
@@ -9398,10 +10487,9 @@ async function doShare() {
 }
 
 /* init */
-// Always start with at least one villain row visible — no need to click Add for the first one.
-if (state.villains.length === 0) {
-  state.villains.push({ id: state.nextVid++, pos: "", stack: "", notes: "", showCards: false, strength: "" });
-}
+// (Previously we seeded an empty villain row on load so the user could fill it
+// inline. With the focused villain overlay, the user adds each villain
+// explicitly — no more empty placeholders polluting state / showdown.)
 renderVillains();
 renderShowdownVillains();
 refreshShowdownStatus();
@@ -9415,6 +10503,65 @@ window.scrollTo(0, 0);
 (() => { const _v = document.getElementById("appVersion"); if (_v) _v.textContent = APP_VERSION; })();
 // First-open welcome — runs once per browser
 maybeShowWelcome();
+// My hands is the home view. Land there on every page load UNLESS the user just
+// clicked "+ New hand" (which sets the showdown_show_form_next flag) — in that
+// case stay on the form so they can enter their hand.
+let _showFormThisLoad = false;
+try {
+  if (sessionStorage.getItem("showdown_show_form_next") === "1") {
+    _showFormThisLoad = true;
+    sessionStorage.removeItem("showdown_show_form_next");
+  }
+} catch (_) {}
+if (!_showFormThisLoad) {
+  document.body.classList.add("viewing-myhands");
+  renderMyHandsList();
+}
+
+// Defer the new-hand boot setup AND the pill render to the next tick. The code
+// they trigger (applyUnit → refreshAll → autoScrollIfCollapsed) reads `let`/
+// `const` declarations from further down in this script, which are in the
+// temporal dead zone during synchronous module execution. setTimeout 0
+// schedules the work AFTER all top-level initialization has completed.
+setTimeout(() => {
+  try {
+    if (_showFormThisLoad) {
+      const _gs = loadGameSettings();
+      console.log("[showdown] new-hand boot — settings:", _gs);
+      if (_gs) {
+        state.gameType = _gs.gameType || "mtt";
+        document.querySelectorAll("#gameType button").forEach(b => b.classList.toggle("on", b.dataset.val === state.gameType));
+        const mtt = document.getElementById("mttBlock"); if (mtt) mtt.classList.toggle("hide", state.gameType !== "mtt");
+        const cb = document.getElementById("cashBlock"); if (cb) cb.classList.toggle("hide", state.gameType !== "cash");
+        if ($("#cashCurrency")) $("#cashCurrency").value = _gs.cashCurrency || "USD";
+        const u = _gs.unit || (state.gameType === "cash" ? "chips" : "bb");
+        if (typeof applyUnit === "function") applyUnit(u);
+        if (u === "chips" || state.gameType === "cash") {
+          if (_gs.bb) $("#bb").value = _gs.bb;
+          if (_gs.sb) $("#sb").value = _gs.sb;
+        }
+        try { $("#bb").dispatchEvent(new Event("input", { bubbles: true })); } catch (_) {}
+        try { $("#sb").dispatchEvent(new Event("input", { bubbles: true })); } catch (_) {}
+        if (typeof refreshAll === "function") refreshAll();
+        const gameSec = document.getElementById("sectionGame");
+        if (gameSec) gameSec.style.display = "none";
+        setTimeout(() => {
+          try { if (typeof wizAdvanceTo === "function") wizAdvanceTo(1); }
+          catch (e) { console.warn("[showdown] wizAdvanceTo failed:", e); }
+        }, 40);
+        setTimeout(() => {
+          try { openHeroInput(); }
+          catch (e) { console.warn("[showdown] openHeroInput failed:", e); }
+        }, 180);
+      } else {
+        console.log("[showdown] no saved game settings — staying on Game section");
+      }
+    }
+    if (typeof renderGameContextPill === "function") renderGameContextPill();
+  } catch (e) {
+    console.warn("[showdown] new-hand boot failed:", e);
+  }
+}, 0);
 // Auto-scroll the next-to-act area into view when a setup section just collapsed.
 // We compensate for the sticky header so the new section lands flush below it,
 // not hidden behind it (and not overscrolled past).
