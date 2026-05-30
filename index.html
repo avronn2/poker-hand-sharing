@@ -602,9 +602,12 @@
   /* Settings overlay anchors to the TOP of the viewport and slides DOWN.
      Different from action sheets (Hero/Villain/Checkout) because it's a
      config screen, not a quick action. Padding-top clears the sticky topbar
-     (~76px including safe-area) so the sheet sits BELOW it, not behind. */
+     (~76px including safe-area) so the sheet sits BELOW it, not behind.
+     Background is solid (matches page bg) so the underlying My hands / form
+     is fully hidden — looks like its own page, not an overlay. */
   #gameSettingsOverlay {
     align-items: flex-start !important;
+    background: var(--bg) !important;
   }
   #gameSettingsOverlay.on {
     padding-top: calc(env(safe-area-inset-top, 0px) + 76px);
@@ -2280,8 +2283,9 @@
         <div class="pick-grid hi-card-grid" id="vsdCardGrid"></div>
       </div>
     </div>
-    <div class="hi-foot">
-      <button type="button" class="btn-primary" id="vsdConfirm">Confirm</button>
+    <div class="hi-foot" style="display:flex;gap:10px;">
+      <button type="button" class="btn-secondary" id="vsdMucked" style="flex:1;">Mucked</button>
+      <button type="button" class="btn-primary" id="vsdConfirm" style="flex:1;">Confirm</button>
     </div>
   </div>
 </div>
@@ -2356,6 +2360,7 @@
       <li><button type="button" data-menu="newhand">New hand</button></li>
       <li><button type="button" data-menu="myhands">My hands<span class="menu-badge" id="myHandsMenuBadge" style="display:none">0</span></button></li>
       <li><button type="button" data-menu="tour">Example walkthrough</button></li>
+      <li><button type="button" data-menu="feedback">Send feedback</button></li>
       <li><button type="button" data-menu="gamesettings">Settings</button></li>
     </ul>
     <!-- Build/version marker so we can confirm production is on the latest deploy -->
@@ -2728,7 +2733,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.39";
+const APP_VERSION = "v1.2.42";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -3048,6 +3053,12 @@ $("#addVillain").addEventListener("click", (e) => {
 });
 
 /* ---------- showdown villains ---------- */
+// Auto-open suppress flag (var = hoisted, no TDZ). The villain showdown
+// overlay reads this in two places: renderShowdownVillains (to decide whether
+// to auto-open) and the X-close handler (to set it). Declared with var here
+// so any early call to renderShowdownVillains can read it as `undefined`/false
+// rather than throwing.
+var _sdSuppressAutoOpen = false;
 function renderShowdownVillains() {
   const wrap = $("#sdVillains");
   wrap.innerHTML = "";
@@ -3093,67 +3104,79 @@ function renderShowdownVillains() {
       wrap.appendChild(row);
       return;
     }
-    // Live villain at showdown — needs decision
+    // Live villain at showdown — needs decision.
+    // UX (v1.2.41+): NO Showed/Mucked segmented buttons. The 52-card overlay
+    // auto-opens (per backlog) and HAS a Mucked button next to Confirm. This
+    // row just reflects the current decision and is tappable to re-open.
     if (mttForceShow) {
       if (v.showdownResult === "mucked") v.showdownResult = "";
-      // Auto-select Showed if nothing chosen yet
+      // Auto-select Showed if nothing chosen yet (MTT all-in must show)
       if (!v.showdownResult) v.showdownResult = "showed";
     }
     const result = v.showdownResult || ""; // "showed" | "mucked" | ""
-    const muckDisabledAttr = mttForceShow ? "disabled" : "";
-    const muckStyleAttr = mttForceShow ? "style='opacity:0.35;cursor:not-allowed;'" : "";
     const mttNote = mttForceShow ? `<div style="font-size:11px;color:#f0c44d;margin-top:6px;">MTT all-in — cards must be shown.</div>` : "";
+    const tagText = result === "showed" ? "showed" : result === "mucked" ? "mucked" : "at showdown";
+    const tagClass = "tag";
+    let bodyHTML;
+    if (result === "mucked") {
+      bodyHTML = `<div class="sd-body" data-sdbody="${v.id}" style="display:flex;align-items:center;justify-content:center;padding:14px;border:1px dashed var(--line);border-radius:10px;color:var(--ink-dim);font-size:13px;">— cards not shown —</div>`;
+    } else {
+      bodyHTML = `
+        <div class="sd-body" data-sdbody="${v.id}">
+          <label>Hole cards</label>
+          <div class="hole-chips" data-vholes="${v.id}"></div>
+        </div>
+      `;
+    }
     row.innerHTML = `
       <div class="head">
         <span class="name">${posName}</span>
-        <span class="tag">at showdown</span>
+        <span class="${tagClass}">${tagText}</span>
       </div>
-      <div class="sd-seg" data-sdseg="${v.id}">
-        <button type="button" class="show ${result === 'showed' ? 'on' : ''}" data-val="showed">Showed cards</button>
-        <button type="button" class="muck ${result === 'mucked' ? 'on' : ''}" data-val="mucked" ${muckDisabledAttr} ${muckStyleAttr}>Mucked</button>
-      </div>
+      ${bodyHTML}
       ${mttNote}
-      <div class="sd-body" data-sdbody="${v.id}" ${result === 'showed' ? '' : "style='display:none'"}>
-        <label>Hole cards</label>
-        <div class="hole-chips" data-vholes="${v.id}"></div>
-      </div>
     `;
     wrap.appendChild(row);
-    renderHoleChips(row.querySelector(`[data-vholes="${v.id}"]`), [
-      { key: "v"+v.id+"_c1" },
-      { key: "v"+v.id+"_c2" },
-    ]);
-    // Hook segment buttons
-    row.querySelectorAll(`[data-sdseg="${v.id}"] button`).forEach(btn => {
-      btn.addEventListener("click", () => {
-        const val = btn.dataset.val;
-        v.showdownResult = val;
-        if (val === "mucked") {
-          state.cards["v"+v.id+"_c1"] = {};
-          state.cards["v"+v.id+"_c2"] = {};
-        }
-        renderShowdownVillains();
-        refreshShowdownStatus();
-        // When user picks "Showed cards", open the focused 52-card overlay so
-        // they can fill in both cards in one focused step.
-        if (val === "showed" && typeof openVillainShowdownCards === "function") {
-          setTimeout(() => openVillainShowdownCards(v.id), 100);
-        }
-      });
-    });
-    // Tapping the existing inline "Hole cards" area also opens the focused overlay
-    const sdBody = row.querySelector(`[data-sdbody="${v.id}"]`);
-    if (sdBody) {
-      const holesEl = sdBody.querySelector(".hole-chips");
-      if (holesEl) {
-        holesEl.style.cursor = "pointer";
-        holesEl.addEventListener("click", (e) => {
-          e.stopPropagation();
-          if (typeof openVillainShowdownCards === "function") openVillainShowdownCards(v.id);
-        }, true);   // capture, so it fires before the chips' own click handlers
-      }
+    if (result !== "mucked") {
+      renderHoleChips(row.querySelector(`[data-vholes="${v.id}"]`), [
+        { key: "v"+v.id+"_c1" },
+        { key: "v"+v.id+"_c2" },
+      ]);
     }
+    // Tapping anywhere on the row opens the focused 52-card overlay.
+    // Capture phase so we beat the inline chip popovers, and stopPropagation
+    // so the chips don't also try to handle the click underneath.
+    row.style.cursor = "pointer";
+    row.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (typeof openVillainShowdownCards === "function") {
+        _sdSuppressAutoOpen = false;   // user explicitly re-engaging
+        openVillainShowdownCards(v.id);
+      }
+    }, true);
   });
+  // AUTO-OPEN: find the first live villain at showdown with no decision and
+  // open the overlay for them. Suppressed if the user explicitly X-closed.
+  if (bettingLocked && !_sdSuppressAutoOpen && _vsdEditingVid == null) {
+    const undecided = state.villains.find(v => {
+      if (!v || !v.pos) return false;
+      if (folded.has("v" + v.id)) return false;
+      return !v.showdownResult;
+    });
+    if (undecided) {
+      setTimeout(() => {
+        if (_vsdEditingVid != null) return;
+        if (_sdSuppressAutoOpen) return;
+        // Re-check at fire time in case state shifted.
+        const stillUndecided = state.villains.find(v =>
+          v && v.pos && !folded.has("v" + v.id) && !v.showdownResult
+        );
+        if (stillUndecided && typeof openVillainShowdownCards === "function") {
+          openVillainShowdownCards(stillUndecided.id);
+        }
+      }, 220);
+    }
+  }
   wrap.querySelectorAll("[data-sdstr]").forEach(inp => {
     inp.addEventListener("input", () => {
       const id = +inp.dataset.sdstr;
@@ -7337,6 +7360,9 @@ $("#viAddAnother").addEventListener("click", () => {
    ========================================================================== */
 let _vsdEditingVid = null;
 let _vsdSelectedCards = [];
+// _sdSuppressAutoOpen is hoisted to the top of the script as `var` (see near
+// the top of the script) so renderShowdownVillains can reference it without
+// TDZ during early calls.
 
 function _vsdCardTakenByOthers(rank, suit, vid) {
   for (const k of ["hero1", "hero2"]) {
@@ -7427,18 +7453,53 @@ function updateVsdCardsPreview() {
   preview.style.color = "";
 }
 
-$("#vsdClose").addEventListener("click", closeVillainShowdownCards);
+$("#vsdClose").addEventListener("click", () => {
+  // Explicit dismissal — don't auto-open this villain (or any other) again
+  // until the user taps a row to re-engage.
+  _sdSuppressAutoOpen = true;
+  closeVillainShowdownCards();
+});
 $("#vsdConfirm").addEventListener("click", () => {
   if (_vsdSelectedCards.length < 2) { showToast("Pick both cards"); return; }
   if (_vsdEditingVid == null) { closeVillainShowdownCards(); return; }
   const c1 = _vsdSelectedCards[0], c2 = _vsdSelectedCards[1];
   state.cards["v"+_vsdEditingVid+"_c1"] = { rank: c1.rank, suit: c1.suit };
   state.cards["v"+_vsdEditingVid+"_c2"] = { rank: c2.rank, suit: c2.suit };
+  // Mark this villain as having shown cards (set explicitly so the next render
+  // skips them and auto-opens the NEXT undecided villain).
+  const v = state.villains.find(x => x.id === _vsdEditingVid);
+  if (v) v.showdownResult = "showed";
+  _sdSuppressAutoOpen = false;   // chain to the next undecided villain
+  closeVillainShowdownCards();
   if (typeof renderShowdownVillains === "function") renderShowdownVillains();
   if (typeof refreshShowdownStatus === "function") refreshShowdownStatus();
   if (typeof refreshGenerateButton === "function") refreshGenerateButton();
   haptic(12);
+});
+// MUCKED button — sets the current villain's showdownResult to "mucked",
+// clears any cards, closes overlay, and lets the next render auto-open the
+// next undecided villain (suppress flag cleared).
+$("#vsdMucked").addEventListener("click", () => {
+  if (_vsdEditingVid == null) { closeVillainShowdownCards(); return; }
+  // MTT rule: all-in villains must show. Block muck in that case.
+  const mttForceShow = state.gameType === "mtt" && (typeof anyoneAllIn === "function") && anyoneAllIn();
+  if (mttForceShow) {
+    showToast("MTT all-in — cards must be shown");
+    return;
+  }
+  const vid = _vsdEditingVid;
+  const v = state.villains.find(x => x.id === vid);
+  if (v) {
+    v.showdownResult = "mucked";
+    state.cards["v"+vid+"_c1"] = {};
+    state.cards["v"+vid+"_c2"] = {};
+  }
+  _sdSuppressAutoOpen = false;
   closeVillainShowdownCards();
+  if (typeof renderShowdownVillains === "function") renderShowdownVillains();
+  if (typeof refreshShowdownStatus === "function") refreshShowdownStatus();
+  if (typeof refreshGenerateButton === "function") refreshGenerateButton();
+  haptic(10);
 });
 
 /* ============================================================================
@@ -9633,6 +9694,18 @@ document.querySelectorAll("[data-menu]").forEach(b => {
     else if (which === "tour") startCoachTour();
     else if (which === "profile") openProfile();
     else if (which === "gamesettings") openGameSettings(false);
+    else if (which === "feedback") {
+      // mailto opens the user's default mail app pre-filled. Easiest channel
+      // for friends to report bugs without leaving the app.
+      const subject = encodeURIComponent("Showdown feedback — " + APP_VERSION);
+      const body = encodeURIComponent(
+        "Hi Nimrod,\n\n[Your feedback here — what went wrong, what was confusing, what you'd love to see]\n\n— Sent from Showdown " + APP_VERSION
+      );
+      const mail = "mailto:avronn@gmail.com?subject=" + subject + "&body=" + body;
+      // Use location.href so iOS Mail / macOS Mail / Gmail handler picks it up.
+      window.location.href = mail;
+      track && track("feedback_clicked", { from: "menu" });
+    }
     else if (which === "newhand") {
       // Only warn when the user is in the FORM with in-progress data (not on
       // My hands, where there's nothing in-flight). Always drops the flag so
@@ -10502,6 +10575,27 @@ async function doCopyRich() {
 async function doSavePng() {
   const blob = await getCurrentHandImageBlob();
   if (!blob) { showAlert("Tap Generate to build the hand first.", "Nothing to save"); return; }
+  // iOS: a regular <a download> doesn't save to Photos — files land in the
+  // Files app or just open in a tab. The Web Share API with a File routes
+  // through the system share sheet, which on iOS exposes "Save Image" →
+  // Photos. Android share sheets also offer "Save to Photos" / Drive.
+  // Use it whenever the browser supports sharing the file; fall back to the
+  // download path on desktop / older browsers.
+  if (navigator.share && window.File && navigator.canShare) {
+    try {
+      const file = new File([blob], `showdown-${Date.now()}.png`, { type: "image/png" });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Showdown — hand" });
+        haptic(10);
+        return;
+      }
+    } catch (e) {
+      // User cancelled the share sheet — that's not an error, just stop.
+      if (e && e.name === "AbortError") return;
+      // Any other failure: fall through to the download path below.
+    }
+  }
+  // Fallback: classic anchor-download (desktop browsers, older mobile).
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
