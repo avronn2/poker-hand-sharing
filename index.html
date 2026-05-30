@@ -795,9 +795,24 @@
   .hi-open-text { flex: 1; min-width: 0; text-align: left; display: flex; flex-direction: column; gap: 2px; }
   .hi-open-label { font-size: 14px; font-weight: 800; color: var(--ink); }
   .hi-open-hint { font-size: 11px; color: var(--ink-dim); }
-  /* The header (with helper pills) and stage-toggle inside the output overlay
-     are hidden — the user enters context via the checkout modal now. */
-  #overlay > .sheet > header { display: none !important; }
+  /* The output-overlay header carries the helper pills (Tournament Details,
+     Hand Title & Notes, Check preflop GTO). Previously hidden in favour of the
+     checkout modal, but the plain Save image / Share flow needs them too — the
+     underlying canvas render already drives titleSub / title / caption from
+     this state, so without these pills the user had no way to put any of that
+     on the picture. Closebtn inside the header is still hidden (the floating
+     close handles dismissal). Stage-toggle (Share up to: preflop/flop/...) is
+     hidden until we decide whether to bring it back. */
+  #overlay > .sheet > header {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
+    padding-right: 56px;   /* room for the floating-close on the right */
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+  }
+  #overlay > .sheet > header .closebtn { display: none !important; }
   #overlay > .sheet #stageToggle { display: none !important; }
   /* Add a small floating close button at the top-right so the user can dismiss. */
   #overlay > .sheet { position: relative; }
@@ -1922,41 +1937,50 @@
     font-size: 13px;
     font-weight: 600;
   }
-  /* Preview row at top of card picker — uses the casino-chip visual */
+  /* Board picker preview — felt-style strip with card-shaped slots, mimicking
+     the look of the canvas-rendered board so the user sees the layout they
+     are building. Empty slots are dashed outlines; filled slots show the card;
+     the current slot gets a teal halo. */
   .pick-preview {
-    display: flex; gap: 14px; justify-content: center;
-    padding: 4px 0 16px;
-    border-bottom: 1px solid var(--line);
-    margin-bottom: 12px;
+    display: flex; gap: 12px; justify-content: center; align-items: center;
+    padding: 18px 14px;
+    border-radius: 14px;
+    margin: 2px 0 14px;
+    background:
+      radial-gradient(ellipse at 50% 30%, #2f9676 0%, #1b6650 60%, #103a2e 100%);
+    border: 1px solid rgba(0,0,0,0.45);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      inset 0 -3px 14px rgba(0,0,0,0.45),
+      0 2px 8px rgba(0,0,0,0.35);
   }
   .pick-preview .slot {
-    width: 64px; height: 64px;
-    border-radius: 50%;
-    background: var(--chip-felt);
-    border: 2px solid rgba(255,255,255,0.18);
+    width: 48px; height: 68px;
+    border-radius: 8px;
+    background: #fafafa;
+    border: 1.5px solid rgba(0,0,0,0.35);
     display: inline-flex; align-items: center; justify-content: center;
-    color: var(--ink);
-    font-size: 20px; font-weight: 800;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.35), inset 0 -2px 0 rgba(0,0,0,0.2);
-    position: relative;
+    color: #1a1a2e;
+    font-size: 18px; font-weight: 800;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.4);
     letter-spacing: -0.5px;
+    position: relative;
   }
-  .pick-preview .slot::before {
-    content: ""; position: absolute; inset: 4px;
-    border: 2px dashed rgba(255,255,255,0.22); border-radius: 50%;
-    pointer-events: none;
-  }
+  /* Suppress the round inner-ring pseudo from the chip era */
+  .pick-preview .slot::before { display: none; }
+  /* Make the suit glyph inside the card a touch bigger so it reads at this size */
+  .pick-preview .slot span { font-size: 15px; margin-left: 1px; }
   .pick-preview .slot.empty {
-    background: var(--chip-felt-empty);
-    border-color: var(--line);
-    border-style: dashed;
-    color: var(--ink-dim);
-    box-shadow: none;
+    background: rgba(0,0,0,0.18);
+    border: 2px dashed rgba(255,255,255,0.32);
+    color: rgba(255,255,255,0.55);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.45);
   }
-  .pick-preview .slot.empty::before { border-color: transparent; }
   .pick-preview .slot.current {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(94,234,212,0.3), 0 4px 10px rgba(0,0,0,0.3);
+    box-shadow:
+      0 0 0 3px rgba(94,234,212,0.35),
+      0 4px 10px rgba(0,0,0,0.45);
   }
 </style>
 <!-- PostHog analytics — initialised only on the live domain so local/dev testing never pollutes the data. -->
@@ -2028,11 +2052,11 @@
   <div class="row" id="blindsRow" style="margin-top:12px;display:none;">
     <div>
       <label>Big blind<span class="req-badge">required</span></label>
-      <input type="text" id="bb" inputmode="decimal" autocomplete="off" placeholder="1,000">
+      <input type="text" id="bb" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="1,000">
     </div>
     <div>
       <label>Small blind<span class="opt-note">optional</span></label>
-      <input type="text" id="sb" inputmode="decimal" autocomplete="off" placeholder="auto = ½ BB">
+      <input type="text" id="sb" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="auto = ½ BB">
     </div>
   </div>
 
@@ -2070,7 +2094,7 @@
     </div>
     <div>
       <label id="heroStackLabel">Stack (chips)</label>
-      <input type="text" id="heroStack" inputmode="decimal" autocomplete="off" placeholder="Enter your stack">
+      <input type="text" id="heroStack" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="Enter your stack">
     </div>
   </div>
 
@@ -2169,7 +2193,7 @@
       <div class="hi-section">
         <div class="hi-label">Your stack <span id="hiStackUnit" style="font-size:13px;font-weight:600;letter-spacing:0;opacity:.65;"></span></div>
         <div class="hi-stack-wrap">
-          <input type="text" inputmode="decimal" autocomplete="off" id="hiStack" placeholder="Input your stack size">
+          <input type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" id="hiStack" placeholder="Input your stack size">
           <svg class="hi-stack-pencil" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 20h9"></path>
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
@@ -2213,7 +2237,7 @@
       <div class="hi-section">
         <div class="hi-label">Villain stack <span id="viStackUnit" style="font-size:13px;font-weight:600;letter-spacing:0;opacity:.65;"></span></div>
         <div class="hi-stack-wrap">
-          <input type="text" inputmode="decimal" autocomplete="off" id="viStack" placeholder="Input villain's stack">
+          <input type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" id="viStack" placeholder="Input villain's stack">
           <svg class="hi-stack-pencil" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 20h9"></path>
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
@@ -2254,8 +2278,8 @@
       <div class="hi-section" id="gsBlindsSection" style="display:none">
         <div class="hi-label">Blinds <span style="font-size:13px;font-weight:600;letter-spacing:0;opacity:.65;">SB / BB</span></div>
         <div style="display:flex;gap:10px;">
-          <input type="text" inputmode="decimal" id="gsSb" placeholder="Small blind" style="flex:1;box-sizing:border-box;font-size:18px;padding:12px 14px;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:inherit;">
-          <input type="text" inputmode="decimal" id="gsBb" placeholder="Big blind" style="flex:1;box-sizing:border-box;font-size:18px;padding:12px 14px;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:inherit;">
+          <input type="text" inputmode="decimal" enterkeyhint="done" id="gsSb" placeholder="Small blind" style="flex:1;box-sizing:border-box;font-size:18px;padding:12px 14px;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:inherit;">
+          <input type="text" inputmode="decimal" enterkeyhint="done" id="gsBb" placeholder="Big blind" style="flex:1;box-sizing:border-box;font-size:18px;padding:12px 14px;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:inherit;">
         </div>
       </div>
       <div class="hi-section" id="gsCashCurSection" style="display:none">
@@ -2276,10 +2300,11 @@
 <!-- VILLAIN SHOWDOWN CARDS OVERLAY (focused 52-card grid for a single villain) -->
 <div class="overlay" id="vsdCardsOverlay">
   <div class="sheet hero-input-sheet">
-    <button type="button" class="floating-close" id="vsdClose" aria-label="Close">&times;</button>
+    <!-- No X close button: the only way out is Confirm (with 2 cards) or
+         Mucked. Forces a decision so no villain is left ambiguous. -->
     <div class="hi-body">
       <div class="hi-section">
-        <div class="hi-label"><span id="vsdPos">Villain</span> showed <span id="vsdCardsPreview" style="float:right;font-weight:700;font-size:16px;letter-spacing:0;text-transform:none;"></span></div>
+        <div class="hi-label">Villain <span id="vsdPos">BTN</span> showed <span id="vsdCardsPreview" style="float:right;font-weight:700;font-size:16px;letter-spacing:0;text-transform:none;"></span></div>
         <div class="pick-grid hi-card-grid" id="vsdCardGrid"></div>
       </div>
     </div>
@@ -2478,7 +2503,7 @@
             <select id="ckOtType"></select>
             <label class="ck-label">Buy-in <span style="opacity:.5;font-weight:400">(optional)</span></label>
             <div style="display:flex;gap:6px">
-              <input type="text" inputmode="decimal" id="ckOtAmt" placeholder="200" style="flex:1">
+              <input type="text" inputmode="decimal" enterkeyhint="done" id="ckOtAmt" placeholder="200" style="flex:1">
               <select id="ckOtCur" style="flex:0 0 70px"></select>
             </div>
             <label class="ck-label">Stage</label>
@@ -2675,6 +2700,19 @@ const $$ = sel => Array.from(document.querySelectorAll(sel));
 // Invalid keystrokes/pastes are BLOCKED (preventDefault on beforeinput) — we
 // don't try to silently fix the user's intent. A toast + red border flash
 // tells them what's wrong.
+// iOS: pressing Return on any decimal input blurs it, which dismisses the
+// numeric keyboard. Combined with `enterkeyhint="done"` on the markup, this
+// gives the user a clear "Done" button so they don't have to hunt for the V
+// (keyboard-hide) glyph in the corner.
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  const el = e.target;
+  if (!el || el.tagName !== "INPUT") return;
+  if ((el.inputMode || "").toLowerCase() !== "decimal") return;
+  e.preventDefault();
+  el.blur();
+}, true);
+
 const _DECIMAL_RE = /^\d*(?:\.\d?)?$/;
 let _lastDecimalErrorAt = 0;
 document.addEventListener("beforeinput", (e) => {
@@ -2733,7 +2771,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.42";
+const APP_VERSION = "v1.2.45";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -4540,7 +4578,7 @@ function renderInlinePrompt(player, rt) {
       <div class="raise-row">
         <div class="ropt amount">
           <span class="amt-icon" aria-hidden="true">✎</span>
-          <input type="text" inputmode="decimal" autocomplete="off" id="raiseAmt" placeholder="Custom — tap to type">
+          <input type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" id="raiseAmt" placeholder="Custom — tap to type">
           <button type="button" id="raiseGo">${canCheck ? "Bet" : "Raise"}</button>
         </div>
       </div>
@@ -4933,11 +4971,51 @@ function setPickerError(msg) {
 }
 
 function renderPicker() {
-  // Preview row: show all slots in the current sequence (if any).
+  // Preview row: when picking BOARD cards, render the full cumulative board on
+  // felt — flop (3) + turn (when at turn or river) + river (when at river).
+  // This way picking the turn shows [F1 F2 F3 ·] and picking the river shows
+  // [F1 F2 F3 T R·]. Empty slots are dashed outlines; the current one gets
+  // the teal halo; previously-entered cards are static.
+  // For non-board (hole-card) pickers we keep the old behavior: only show the
+  // preview when the sequence has 2+ slots.
   const previewEl = $("#pickPreview");
   const seq = (pickerTarget && pickerTarget.sequence) ? pickerTarget.sequence : null;
   const seqIdx = (pickerTarget && pickerTarget.seqIdx) || 0;
-  if (seq && seq.length > 1) {
+  const targetKind = pickerTarget && pickerTarget.kind;
+  const targetStreet = pickerTarget && pickerTarget.streetName;
+  const isBoardPicker = targetKind === "board" || (seq && seq[0] && seq[0].kind === "board");
+  if (isBoardPicker) {
+    // Build the cumulative slot list.
+    const slots = [];
+    for (let i = 0; i < 3; i++) slots.push({ kind: "board", streetName: "flop", idx: i });
+    const boardStreet = targetStreet || (seq && seq[seqIdx] && seq[seqIdx].streetName) || "flop";
+    if (boardStreet === "turn" || boardStreet === "river") {
+      slots.push({ kind: "board", streetName: "turn", idx: 0 });
+    }
+    if (boardStreet === "river") {
+      slots.push({ kind: "board", streetName: "river", idx: 0 });
+    }
+    previewEl.innerHTML = "";
+    previewEl.style.display = "flex";
+    slots.forEach((slot) => {
+      // Is this slot the one currently being picked?
+      const inSeq = seq && seq.some((s, i) =>
+        i === seqIdx && s.kind === "board" && s.streetName === slot.streetName && s.idx === slot.idx
+      );
+      const isCurrent = inSeq || (
+        targetKind === "board" && targetStreet === slot.streetName && pickerTarget.idx === slot.idx
+      );
+      const card = isCurrent
+        ? (pickerTmp.rank || pickerTmp.suit ? { rank: pickerTmp.rank, suit: pickerTmp.suit } : null)
+        : readCardFromTarget(slot);
+      const div = document.createElement("div");
+      const filled = card && card.rank && card.suit;
+      div.className = "slot" + (filled ? "" : " empty") + (isCurrent ? " current" : "");
+      div.innerHTML = filled ? cardHTML(card) : (isCurrent ? inProgressGlyph(card) : "");
+      previewEl.appendChild(div);
+    });
+  } else if (seq && seq.length > 1) {
+    // Original hole-card behavior: only show preview when picking a multi-slot sequence.
     previewEl.innerHTML = "";
     previewEl.style.display = "flex";
     seq.forEach((slot, i) => {
@@ -5510,7 +5588,7 @@ function showTourneyForm() {
     <select id="otType">${typeOpts}</select>
     <label>Buy-in <span style="opacity:.5;font-weight:400;">(optional)</span></label>
     <div class="buyin-row">
-      <input type="text" inputmode="decimal" autocomplete="off" id="otAmt" placeholder="200" value="${amtVal.replace(/"/g,'&quot;')}">
+      <input type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" id="otAmt" placeholder="200" value="${amtVal.replace(/"/g,'&quot;')}">
       <select id="otCur">${curOpts}</select>
     </div>
     <label>Stage</label>
@@ -7388,7 +7466,9 @@ function openVillainShowdownCards(vid) {
   _vsdEditingVid = vid;
   const v = state.villains.find(x => x.id === vid);
   if (!v) return;
-  document.getElementById("vsdPos").textContent = v.pos || "Villain";
+  // Just the position (BTN, BB, etc.) — the static word "Villain" already
+  // sits before this span in the markup, so we render "Villain BTN showed".
+  document.getElementById("vsdPos").textContent = v.pos || "?";
   _vsdSelectedCards = [];
   const c1 = state.cards["v"+vid+"_c1"];
   const c2 = state.cards["v"+vid+"_c2"];
@@ -7453,12 +7533,9 @@ function updateVsdCardsPreview() {
   preview.style.color = "";
 }
 
-$("#vsdClose").addEventListener("click", () => {
-  // Explicit dismissal — don't auto-open this villain (or any other) again
-  // until the user taps a row to re-engage.
-  _sdSuppressAutoOpen = true;
-  closeVillainShowdownCards();
-});
+// No X close button: the overlay can only be dismissed by Confirm (with 2
+// cards) or Mucked, both of which set a decision and chain to the next
+// undecided villain. This forces a definite answer per villain at showdown.
 $("#vsdConfirm").addEventListener("click", () => {
   if (_vsdSelectedCards.length < 2) { showToast("Pick both cards"); return; }
   if (_vsdEditingVid == null) { closeVillainShowdownCards(); return; }
@@ -10575,27 +10652,11 @@ async function doCopyRich() {
 async function doSavePng() {
   const blob = await getCurrentHandImageBlob();
   if (!blob) { showAlert("Tap Generate to build the hand first.", "Nothing to save"); return; }
-  // iOS: a regular <a download> doesn't save to Photos — files land in the
-  // Files app or just open in a tab. The Web Share API with a File routes
-  // through the system share sheet, which on iOS exposes "Save Image" →
-  // Photos. Android share sheets also offer "Save to Photos" / Drive.
-  // Use it whenever the browser supports sharing the file; fall back to the
-  // download path on desktop / older browsers.
-  if (navigator.share && window.File && navigator.canShare) {
-    try {
-      const file = new File([blob], `showdown-${Date.now()}.png`, { type: "image/png" });
-      if (navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: "Showdown — hand" });
-        haptic(10);
-        return;
-      }
-    } catch (e) {
-      // User cancelled the share sheet — that's not an error, just stop.
-      if (e && e.name === "AbortError") return;
-      // Any other failure: fall through to the download path below.
-    }
-  }
-  // Fallback: classic anchor-download (desktop browsers, older mobile).
+  // Plain anchor download. NO share sheet — per user direction the share
+  // sheet was unwanted even though it was the only path to Photos on iOS.
+  // Tradeoff: on iOS the file lands in the Files app (not Photos); on Android
+  // it lands in Downloads, which most galleries auto-pick up. The Share
+  // button below this one is the path for users who do want the share sheet.
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
