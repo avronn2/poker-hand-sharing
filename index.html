@@ -590,15 +590,115 @@
      with content-fit height; the main form is dimmed behind via the regular
      .overlay backdrop. Teal accent border + subtle glow frames the whole module
      so it reads as "the input that matters right now". */
+  /* WIZARD-FLOW INPUT MODALS (Hero / Villain / Showdown-cards). Per user:
+     "When entering inputs, only the focused module should be visible — a
+     big box in the middle, fully framed." Centered in viewport, solid
+     backdrop hides the form behind, full teal frame on all four sides with
+     all four corners rounded. */
+  #heroInputOverlay.on,
+  #villainInputOverlay.on,
+  #vsdCardsOverlay.on {
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);   /* solid — form behind is fully hidden */
+    /* Topbar (z-index 150 > overlay 100) stays visible above the modal.
+       Padding-top clears it so the modal doesn't slip behind. */
+    padding:
+      calc(env(safe-area-inset-top, 0px) + 92px)
+      16px
+      calc(env(safe-area-inset-bottom, 0px) + 16px);
+  }
   #heroInputOverlay > .sheet,
   #villainInputOverlay > .sheet,
   #vsdCardsOverlay > .sheet {
-    max-height: 92vh;
+    width: 100%;
+    max-width: 480px;
+    max-height: 100%;   /* cap to overlay's padded content area */
     height: auto;
     border: 1.5px solid var(--accent);
-    border-bottom: 0;
-    box-shadow: 0 -10px 36px rgba(0,0,0,0.55), 0 0 24px rgba(94,234,212,0.18);
+    border-radius: 18px;   /* all four corners rounded — full card */
+    box-shadow:
+      0 12px 40px rgba(0,0,0,0.55),
+      0 0 28px rgba(94,234,212,0.22);
+    /* Sit above the ghost-summary backdrop */
+    position: relative;
+    z-index: 2;
   }
+
+  /* Faint summary backdrop — shows previously-entered inputs as ghost text
+     behind the active modal. Tapping a section reopens its input. Positioned
+     absolutely inside the overlay so the modal floats on top. */
+  .input-ghost-bg {
+    position: absolute;
+    inset: 0;
+    padding:
+      calc(env(safe-area-inset-top, 0px) + 92px)
+      16px
+      calc(env(safe-area-inset-bottom, 0px) + 16px);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+    overflow-y: auto;
+    z-index: 1;
+    pointer-events: none;     /* let modal click-through except on .ghost-card */
+  }
+  .input-ghost-bg .ghost-card {
+    width: 100%;
+    max-width: 480px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 18px;
+    opacity: 0.34;
+    transition: opacity 0.18s, border-color 0.18s, transform 0.08s;
+    pointer-events: auto;     /* tap-to-edit */
+    cursor: pointer;
+  }
+  .input-ghost-bg .ghost-card:hover {
+    opacity: 0.55;
+    border-color: var(--accent);
+  }
+  .input-ghost-bg .ghost-card:active { transform: scale(0.99); }
+  .input-ghost-bg .ghost-label {
+    font-size: 10px; font-weight: 800; color: var(--ink-dim);
+    text-transform: uppercase; letter-spacing: 1.2px;
+    margin-bottom: 4px;
+  }
+  .input-ghost-bg .ghost-line {
+    font-size: 15px; font-weight: 700; color: var(--ink);
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    line-height: 1.3;
+  }
+  .input-ghost-bg .ghost-line .ghost-pos {
+    color: var(--ink-dim); font-weight: 700;
+  }
+  .input-ghost-bg .ghost-line .ghost-cards { display: inline-flex; gap: 3px; }
+  .input-ghost-bg .ghost-line .ci {
+    width: 24px !important; height: 24px !important;
+    font-size: 10px !important;
+    vertical-align: -6px !important;
+    margin: 0 !important;
+  }
+  .input-ghost-bg .ghost-empty {
+    color: var(--ink-dim); font-style: italic; opacity: 0.6;
+  }
+
+  /* Undo strip inside the inline action wizard — small dashed pill that
+     reverts the last action via rollbackToStep. Hidden when no actions exist
+     on the active street. */
+  .wiz-undo-strip {
+    margin-top: 8px;
+    display: flex; justify-content: center;
+  }
+  .wiz-undo {
+    background: transparent; color: var(--ink-dim);
+    border: 1px dashed var(--line); border-radius: 8px;
+    padding: 8px 14px; font: inherit; font-size: 12px; font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+  }
+  .wiz-undo:hover { color: var(--ink); border-color: var(--accent); }
   /* Settings overlay anchors to the TOP of the viewport and slides DOWN.
      Different from action sheets (Hero/Villain/Checkout) because it's a
      config screen, not a quick action. Padding-top clears the sticky topbar
@@ -1227,11 +1327,20 @@
   /* Section headers + NEW badge in My hands list */
   .my-hand-section-head {
     display: flex; align-items: center; justify-content: space-between; gap: 8px;
-    margin: 14px 4px 8px;
-    font-size: 11px; font-weight: 800; color: var(--ink-dim);
-    text-transform: uppercase; letter-spacing: 0.8px;
+    margin: 18px 4px 10px;
+    font-size: 12px; font-weight: 800; color: var(--brand);
+    text-transform: uppercase; letter-spacing: 1px;
   }
   .my-hand-section-head:first-child { margin-top: 4px; }
+  .my-hand-section-head > span:first-child {
+    /* small bullet before the section label so it reads as a heading marker */
+    position: relative; padding-left: 12px;
+  }
+  .my-hand-section-head > span:first-child::before {
+    content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+    width: 4px; height: 14px; border-radius: 2px;
+    background: var(--brand);
+  }
   .my-hand-section-head .my-hand-section-count {
     background: var(--panel); color: var(--ink-dim);
     border: 1px solid var(--line); border-radius: 999px;
@@ -1610,54 +1719,102 @@
   }
   .my-hands-empty p { margin: 0 0 6px; font-size: 14px; }
   .my-hands-empty .sub { font-size: 13px; color: var(--ink-dim); }
+  /* Row: 2-column grid (left main / right meta column). The right column has
+     date on the top row and outcome pill + trash side-by-side on the bottom
+     row. Compact overall — tighter padding so the row reads as one glance. */
   .my-hand-row {
     background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
     border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 12px 14px;
+    border-radius: 12px;
+    padding: 10px 12px;
     display: grid;
     grid-template-columns: 1fr auto;
-    gap: 6px;
+    column-gap: 12px;
     align-items: center;
     cursor: pointer;
     transition: border-color 0.15s, transform 0.08s;
   }
   .my-hand-row:hover { border-color: var(--accent); }
   .my-hand-row:active { transform: scale(0.99); }
-  .my-hand-row .row-main { min-width: 0; }
+  .my-hand-row .row-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  /* Title sits ABOVE the card line when present. Standard prominent size. */
   .my-hand-row .row-title {
-    font-weight: 700; font-size: 14px; color: var(--ink);
+    font-size: 14px; font-weight: 800; color: var(--ink);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    line-height: 1.25;
   }
-  .my-hand-row .row-meta {
-    font-size: 12px; color: var(--ink-dim);
-    margin-top: 4px;
-    display: flex; align-items: center; gap: 8px;
+  /* Card line — always shown, always prominent. Position + inline-card chips
+     + context (Cash / MTT) on a single row. The same size regardless of
+     whether the hand has a title. */
+  .my-hand-row .row-cardline {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 14px; font-weight: 700; color: var(--ink);
     flex-wrap: wrap;
+    line-height: 1.15;
   }
-  .my-hand-row .row-meta .ci {
-    /* shrink inline chips a tad in list rows */
-    width: 22px !important; height: 22px !important;
-    font-size: 10px !important;
+  .my-hand-row .row-cardline .row-pos {
+    color: var(--ink-dim); font-weight: 700;
+  }
+  .my-hand-row .row-cardline .row-cards { display: inline-flex; gap: 2px; }
+  .my-hand-row .row-cardline .row-ctx {
+    color: var(--brand); font-weight: 700; letter-spacing: 0.3px;
+    font-size: 12px;
+  }
+  .my-hand-row .row-cardline .row-sep { opacity: 0.45; padding: 0 1px; font-weight: 400; }
+  .my-hand-row .row-cardline .row-untitled {
+    color: var(--ink-dim); font-style: italic; font-weight: 500;
+  }
+  /* Inline card chips at consistent prominent size — same dimensions whether
+     the hand has a title or not (per user direction). */
+  .my-hand-row .row-cardline .ci {
+    width: 26px !important; height: 26px !important;
+    font-size: 11px !important;
+    vertical-align: -7px !important;
     margin: 0 !important;
-    vertical-align: -6px !important;
   }
-  .my-hand-row .row-meta .outcome-win { color: var(--accent); font-weight: 700; }
-  .my-hand-row .row-meta .outcome-lose { color: var(--red); font-weight: 700; }
-  .my-hand-row .row-meta .outcome-chop { color: var(--warn); font-weight: 700; }
-  .my-hand-row .row-context {
-    font-size: 11px; color: var(--brand);
-    margin-top: 4px;
-    font-weight: 600;
-    letter-spacing: 0.2px;
+  /* Right column: date on top, outcome + trash on the bottom row. */
+  .my-hand-row .row-right {
+    display: flex; flex-direction: column; align-items: flex-end;
+    gap: 4px; flex: 0 0 auto;
+  }
+  .my-hand-row .row-right .row-dt {
+    font-size: 11px; color: var(--ink-dim);
+    white-space: nowrap;
+  }
+  .my-hand-row .row-right .row-actions {
+    display: flex; align-items: center; gap: 8px;
+  }
+  /* Outcome pill */
+  .my-hand-row .row-outcome {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px; font-weight: 800;
+    white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .my-hand-row .row-outcome.outcome-win {
+    color: var(--accent);
+    background: rgba(94,234,212,0.10);
+    border-color: rgba(94,234,212,0.30);
+  }
+  .my-hand-row .row-outcome.outcome-lose {
+    color: var(--red);
+    background: rgba(255,107,138,0.10);
+    border-color: rgba(255,107,138,0.30);
+  }
+  .my-hand-row .row-outcome.outcome-chop {
+    color: var(--warn);
+    background: rgba(245,176,65,0.10);
+    border-color: rgba(245,176,65,0.30);
   }
   .my-hand-row .row-trash {
     background: transparent; border: 1px solid var(--line);
-    border-radius: 8px; padding: 8px;
+    border-radius: 7px; padding: 6px;
     color: var(--ink-dim); cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center;
-    width: 34px; height: 34px;
+    width: 28px; height: 28px;
     transition: color 0.15s, border-color 0.15s, background 0.15s;
+    flex: 0 0 auto;
   }
   .my-hand-row .row-trash:hover {
     color: var(--red); border-color: var(--red);
@@ -1704,13 +1861,70 @@
     gap: 12px;
   }
   .wiz-stats .meta { color: var(--ink-dim); text-align: right; font-size: 12px; }
+  /* Inline board on flop/turn/river streets: same green-felt strip as the
+     picker preview, so the user sees the same visual whether they're picking
+     cards or reviewing the action. Card faces below match the canvas-rendered
+     image style (paper sheen + crisp border + drop shadow). */
   .wiz-board {
-    display: flex; gap: 12px; justify-content: center; padding: 14px 16px;
-    background: var(--panel);
-    border-bottom: 1px solid var(--line);
+    display: flex; gap: 12px; justify-content: center; align-items: center;
+    padding: 16px 14px;
+    margin: 4px 12px 12px;
+    border-radius: 14px;
+    background:
+      radial-gradient(ellipse at 50% 30%, #2f9676 0%, #1b6650 60%, #103a2e 100%);
+    border: 1px solid rgba(0,0,0,0.45);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      inset 0 -3px 14px rgba(0,0,0,0.45),
+      0 2px 8px rgba(0,0,0,0.35);
     flex-wrap: wrap;
   }
   .wiz-board.editable .cardchip { cursor: pointer; }
+  /* Canvas-style card visual — used for the inline board cards and the
+     picker-preview slots. Mirrors the paper-sheen + crisp dark border + drop
+     shadow the canvas renderer draws, so the form preview looks like the
+     shareable image. Rank stacks above suit (flex column on the bare-text +
+     <span> children of cardHTML()). */
+  .wiz-board .cardchip,
+  .pick-preview .slot {
+    width: 48px; height: 68px;
+    border-radius: 6px;
+    background: linear-gradient(180deg, #ffffff 0%, #f7f1e7 50%, #ddd4c1 100%);
+    border: 1px solid rgba(20,16,40,0.55);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1px;
+    color: #1a1a2e;
+    font-weight: 800;
+    font-size: 17px;
+    line-height: 1;
+    letter-spacing: -0.5px;
+    position: relative;
+    box-shadow:
+      0 3px 6px rgba(0,0,0,0.45),
+      inset 0 1px 0 rgba(255,255,255,0.85);
+    transition: transform 0.08s ease;
+  }
+  /* Suppress the round inner-ring pseudo-element inherited from .cardchip / chip era */
+  .wiz-board .cardchip::before,
+  .pick-preview .slot::before { display: none; }
+  .wiz-board .cardchip > span,
+  .pick-preview .slot > span {
+    font-size: 17px; line-height: 1;
+  }
+  .wiz-board .cardchip.empty,
+  .pick-preview .slot.empty {
+    background: rgba(0,0,0,0.20);
+    border: 1.5px dashed rgba(255,255,255,0.32);
+    color: rgba(255,255,255,0.55);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.45);
+  }
+  .wiz-board .cardchip:hover { transform: translateY(-1px); }
+  .wiz-board .cardchip:active { transform: translateY(0) scale(0.97); }
+  /* Red suit on paper face: a deeper red than --red (which is the pinkish hue used on dark bgs) */
+  .wiz-board .cardchip > span.red,
+  .pick-preview .slot > span.red {
+    color: #c5193a;
+  }
 
   /* Casino-chip card visual — used everywhere (hero, villain, board, picker preview, output) */
   .cardchip {
@@ -1937,49 +2151,35 @@
     font-size: 13px;
     font-weight: 600;
   }
-  /* Board picker preview — felt-style strip with card-shaped slots, mimicking
-     the look of the canvas-rendered board so the user sees the layout they
-     are building. Empty slots are dashed outlines; filled slots show the card;
-     the current slot gets a teal halo. */
+  /* Default preview: neutral background — used for hero / villain hole-card
+     picking. We don't put those on felt because the felt is the board / table
+     visual, not the player visual. */
   .pick-preview {
     display: flex; gap: 12px; justify-content: center; align-items: center;
+    padding: 12px 0 16px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 12px;
+  }
+  /* Felt variant: only applied when the picker target is a BOARD card. Adds
+     the green-felt strip so the slots sit on the same surface as the canvas
+     image. JS (renderPicker) toggles this class. */
+  .pick-preview.felt {
     padding: 18px 14px;
     border-radius: 14px;
+    border: 1px solid rgba(0,0,0,0.45);
+    border-bottom: 1px solid rgba(0,0,0,0.45);
     margin: 2px 0 14px;
     background:
       radial-gradient(ellipse at 50% 30%, #2f9676 0%, #1b6650 60%, #103a2e 100%);
-    border: 1px solid rgba(0,0,0,0.45);
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,0.06),
       inset 0 -3px 14px rgba(0,0,0,0.45),
       0 2px 8px rgba(0,0,0,0.35);
   }
-  .pick-preview .slot {
-    width: 48px; height: 68px;
-    border-radius: 8px;
-    background: #fafafa;
-    border: 1.5px solid rgba(0,0,0,0.35);
-    display: inline-flex; align-items: center; justify-content: center;
-    color: #1a1a2e;
-    font-size: 18px; font-weight: 800;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.4);
-    letter-spacing: -0.5px;
-    position: relative;
-  }
-  /* Suppress the round inner-ring pseudo from the chip era */
-  .pick-preview .slot::before { display: none; }
-  /* Make the suit glyph inside the card a touch bigger so it reads at this size */
-  .pick-preview .slot span { font-size: 15px; margin-left: 1px; }
-  .pick-preview .slot.empty {
-    background: rgba(0,0,0,0.18);
-    border: 2px dashed rgba(255,255,255,0.32);
-    color: rgba(255,255,255,0.55);
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.45);
-  }
   .pick-preview .slot.current {
     border-color: var(--accent);
     box-shadow:
-      0 0 0 3px rgba(94,234,212,0.35),
+      0 0 0 3px rgba(94,234,212,0.4),
       0 4px 10px rgba(0,0,0,0.45);
   }
 </style>
@@ -2213,6 +2413,10 @@
 
 <!-- VILLAIN INPUT OVERLAY (focused: position + stack + optional notes) -->
 <div class="overlay" id="villainInputOverlay">
+  <!-- Faint summary of completed inputs (hero + any saved villains). Tap any
+       summary block to reopen its input modal. Populated by JS when the
+       overlay opens. -->
+  <div class="input-ghost-bg" id="viGhostBg"></div>
   <div class="sheet hero-input-sheet">
     <button type="button" class="floating-close" id="viClose" aria-label="Close">&times;</button>
     <div class="hi-body">
@@ -2299,6 +2503,9 @@
 
 <!-- VILLAIN SHOWDOWN CARDS OVERLAY (focused 52-card grid for a single villain) -->
 <div class="overlay" id="vsdCardsOverlay">
+  <!-- Faint hero + villains summary backdrop. Tap any ghost card to close the
+       picker and reopen that section's input. -->
+  <div class="input-ghost-bg" id="vsdGhostBg"></div>
   <div class="sheet hero-input-sheet">
     <!-- No X close button: the only way out is Confirm (with 2 cards) or
          Mucked. Forces a decision so no villain is left ambiguous. -->
@@ -2771,7 +2978,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.45";
+const APP_VERSION = "v1.2.64";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -3152,8 +3359,16 @@ function renderShowdownVillains() {
       if (!v.showdownResult) v.showdownResult = "showed";
     }
     const result = v.showdownResult || ""; // "showed" | "mucked" | ""
+    // "showed" only counts as decided once both hole cards are actually filled.
+    // In MTT all-in we auto-force showdownResult to "showed" — but cards may
+    // still be unentered. Treat that case as "at showdown" so the row signals
+    // an outstanding action and the auto-open below pops the picker.
+    const _vHole = (typeof getVillainHole === "function") ? getVillainHole(v) : [];
+    const hasCards = _vHole.length === 2;
     const mttNote = mttForceShow ? `<div style="font-size:11px;color:#f0c44d;margin-top:6px;">MTT all-in — cards must be shown.</div>` : "";
-    const tagText = result === "showed" ? "showed" : result === "mucked" ? "mucked" : "at showdown";
+    const tagText = (result === "showed" && hasCards) ? "showed"
+                  : result === "mucked" ? "mucked"
+                  : "at showdown";
     const tagClass = "tag";
     let bodyHTML;
     if (result === "mucked") {
@@ -3193,26 +3408,44 @@ function renderShowdownVillains() {
       }
     }, true);
   });
-  // AUTO-OPEN: find the first live villain at showdown with no decision and
-  // open the overlay for them. Suppressed if the user explicitly X-closed.
-  if (bettingLocked && !_sdSuppressAutoOpen && _vsdEditingVid == null) {
-    const undecided = state.villains.find(v => {
-      if (!v || !v.pos) return false;
-      if (folded.has("v" + v.id)) return false;
-      return !v.showdownResult;
-    });
+  // AUTO-OPEN: find the first live villain at showdown who still needs a
+  // decision (no result yet, OR "showed" was forced by MTT all-in but cards
+  // are not entered yet) and open the picker for them. Suppressed if the
+  // user explicitly X-closed (only possible from the no-X overlay's backdrop
+  // path or future flows — kept as a safety valve).
+  const _needsCards = (v) => {
+    if (!v || !v.pos) return false;
+    if (folded.has("v" + v.id)) return false;
+    if (!v.showdownResult) return true;
+    if (v.showdownResult === "showed") {
+      const h = (typeof getVillainHole === "function") ? getVillainHole(v) : [];
+      if (h.length !== 2) return true;
+    }
+    return false;
+  };
+  // GATE: only auto-open once the showdown is ACTUALLY reachable — all five
+  // board cards entered AND betting is locked. Without the board-complete
+  // check, a multi-street all-in runout fired the picker right after the
+  // all-in street was confirmed (bettingLocked flips true on preflop runout
+  // before any board card is in), opening the villain overlay behind the
+  // board picker and getting dismissed before being seen.
+  const _boardDone = (typeof getFullBoard === "function") && getFullBoard().length === 5;
+  if (bettingLocked && _boardDone && !_sdSuppressAutoOpen && _vsdEditingVid == null) {
+    const undecided = state.villains.find(_needsCards);
     if (undecided) {
+      // Short delay (60ms) lets the showdown section's rows finish painting
+      // before the overlay slides in on top. Down from 220ms in v1.2.49 —
+      // the long delay caused a "the section briefly shows then the modal
+      // pops" jump that read as flicker. 60ms is one paint frame; modal
+      // appears immediately after.
       setTimeout(() => {
         if (_vsdEditingVid != null) return;
         if (_sdSuppressAutoOpen) return;
-        // Re-check at fire time in case state shifted.
-        const stillUndecided = state.villains.find(v =>
-          v && v.pos && !folded.has("v" + v.id) && !v.showdownResult
-        );
+        const stillUndecided = state.villains.find(_needsCards);
         if (stillUndecided && typeof openVillainShowdownCards === "function") {
           openVillainShowdownCards(stillUndecided.id);
         }
-      }, 220);
+      }, 60);
     }
   }
   wrap.querySelectorAll("[data-sdstr]").forEach(inp => {
@@ -3492,7 +3725,13 @@ function refreshGenerateButton() {
   const btn = document.getElementById("generateBtn");
   if (!btn || !bar) return;
   const r = isHandComplete();
-  bar.style.display = r.ok ? "" : "none";
+  // Hide the standalone Generate button while an active wizard is still
+  // showing its review block ("Confirm & continue"). Otherwise the user
+  // sees two competing primary buttons when a hand ended preflop via folds.
+  // Confirm & continue's handler routes to Generate when the hand is over,
+  // so there's no loss of capability — just one entry point at a time.
+  const inWizardReview = !!activeWiz;
+  bar.style.display = (r.ok && !inWizardReview) ? "" : "none";
   btn.disabled = !r.ok;
 }
 
@@ -3720,10 +3959,14 @@ function startHandHandoff(srcEl) {
     if (typeof renderStreetBody === "function") renderStreetBody("preflop");
     pf.classList.add("expanded");
   }
-  // The blur above schedules a focusout refresh (~100ms) whose auto-scroll could
-  // yank the view off Preflop. Run our scroll AFTER that settles so it wins last.
+  // Scroll target: anchor on the Hero section (now collapsed faint) so the
+  // user sees Hero + Villains summaries above the expanded Preflop, matching
+  // the toggleStreet behavior. Falls back to Preflop if Hero isn't available.
+  // The blur above schedules a focusout refresh (~100ms) whose auto-scroll
+  // could yank the view off; run our scroll AFTER that settles so it wins.
   setTimeout(() => {
-    if (pf && typeof _scrollSectionTop === "function") _scrollSectionTop(pf);
+    const target = document.getElementById("sectionHero") || pf;
+    if (target && typeof _scrollSectionTop === "function") _scrollSectionTop(target);
   }, 200);
 }
 ["pointerdown", "touchstart", "click"].forEach(evt => {
@@ -4158,6 +4401,15 @@ function nextToAct(rt) {
   if (active.length === 0) return null;            // everyone all-in
   // Only one player can act and they have nothing to call → no meaningful action left.
   if (active.length === 1 && active[0].inRound >= rt.currentBet - 0.0001) return null;
+  // HERO CALLED AN ALL-IN → skip the rest of the villain-vs-villain action
+  // (per backlog: when hero's all-in is by CALLING, the interesting story
+  // ends — board runs out, results show). HERO BETS or RAISES all-in is
+  // different: villains MUST still respond to hero's all-in, so we don't
+  // short-circuit those cases. The `verb === "call"` check is what tells
+  // them apart.
+  if (rt.streetActions.some(a => a.player === "hero" && a.verb === "call" && a.calledAllIn)) {
+    return null;
+  }
 
   let idx = rt.currentIdx;
   for (let i = 0; i < order.length; i++) {
@@ -4243,7 +4495,39 @@ function applyAction(rt, player, verb, raiseToChips) {
     coldCall: (verb === "call" && rt.streetName === "preflop" && rt.raiseCount > 1 && player.pos !== "SB" && player.pos !== "BB" && (player.inRound - amount) === 0),
     isLimp: (verb === "call" && rt.streetName === "preflop" && rt.raiseCount === 0),
     calledAllIn: verb === "call" && player.allIn,
+    // Bet/raise that emptied the stack is functionally a jam — flag it so the
+    // wizard log + canvas read "All-in" instead of "Bet" / "Raise". Jams have
+    // this set too, for uniform detection downstream.
+    isAllIn: (verb === "bet" || verb === "raise" || verb === "jam") && player.allIn,
   });
+
+  // HERO JUST CALLED AN ALL-IN → synthetic-fold any villain who still owes a
+  // decision this street. Per backlog: "the interesting story ends there —
+  // board runs out, results show." Without this the engine would still ask
+  // for villain-vs-villain action, and the user said don't. We mark each
+  // skipped action with `synthetic: true` so it can be styled / pruned later
+  // if needed; the hand viewer / pot computation treat them as plain folds.
+  // (Hero BETS/RAISES all-in is NOT short-circuited — villains must respond.)
+  if (verb === "call" && player.id === "hero" && player.allIn) {
+    for (const p of rt.runtime) {
+      if (p === player) continue;
+      if (p.folded || p.allIn) continue;
+      p.folded = true;
+      p.hasActed = true;
+      rt.streetActions.push({
+        player: p.id,
+        label: p.label,
+        pos: p.pos,
+        verb: "fold",
+        inputTo: null,
+        amountAdded: 0,
+        currentBetBefore: rt.currentBet,
+        potBefore: rt.pot,
+        raiseIndex: null,
+        synthetic: true,
+      });
+    }
+  }
 
   // Advance the action wheel pointer to the next slot (nextToAct will skip folded/all-in).
   rt.currentIdx = (rt.currentIdx + 1) % rt.playersInOrder.length;
@@ -4260,34 +4544,36 @@ function describeAction(a, rt) {
     if (a.isLimp) return "limps";
     return a.coldCall ? "cold-calls" : "calls";
   }
-  const isPostflop = rt.streetName !== "preflop";
-  // Annotation rules: first bet postflop (raiseIndex 1) → "(Y% pot)"; raise → "(Zx)".
-  // (No "(X called)" annotation on all-ins — the caller's own action shows what was called.)
-  let tail = "";
-  if (a.raiseIndex > 1 && a.currentBetBefore > 0) {
-    const mult = a.inputTo / a.currentBetBefore;
-    tail = ` (${fmt(Math.round(mult * 10) / 10)}x)`;
-  } else if (a.raiseIndex === 1 && isPostflop && a.potBefore > 0) {
-    tail = ` (${Math.round((a.amountAdded / a.potBefore) * 100)}% pot)`;
-  }
+  // Annotation rules (per user direction):
+  //   - BETS (first aggressive action of the street, postflop) → (X% pot)
+  //   - ALL-INS (jam) → (X% pot) including the all-in amount as fraction of pot
+  //   - RAISES (raiseIndex > 1) → (Yx) multiplier of the prior bet
+  //   - Preflop opens → no annotation (the open size IS the reference)
+  const potPctTail = (a.potBefore > 0 && a.amountAdded > 0)
+    ? ` (${Math.round((a.amountAdded / a.potBefore) * 100)}% pot)`
+    : "";
+  const multTail = (a.currentBetBefore > 0)
+    ? ` (${fmt(Math.round((a.inputTo / a.currentBetBefore) * 10) / 10)}x)`
+    : "";
 
-  if (a.verb === "jam") {
-    return `jams ${fmtBB(a.inputTo)}`;
+  // A bet/raise that emptied the stack reads as an all-in. Same with explicit jam.
+  if (a.verb === "jam" || a.isAllIn) {
+    return `all-in ${fmtBB(a.inputTo)}${potPctTail}`;
   }
   if (rt.streetName === "preflop") {
     if (a.raiseIndex === 1) {
-      return `opens ${fmtBB(a.inputTo)}${tail}`;
+      return `opens ${fmtBB(a.inputTo)}`;   // open size is its own reference
     } else {
       const labels = { 2: "3-bets", 3: "4-bets", 4: "5-bets", 5: "6-bets" };
       const lbl = labels[a.raiseIndex] || `${a.raiseIndex+1}-bets`;
-      return `${lbl} to ${fmtBB(a.inputTo)}${tail}`;
+      return `${lbl} to ${fmtBB(a.inputTo)}${multTail}`;
     }
   } else {
     if (a.raiseIndex === 1) {
-      return `bets ${fmtBB(a.inputTo)}${tail}`;
+      return `bets ${fmtBB(a.inputTo)}${potPctTail}`;
     } else {
       const verb = a.checkedBefore ? "check-raises to" : "raises to";
-      return `${verb} ${fmtBB(a.inputTo)}${tail}`;
+      return `${verb} ${fmtBB(a.inputTo)}${multTail}`;
     }
   }
 }
@@ -4318,9 +4604,22 @@ function toggleStreet(streetName) {
   document.querySelectorAll(".street.expanded").forEach(s => s.classList.remove("expanded"));
   renderStreetBody(streetName);
   section.classList.add("expanded");
-  // Scroll the street's top right below the sticky header (was using scrollIntoView,
-  // which hid the section's red label under the header).
-  setTimeout(() => { if (typeof _scrollSectionTop === "function") _scrollSectionTop(section); }, 80);
+  // Re-render street sections so the new "Showdown hidden while wizard active"
+  // gate (in refreshStreetSections) takes effect immediately.
+  if (typeof refreshStreetSections === "function") refreshStreetSections();
+  // Scroll position: anchor the collapsed Hero section just below the topbar
+  // so the user sees Hero + Villains as faint summaries above the active
+  // street. _scrollSectionTop's early-exit (rect.top within [headerH-4,
+  // headerH+24]) prevents a re-scroll when Hero is already in that band —
+  // i.e., going Preflop → Flop → Turn → River doesn't bounce the page.
+  setTimeout(() => {
+    const heroSec = document.getElementById("sectionHero");
+    if (heroSec && typeof _scrollSectionTop === "function") {
+      _scrollSectionTop(heroSec);
+    } else if (typeof _scrollSectionTop === "function") {
+      _scrollSectionTop(section);
+    }
+  }, 60);
 }
 
 function renderStreetBody(streetName) {
@@ -4446,16 +4745,44 @@ function renderInlineLog() {
   const logEl = $("#wizLog");
   if (!logEl) return;
   logEl.innerHTML = "";
-  if (rt.streetActions.length === 0) {
+  // Synthetic actions (auto-added folds when hero calls an all-in) are hidden
+  // from the visible log AND from the undo strip — the user's intent was to
+  // skip these "boring" villain-vs-villain responses, so we don't surface them.
+  const visible = rt.streetActions.filter(a => !a.synthetic);
+  if (visible.length === 0) {
     // No actions yet — show nothing (the "to act" prompt below already makes it clear).
   } else {
-    rt.streetActions.forEach((a, i) => {
+    visible.forEach((a, i) => {
       const line = document.createElement("div");
-      line.className = "line" + (i === rt.streetActions.length-1 ? " last" : "");
+      line.className = "line" + (i === visible.length - 1 ? " last" : "");
       const dn = a.player === "hero" ? "Hero" : a.pos;
       line.innerHTML = `${dn} ${describeAction(a, rt)}`;
       logEl.appendChild(line);
     });
+    // Undo strip — reverts the LAST non-synthetic action via rollbackToStep.
+    // Need the index inside the full streetActions array (not the filtered
+    // visible list) so the slice in rollbackToStep is right.
+    let lastNonSynthIdx = -1;
+    for (let i = rt.streetActions.length - 1; i >= 0; i--) {
+      if (!rt.streetActions[i].synthetic) { lastNonSynthIdx = i; break; }
+    }
+    if (lastNonSynthIdx >= 0) {
+      const last = rt.streetActions[lastNonSynthIdx];
+      const lastWho = last.player === "hero" ? "Hero" : last.pos;
+      const lastVerb = (last.verb === "fold") ? "fold"
+                     : (last.verb === "check") ? "check"
+                     : (last.verb === "call") ? "call"
+                     : (last.verb === "jam") ? "jam"
+                     : "raise";
+      const strip = document.createElement("div");
+      strip.className = "wiz-undo-strip";
+      strip.innerHTML = `<button type="button" class="wiz-undo">↻ Undo ${lastWho}'s ${lastVerb}</button>`;
+      strip.querySelector("button").addEventListener("click", () => {
+        rollbackToStep(lastNonSynthIdx);
+        haptic(6);
+      });
+      logEl.appendChild(strip);
+    }
   }
 }
 
@@ -4515,7 +4842,18 @@ function renderInlinePrompt(player, rt) {
   // wants to record: (1) hero opens and everyone folds, (2) someone opens and
   // hero folds. So we just trust the user — if they tap Fold, that's what
   // happened.
-  const hideFold = canCheck;
+  //
+  // ALSO HIDE FOLD for villains acting BEFORE the hero this street (boring
+  // villain folds before hero acts aren't worth recording — the interesting
+  // hand hasn't started). Suppress only when hero is still LIVE and hasn't
+  // acted yet on this street; if hero already folded earlier or has acted
+  // here, villains can fold normally.
+  const isVillainPlayer = player.id !== "hero";
+  const heroPlayer = rt.runtime.find(p => p.id === "hero");
+  const heroStillLive = heroPlayer && !heroPlayer.folded;
+  const heroActedThisStreet = rt.streetActions.some(a => a.player === "hero");
+  const villainBeforeHero = isVillainPlayer && heroStillLive && !heroActedThisStreet;
+  const hideFold = canCheck || villainBeforeHero;
   // Facing a bet ≥ your stack → only Fold + Call all-in (no raise possible).
   const facingCover = !canCheck && (toCall >= stack - 0.0001);
   // Players (other than this one) who can still act on a raise — if none, a raise can't
@@ -4629,64 +4967,66 @@ function renderInlinePrompt(player, rt) {
 }
 
 function renderInlineReview(reviewEl, rt) {
+  // Hide synthetic actions (auto-folds after hero call-all-in) from the
+  // review list — they're an engine implementation detail, not user input.
   const items = rt.streetActions.map((a, i) => {
+    if (a.synthetic) return "";
     const dn = a.player === "hero" ? "Hero" : a.pos;
     return `<li><span class="txt">${dn} ${describeAction(a, rt)}</span><button type="button" data-edit-step="${i}">Edit</button></li>`;
   }).join("");
   const existingThoughts = (state.streets[rt.streetName].thoughts || "").trim();
 
-  // Detect "all-in just happened on this street" — MTT rule = live players must show cards.
-  // We surface card pickers inline (right after action review) so the user can enter cards
-  // the moment they're known, instead of waiting for the Showdown section.
+  // MTT all-in detection: force "showed" for live villains (MTT rule). The
+  // OLD behavior surfaced an inline panel ("⚠ All-in — enter cards now") with
+  // tappable card-chip rows; user said that screen should never appear and
+  // the focused 52-card overlay should auto-pop instead. So we keep the
+  // showdownResult-forcing logic but drop the inline panel; the auto-pop
+  // hook at the end of this function opens the picker straight away.
   const hadAllIn = rt.streetActions.some(a => a.verb === "jam" || a.calledAllIn);
   const liveRT = rt.runtime.filter(p => !p.folded);
-  const showAllInPanel = (state.gameType === "mtt") && hadAllIn && liveRT.length >= 2;
-  let allInCardsHTML = "";
-  if (showAllInPanel) {
-    // Force "showed" for each live villain — MTT rule.
+  const mttAllInNow = (state.gameType === "mtt") && hadAllIn && liveRT.length >= 2;
+  if (mttAllInNow) {
     state.villains.forEach(v => {
       if (liveRT.some(p => p.id === "v"+v.id)) {
         if (v.showdownResult !== "showed") v.showdownResult = "showed";
       }
     });
-    // Build a card-picker row for each live player (hero too, in case cards weren't picked).
-    const rows = [];
-    liveRT.forEach(p => {
-      if (p.id === "hero") {
-        rows.push(`<div class="ai-row"><b>Hero (${p.pos})</b><div class="hole-chips" data-aih="hero"></div></div>`);
-      } else {
-        const v = state.villains.find(vv => "v"+vv.id === p.id);
-        if (v) rows.push(`<div class="ai-row"><b>${p.pos}</b><div class="hole-chips" data-aih="v${v.id}"></div></div>`);
-      }
-    });
-    allInCardsHTML = `
-      <div class="allin-cards-panel" style="margin-top:12px;padding:12px;background:rgba(240,196,77,0.08);border:1px solid #f0c44d;border-radius:10px;">
-        <div style="color:#f0c44d;font-weight:700;font-size:13px;margin-bottom:8px;">⚠ All-in — enter cards now (MTT rule)</div>
-        ${rows.join("")}
-      </div>
-    `;
   }
 
+  // Button label: "Confirm and Generate" when the hand is already over (only
+  // one player live after this street, or hero out) — Confirm here routes
+  // straight to Generate. Otherwise the standard "Confirm & continue" which
+  // advances to the next street.
+  const _handOverAfterStreet = rt.runtime.filter(p => !p.folded).length <= 1;
+  const _confirmLabel = _handOverAfterStreet ? "Confirm and Generate" : "Confirm &amp; continue";
   reviewEl.innerHTML = `
     <div class="title">Review ${rt.streetName}</div>
     <ol>${items || "<li><span class='txt'><i>(no action this street)</i></span></li>"}</ol>
     <div class="potline">Pot after this street: <b>${fmtBB(rt.pot)}</b></div>
-    ${allInCardsHTML}
     <label style="margin-top:8px;">Your thinking (optional)</label>
     <textarea id="streetThoughts" placeholder="What were you thinking? e.g. protecting against draws, want value from a worse Tx" style="min-height:60px;">${escapeHTML(existingThoughts)}</textarea>
     <div class="confirmbtns" style="margin-top:10px;">
-      <button type="button" class="btn-primary" id="reviewConfirm">Confirm &amp; continue</button>
+      <button type="button" class="btn-primary" id="reviewConfirm">${_confirmLabel}</button>
     </div>
   `;
-  // Wire each card picker to use the same renderHoleChips helper as the showdown section.
-  reviewEl.querySelectorAll("[data-aih]").forEach(holder => {
-    const aid = holder.dataset.aih;
-    if (aid === "hero") {
-      renderHoleChips(holder, [{ key: "hero1" }, { key: "hero2" }]);
-    } else {
-      renderHoleChips(holder, [{ key: aid + "_c1" }, { key: aid + "_c2" }]);
+  // AUTO-POP villain showdown overlay when MTT all-in just happened. Finds
+  // the first live villain whose hole cards aren't entered and opens the
+  // 52-card picker IMMEDIATELY in the same tick — same render frame as the
+  // review block, so the user lands on vsd without seeing the review behind
+  // it. Picker chains itself across multiple villains via vsd Confirm.
+  if (mttAllInNow && (typeof openVillainShowdownCards === "function")) {
+    const undecided = state.villains.find(v => {
+      if (!v || !v.pos) return false;
+      const rtP = rt.runtime.find(p => p.id === "v" + v.id);
+      if (!rtP || rtP.folded) return false;
+      if (v.showdownResult === "mucked") return false;
+      const hole = (typeof getVillainHole === "function") ? getVillainHole(v) : [];
+      return hole.length !== 2;
+    });
+    if (undecided && _vsdEditingVid == null) {
+      openVillainShowdownCards(undecided.id);
     }
-  });
+  }
   reviewEl.querySelectorAll("[data-edit-step]").forEach(b => {
     b.addEventListener("click", () => rollbackToStep(+b.dataset.editStep));
   });
@@ -4706,12 +5046,23 @@ function renderInlineReview(reviewEl, rt) {
     const section = streetSection(streetName);
     section.classList.remove("expanded");
     renderStreetBody(streetName);
-    // If only one player is still live (everyone else folded), the hand is over —
-    // don't advance to the next street or ask for board cards.
+    // If only one player is still live (everyone else folded), the hand is over.
+    // Route Confirm & continue straight to Generate so the user doesn't have to
+    // hunt for a second button to finish the hand. Single primary action.
     const handOver = liveEntered().length <= 1;
+    if (handOver) {
+      // Generate may have been hidden while activeWiz was set — refresh first
+      // so it picks up the now-null activeWiz and becomes clickable.
+      if (typeof refreshGenerateButton === "function") refreshGenerateButton();
+      setTimeout(() => {
+        const gen = document.getElementById("generateBtn");
+        if (gen && !gen.disabled) gen.click();
+      }, 60);
+      return;
+    }
     // Auto-expand the next street if available, and immediately open its first board card picker.
     const next = nextStreetName(streetName);
-    if (!handOver && next && !state.streets[next].complete && !streetSection(next).classList.contains("locked")) {
+    if (next && !state.streets[next].complete && !streetSection(next).classList.contains("locked")) {
       toggleStreet(next);
       if (next !== "preflop") {
         setTimeout(() => openCardPicker(makeBoardTarget(next, 0)), 100);
@@ -4723,7 +5074,11 @@ function renderInlineReview(reviewEl, rt) {
 function rollbackToStep(stepIdx) {
   if (!activeWiz) return;
   const streetName = activeWiz.streetName;
-  const replay = activeWiz.streetActions.slice(0, stepIdx);
+  // Skip synthetic actions in the replay — they'll get re-added automatically
+  // by applyAction's hero-call-all-in side effect if the replayed actions
+  // include hero's call. Replaying them directly would either duplicate folds
+  // or no-op against already-folded players.
+  const replay = activeWiz.streetActions.slice(0, stepIdx).filter(a => !a.synthetic);
   activeWiz = initStreetRuntime(streetName);
   for (const a of replay) {
     const player = activeWiz.runtime.find(p => p.id === a.player);
@@ -4769,9 +5124,16 @@ function refreshStreetSections() {
     }
     if (!st.complete) prevComplete = false;
   }
-  // Hide showdown section too when hand ended by fold-out (no cards to reveal).
+  // Hide showdown section in two cases:
+  //  - hand ended by fold-out (no cards to reveal), AND
+  //  - any street wizard is currently active (per user direction: don't
+  //    surface "Fill in the action first / still in hand" rows while the
+  //    user is mid-action — the focus should be on the active street).
   const showdownSec = document.querySelector("section.card:has(#sdVillains)") || document.getElementById("sdStatus")?.closest("section");
-  if (showdownSec) showdownSec.style.display = handEndedByFolds ? "none" : "";
+  if (showdownSec) {
+    const wizardLive = !!activeWiz;
+    showdownSec.style.display = (handEndedByFolds || wizardLive) ? "none" : "";
+  }
 }
 
 function resetStreet(name) {
@@ -4854,7 +5216,9 @@ function saveActiveStreet() {
     coldCall: a.coldCall,
     isLimp: a.isLimp,
     calledAllIn: a.calledAllIn,
+    isAllIn: !!a.isAllIn,        // preserve so canvas reads "All-In" on reload
     uncalledRefund: a.uncalledRefund || 0,
+    synthetic: !!a.synthetic,   // preserve so reloaded hands still hide auto-folds
   }));
   state.streets[stName].potBefore = stName === "preflop" ? blindsPotChips().pot : priorPot(stName);
   state.streets[stName].potAfter = rt.pot;
@@ -4984,6 +5348,10 @@ function renderPicker() {
   const targetKind = pickerTarget && pickerTarget.kind;
   const targetStreet = pickerTarget && pickerTarget.streetName;
   const isBoardPicker = targetKind === "board" || (seq && seq[0] && seq[0].kind === "board");
+  // Felt background only when picking BOARD cards. Hero / villain hole-card
+  // picking keeps the neutral preview — the felt is the table visual, not the
+  // player visual.
+  previewEl.classList.toggle("felt", !!isBoardPicker);
   if (isBoardPicker) {
     // Build the cumulative slot list.
     const slots = [];
@@ -5142,6 +5510,12 @@ function maybeAutoAdvance() {
 function rerenderForCardChange(t) {
   if (t.kind === "board" && activeWiz) {
     renderInlineBoard(activeWiz.streetName);
+    // After a board card change, re-render the showdown villains so the
+    // auto-open gate (which requires getFullBoard()===5) re-evaluates. Without
+    // this, picking the final runout board card silently completed the board
+    // but never re-fired the auto-open — the user had to scroll down and tap
+    // the row manually.
+    if (typeof renderShowdownVillains === "function") renderShowdownVillains();
   } else if (t.kind === "hole") {
     if (t.key === "hero1" || t.key === "hero2") {
       renderHeroHoleChips();
@@ -7364,7 +7738,93 @@ function openVillainInput(vid) {
   $("#viNotes").value = v ? (v.notes || "") : "";
   const unitEl = $("#viStackUnit");
   if (unitEl) unitEl.textContent = state.unit === "bb" ? "(big blinds)" : "(chips)";
+  // Populate the faint ghost backdrop with the hero summary (and any saved
+  // villains, when we add multi-step backgrounds in a later phase). Re-built
+  // on every open so it reflects the latest state.
+  renderInputGhostBg("#viGhostBg", { hero: true, villains: true, excludeVid: _viEditingVid });
   $("#villainInputOverlay").classList.add("on");
+}
+
+// Build the faint summary backdrop shown behind an input modal. Each section
+// becomes a tappable ghost card that reopens its respective input modal.
+function renderInputGhostBg(targetSel, opts) {
+  opts = opts || {};
+  const el = document.querySelector(targetSel);
+  if (!el) return;
+  el.innerHTML = "";
+  if (opts.hero) {
+    const heroPos = ($("#heroPos") && $("#heroPos").value) || "";
+    const heroStackRaw = ($("#heroStack") && $("#heroStack").value) || "";
+    const c1 = state.cards.hero1, c2 = state.cards.hero2;
+    const hasHero = !!heroPos || (c1 && c1.rank) || (c2 && c2.rank) || !!heroStackRaw;
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "ghost-card";
+    if (!hasHero) {
+      card.innerHTML = `
+        <div class="ghost-label">Hero</div>
+        <div class="ghost-line ghost-empty">Not entered yet</div>
+      `;
+    } else {
+      // Cards: use the same inline-card visual the My-hands list uses
+      const cardsHTML = ((c1 && c1.rank) || (c2 && c2.rank))
+        ? `<span class="ghost-cards">${
+            [c1, c2].filter(c => c && c.rank && c.suit)
+              .map(c => (typeof cardInlineHTML === "function") ? cardInlineHTML(c) : `${c.rank}${c.suit}`)
+              .join("")
+          }</span>`
+        : "";
+      const stackTxt = heroStackRaw
+        ? `<span style="color:var(--ink-dim);font-weight:600;">${escapeHTML(heroStackRaw)}${state.unit === "bb" ? "bb" : ""}</span>`
+        : "";
+      const posTxt = heroPos ? `<span class="ghost-pos">${heroPos}</span>` : "";
+      card.innerHTML = `
+        <div class="ghost-label">Hero</div>
+        <div class="ghost-line">${posTxt}${cardsHTML}${stackTxt}</div>
+      `;
+    }
+    // Tap → swap modals in the same tick. Set the return-to first so Hero's
+    // confirm chain comes back to where we were. Open Hero before closing
+    // the current overlay so the backdrop never blanks (no form-flash).
+    card.addEventListener("click", () => {
+      const currentOverlay = el.closest(".overlay");
+      if (currentOverlay) {
+        if (currentOverlay.id === "villainInputOverlay") {
+          _heroReturnToVid = (typeof _viEditingVid !== "undefined") ? _viEditingVid : null;
+        } else if (currentOverlay.id === "vsdCardsOverlay") {
+          _heroReturnToVsd = true;
+        }
+      }
+      if (typeof openHeroInput === "function") openHeroInput();
+      if (currentOverlay) currentOverlay.classList.remove("on");
+    });
+    el.appendChild(card);
+  }
+  if (opts.villains) {
+    const vs = (state.villains || []).filter(v => v && v.pos);
+    vs.forEach(v => {
+      if (opts.excludeVid != null && v.id === opts.excludeVid) return;
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "ghost-card";
+      const stackTxt = v.stack
+        ? `<span style="color:var(--ink-dim);font-weight:600;">${escapeHTML(String(v.stack))}${state.unit === "bb" ? "bb" : ""}</span>`
+        : "";
+      card.innerHTML = `
+        <div class="ghost-label">Villain</div>
+        <div class="ghost-line"><span class="ghost-pos">${v.pos}</span>${stackTxt}</div>
+      `;
+      // Same-tick swap (see hero ghost above).
+      card.addEventListener("click", () => {
+        const currentOverlay = el.closest(".overlay");
+        openVillainInput(v.id);
+        if (currentOverlay && currentOverlay.id !== "villainInputOverlay") {
+          currentOverlay.classList.remove("on");
+        }
+      });
+      el.appendChild(card);
+    });
+  }
 }
 
 function closeVillainInput() {
@@ -7387,6 +7847,13 @@ $("#viClose").addEventListener("click", () => {
   if (_viEditingVid == null) closeVillainInput();
   else closeVillainInput();
 });
+
+// Module-scoped return target — set by ghost-tap on a hero card when leaving
+// for the Hero modal, consumed by the Hero Confirm handler to reopen the
+// right modal afterwards. (Back arrow was removed in v1.2.63 — overlapped
+// the title and was redundant with ghost-tap.)
+var _heroReturnToVid = null;
+var _heroReturnToVsd = false;
 
 // Shared commit helper: validates the form, writes to state, returns true on
 // success. Position is required; stack and notes are optional.
@@ -7425,9 +7892,10 @@ function _viCommit() {
 // fresh for the next one.
 $("#viAddAnother").addEventListener("click", () => {
   if (!_viCommit()) return;
-  closeVillainInput();
-  // Briefly let the close animation finish, then re-open fresh
-  setTimeout(() => { openVillainInput(null); }, 60);
+  // Same-tick swap — open a fresh villain modal so the overlay never blanks
+  // out between save and re-open. openVillainInput just resets state +
+  // re-renders inside the already-on overlay; no actual close needed.
+  openVillainInput(null);
 });
 
 /* ============================================================================
@@ -7469,6 +7937,52 @@ function openVillainShowdownCards(vid) {
   // Just the position (BTN, BB, etc.) — the static word "Villain" already
   // sits before this span in the markup, so we render "Villain BTN showed".
   document.getElementById("vsdPos").textContent = v.pos || "?";
+  // Will confirming THIS villain finish the hand? — i.e., no other live
+  // villain still needs cards, board is full, hero hole entered. If so the
+  // Confirm button becomes "Confirm and Generate" and routes straight to
+  // the Generate flow (one less click).
+  const _otherUndecided = state.villains.filter(x => {
+    if (x.id === vid) return false;
+    if (!x.pos) return false;
+    if (x.showdownResult === "mucked") return false;
+    if (activeWiz) {
+      const rtP = activeWiz.runtime.find(p => p.id === "v" + x.id);
+      if (!rtP || rtP.folded) return false;
+    }
+    const h = (typeof getVillainHole === "function") ? getVillainHole(x) : [];
+    return h.length !== 2;
+  });
+  const _boardDone = (typeof getFullBoard === "function") && getFullBoard().length === 5;
+  const _heroDone = (typeof getHeroHole === "function") && getHeroHole().length === 2;
+  const _willFinishHand = _otherUndecided.length === 0 && _boardDone && _heroDone;
+  const _confirmBtn = document.getElementById("vsdConfirm");
+  if (_confirmBtn) _confirmBtn.textContent = _willFinishHand ? "Confirm and Generate" : "Confirm";
+  // MTT all-in: villains are required to show. Disable Mucked + surface the
+  // rule so the user understands why the choice is constrained.
+  const mttForceShow = state.gameType === "mtt" && (typeof anyoneAllIn === "function") && anyoneAllIn();
+  const muckBtn = document.getElementById("vsdMucked");
+  if (muckBtn) {
+    muckBtn.disabled = !!mttForceShow;
+    muckBtn.style.opacity = mttForceShow ? "0.35" : "";
+    muckBtn.style.cursor = mttForceShow ? "not-allowed" : "";
+  }
+  // Insert / toggle the MTT note in the body. Re-used across opens.
+  let noteEl = document.getElementById("vsdMttNote");
+  const body = document.querySelector("#vsdCardsOverlay .hi-body");
+  if (!noteEl && body) {
+    noteEl = document.createElement("div");
+    noteEl.id = "vsdMttNote";
+    noteEl.textContent = "All-in — cards must be shown.";
+    noteEl.style.cssText = "font-size:12px;font-weight:600;color:#f0c44d;margin:0 0 10px;padding:8px 10px;background:rgba(240,196,77,0.08);border-radius:8px;border:1px solid rgba(240,196,77,0.35);text-align:center;";
+    body.insertBefore(noteEl, body.firstChild);
+  }
+  if (noteEl) noteEl.style.display = mttForceShow ? "" : "none";
+  // Faint hero + villains summary in the backdrop (tap any ghost to reopen
+  // its input). Excludes the villain currently being edited so they don't
+  // see a stale ghost of themselves behind the picker.
+  if (typeof renderInputGhostBg === "function") {
+    renderInputGhostBg("#vsdGhostBg", { hero: true, villains: true, excludeVid: vid });
+  }
   _vsdSelectedCards = [];
   const c1 = state.cards["v"+vid+"_c1"];
   const c2 = state.cards["v"+vid+"_c2"];
@@ -7483,6 +7997,7 @@ function closeVillainShowdownCards() {
   $("#vsdCardsOverlay").classList.remove("on");
   _vsdEditingVid = null;
 }
+
 
 function renderVsdCardGrid() {
   const grid = document.getElementById("vsdCardGrid");
@@ -7547,11 +8062,40 @@ $("#vsdConfirm").addEventListener("click", () => {
   const v = state.villains.find(x => x.id === _vsdEditingVid);
   if (v) v.showdownResult = "showed";
   _sdSuppressAutoOpen = false;   // chain to the next undecided villain
-  closeVillainShowdownCards();
   if (typeof renderShowdownVillains === "function") renderShowdownVillains();
   if (typeof refreshShowdownStatus === "function") refreshShowdownStatus();
   if (typeof refreshGenerateButton === "function") refreshGenerateButton();
   haptic(12);
+  // Mid-hand chain (active wizard): if another live villain still needs cards,
+  // re-aim THIS overlay at them — no close + reopen, so the backdrop never
+  // blanks between picks. If none, fall through to close.
+  if (activeWiz) {
+    const nextUndecided = state.villains.find(x => {
+      if (!x || !x.pos) return false;
+      const rtP = activeWiz.runtime.find(p => p.id === "v" + x.id);
+      if (!rtP || rtP.folded) return false;
+      if (x.showdownResult === "mucked") return false;
+      const h = (typeof getVillainHole === "function") ? getVillainHole(x) : [];
+      return h.length !== 2;
+    });
+    if (nextUndecided) {
+      openVillainShowdownCards(nextUndecided.id);   // re-targets same overlay
+      return;
+    }
+    closeVillainShowdownCards();
+    if (typeof renderInlinePromptOrReview === "function") {
+      try { renderInlinePromptOrReview(); } catch (_) {}
+    }
+  } else {
+    closeVillainShowdownCards();
+  }
+  // If confirming THIS villain just completed the hand, route straight to
+  // Generate (matches the "Confirm and Generate" button label).
+  if (typeof isHandComplete === "function" && isHandComplete().ok) {
+    if (typeof refreshGenerateButton === "function") refreshGenerateButton();
+    const gen = document.getElementById("generateBtn");
+    if (gen && !gen.disabled) gen.click();
+  }
 });
 // MUCKED button — sets the current villain's showdownResult to "mucked",
 // clears any cards, closes overlay, and lets the next render auto-open the
@@ -7572,11 +8116,27 @@ $("#vsdMucked").addEventListener("click", () => {
     state.cards["v"+vid+"_c2"] = {};
   }
   _sdSuppressAutoOpen = false;
-  closeVillainShowdownCards();
   if (typeof renderShowdownVillains === "function") renderShowdownVillains();
   if (typeof refreshShowdownStatus === "function") refreshShowdownStatus();
   if (typeof refreshGenerateButton === "function") refreshGenerateButton();
   haptic(10);
+  // Mid-hand chain (active wizard): same as Confirm — re-aim the overlay at
+  // the next undecided villain in the same tick, no close+reopen blink.
+  if (activeWiz) {
+    const nextUndecided = state.villains.find(x => {
+      if (!x || !x.pos) return false;
+      const rtP = activeWiz.runtime.find(p => p.id === "v" + x.id);
+      if (!rtP || rtP.folded) return false;
+      if (x.showdownResult === "mucked") return false;
+      const h = (typeof getVillainHole === "function") ? getVillainHole(x) : [];
+      return h.length !== 2;
+    });
+    if (nextUndecided) {
+      openVillainShowdownCards(nextUndecided.id);
+      return;
+    }
+  }
+  closeVillainShowdownCards();
 });
 
 /* ============================================================================
@@ -7724,15 +8284,17 @@ document.getElementById("gameContextPill").addEventListener("click", () => openG
 
 // "Start hand →" — save the current villain and trigger the existing
 // "Start hand" handoff which moves the wizard from setup to streets.
+// Run the handoff (which expands Preflop + recomputes collapsed sections)
+// BEFORE closing the villain modal so the form behind is already in its
+// final state when the overlay drops. Prevents the user from seeing the
+// Villain section briefly expand then collapse.
 $("#viStartHand").addEventListener("click", () => {
   if (!_viCommit()) return;
-  closeVillainInput();
-  // The handoff function reads the #confirmPlayers button's enabled state;
-  // since we just saved a valid villain, completeness has been recomputed.
   const btn = document.getElementById("confirmPlayers");
   if (btn && typeof startHandHandoff === "function") {
-    setTimeout(() => startHandHandoff(btn), 80);
+    startHandHandoff(btn);
   }
+  closeVillainInput();
 });
 
 // Confirm — write everything back to the main form's state, then close.
@@ -7773,12 +8335,37 @@ $("#hiConfirm").addEventListener("click", () => {
   if (typeof updateSectionUnlocks === "function") { try { updateSectionUnlocks(); } catch (_) {} }
   if (typeof refreshAllPositionSelects === "function") { try { refreshAllPositionSelects(); } catch (_) {} }
   haptic(12);
-  closeHeroInput();
   // Advance the wizard directly past the inline Hero section to Villains
   // (the user has just filled in all of Hero in the focused module).
   if (typeof wizAdvanceTo === "function") { try { wizAdvanceTo(2); } catch (_) {} }
-  // Open the villain input automatically — keeps the focused flow going.
-  setTimeout(() => { try { openVillainInput(null); } catch (_) {} }, 120);
+  // Routing after Hero confirm — four cases. To avoid a flash of the form
+  // behind between modals, open the next overlay BEFORE closing this one
+  // (same JS tick, single render → no gap).
+  const _retVid = _heroReturnToVid;
+  const _retVsd = _heroReturnToVsd;
+  _heroReturnToVid = null;
+  _heroReturnToVsd = false;
+  if (_retVsd) {
+    // Returned to Hero from vsd showdown overlay → reopen vsd for the first
+    // live villain still needing cards.
+    const target = state.villains.find(v => {
+      if (!v || !v.pos) return false;
+      if (v.showdownResult === "mucked") return false;
+      const h = (typeof getVillainHole === "function") ? getVillainHole(v) : [];
+      return h.length !== 2;
+    });
+    if (target && typeof openVillainShowdownCards === "function") {
+      openVillainShowdownCards(target.id);
+    }
+  } else if (_retVid != null) {
+    // Came here via ghost-tap from Villain modal → reopen the same villain
+    try { openVillainInput(_retVid); } catch (_) {}
+  } else if (state.villains.length === 0) {
+    // Standard new-hand flow → auto-open the first villain
+    try { openVillainInput(null); } catch (_) {}
+  }
+  // else: villains exist already and no return target — silent close
+  closeHeroInput();
 });
 $("#headerTourneyBtn").addEventListener("click", () => showTourneyForm());
 $("#headerNoteBtn").addEventListener("click", () => showTitleNoteForm());
@@ -8910,7 +9497,14 @@ async function sdBuildRenderData(upTo, proNotes) {
     } else if (a.raiseIndex === 1 && isPostflop && a.potBefore > 0) {
       tail = ` (${Math.round((a.amountAdded / a.potBefore) * 100)}% pot)`;
     }
-    if (a.verb === "jam") return ["All-In " + sizeAmt, null];
+    // Jam OR any bet/raise that emptied the stack reads as "All-In" on the
+    // canvas, with the (% pot) annotation jams already get.
+    if (a.verb === "jam" || a.isAllIn) {
+      const jamPctTail = (a.potBefore > 0 && a.amountAdded > 0)
+        ? ` (${Math.round((a.amountAdded / a.potBefore) * 100)}% pot)`
+        : "";
+      return ["All-In", sizeAmt + jamPctTail];
+    }
     if (!isPostflop) {
       if (a.raiseIndex === 1) return ["Open", sizeAmt + tail];
       const labels = {2:"3-Bet",3:"4-Bet",4:"5-Bet",5:"6-Bet"};
@@ -10225,12 +10819,12 @@ function _buildHandRowHTML(h, opts) {
         return cardInlineHTML({ rank: r, suit: suit.s });
       }).join(" ")
     : "";
-  const posLabel = summary.heroPos ? `<span style="color:var(--ink-dim)">${summary.heroPos}</span> ` : "";
+  const posLabel = summary.heroPos ? `<span class="row-pos">${summary.heroPos}</span>` : "";
   let outcomeCls = "";
   if (summary.outcome && summary.outcome.startsWith("+")) outcomeCls = "outcome-win";
   else if (summary.outcome && summary.outcome.startsWith("-")) outcomeCls = "outcome-lose";
   else if (summary.outcome && summary.outcome.startsWith("chop")) outcomeCls = "outcome-chop";
-  const titleStr = h.title ? escapeHTML(h.title) : (cardsHTML ? `${posLabel}${cardsHTML}` : "Untitled hand");
+  const hasTitle = !!(h.title && h.title.trim());
   let context = "";
   if (summary.gameType === "cash") {
     context = summary.cashStakes ? `${summary.cashStakes} NLHE` : "Cash";
@@ -10243,9 +10837,6 @@ function _buildHandRowHTML(h, opts) {
   }
   const tinyFace = `<span class="rc-avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"></span>`;
   let reviewChipHtml = "";
-  // The "Saved hands" section bundles delivered reviews + plain saved-no-review
-  // hands. Only show the Casillas chip when there's actually a review tied to
-  // this hand — opts.hasReview is passed in by the section caller.
   if (opts.category === "new") {
     reviewChipHtml = `<div class="row-review-chip ready">${tinyFace}Casillas &middot; ready</div>`;
   } else if (opts.category === "pending") {
@@ -10255,26 +10846,55 @@ function _buildHandRowHTML(h, opts) {
   }
   const newBadge = opts.category === "new"
     ? `<span class="row-new-badge">NEW</span>` : "";
+  // Layout (titled vs untitled both use the same card-line size):
+  //  [main column]                       [right column]
+  //   Title (only if hasTitle)            Outcome pill (if any)
+  //   BTN ♠K ♥Q · MTT                     Today 18:41
+  //   [Casillas chip]                     🗑
+  //
+  // Position + cards always render at the same prominent size — the title is
+  // an OPTIONAL extra line above. Context (Cash / MTT) sits inline right after
+  // the cards on the same line. Date moves to the right column above trash.
+  const titleHTML = hasTitle ? `<div class="row-title">${newBadge}${escapeHTML(h.title.trim())}</div>` : "";
+  // Card line: always prominent. If neither pos nor cards exist (legacy hand),
+  // fall back to a soft "Untitled hand" label there.
+  const cardLineParts = [];
+  if (posLabel) cardLineParts.push(posLabel);
+  if (cardsHTML) cardLineParts.push(`<span class="row-cards">${cardsHTML}</span>`);
+  if (context) cardLineParts.push(`<span class="row-sep">·</span><span class="row-ctx">${escapeHTML(context)}</span>`);
+  const cardLineHTML = cardLineParts.length
+    ? `<div class="row-cardline">${cardLineParts.join("")}</div>`
+    : `<div class="row-cardline"><span class="row-untitled">Untitled hand</span>${context ? `<span class="row-sep">·</span><span class="row-ctx">${escapeHTML(context)}</span>` : ""}</div>`;
+  // If there's no title and the user-set hand title is missing, the NEW badge
+  // (for delivered-not-seen hands) attaches to the card line instead so it
+  // doesn't disappear.
+  const cardLineWithBadge = (!hasTitle && newBadge)
+    ? cardLineHTML.replace('<div class="row-cardline">', `<div class="row-cardline">${newBadge}`)
+    : cardLineHTML;
+  const outcomeHTML = summary.outcome
+    ? `<div class="row-outcome ${outcomeCls}">${escapeHTML(summary.outcome)}</div>`
+    : "";
   return `
     <div class="row-main">
-      <div class="row-title">${newBadge}${titleStr}</div>
-      <div class="row-meta">
-        <span>${escapeHTML(dt)}</span>
-        ${h.title && cardsHTML ? `<span>${posLabel}${cardsHTML}</span>` : ""}
-        ${summary.outcome ? `<span class="${outcomeCls}">${summary.outcome}</span>` : ""}
-      </div>
-      ${context ? `<div class="row-context">${escapeHTML(context)}</div>` : ""}
+      ${titleHTML}
+      ${cardLineWithBadge}
       ${reviewChipHtml}
     </div>
-    <button type="button" class="row-trash" data-trash="${h.id}" aria-label="Delete">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <polyline points="3 6 5 6 21 6"></polyline>
-        <path d="M19 6l-1.7 14.1A2 2 0 0 1 15.3 22H8.7a2 2 0 0 1-2-1.9L5 6"></path>
-        <path d="M10 11v6"></path>
-        <path d="M14 11v6"></path>
-        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
-      </svg>
-    </button>`;
+    <div class="row-right">
+      <div class="row-dt">${escapeHTML(dt)}</div>
+      <div class="row-actions">
+        ${outcomeHTML}
+        <button type="button" class="row-trash" data-trash="${h.id}" aria-label="Delete">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6l-1.7 14.1A2 2 0 0 1 15.3 22H8.7a2 2 0 0 1-2-1.9L5 6"></path>
+            <path d="M10 11v6"></path>
+            <path d="M14 11v6"></path>
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+          </svg>
+        </button>
+      </div>
+    </div>`;
 }
 
 function renderMyHandsList() {
