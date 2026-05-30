@@ -175,6 +175,16 @@
   input:focus, select:focus, textarea:focus {
     border-color: var(--accent);
   }
+  /* Brief red shake when a decimal input rejects an invalid keystroke */
+  @keyframes decimal-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+  input.decimal-invalid {
+    border-color: var(--red) !important;
+    animation: decimal-shake 0.3s ease-in-out;
+  }
   textarea { min-height: 70px; resize: vertical; }
   .row { display: flex; gap: 8px; }
   .row > * { flex: 1; min-width: 0; }
@@ -582,14 +592,28 @@
      so it reads as "the input that matters right now". */
   #heroInputOverlay > .sheet,
   #villainInputOverlay > .sheet,
-  #vsdCardsOverlay > .sheet,
-  #gameSettingsOverlay > .sheet {
+  #vsdCardsOverlay > .sheet {
     max-height: 92vh;
     height: auto;
     border: 1.5px solid var(--accent);
     border-bottom: 0;
     box-shadow: 0 -10px 36px rgba(0,0,0,0.55), 0 0 24px rgba(94,234,212,0.18);
   }
+  /* Settings overlay anchors to the TOP of the viewport and slides DOWN.
+     Different from action sheets (Hero/Villain/Checkout) because it's a
+     config screen, not a quick action. */
+  #gameSettingsOverlay { align-items: flex-start !important; }
+  #gameSettingsOverlay > .sheet {
+    max-height: 92vh;
+    height: auto;
+    border: 1.5px solid var(--accent);
+    border-top: 0;
+    border-radius: 0 0 18px 18px;
+    box-shadow: 0 10px 36px rgba(0,0,0,0.55), 0 0 24px rgba(94,234,212,0.18);
+    transform: translateY(-100%);
+    transition: transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  #gameSettingsOverlay.on > .sheet { transform: translateY(0); }
   #gameSettingsOverlay .floating-close,
   #vsdCardsOverlay .floating-close { /* match hero/villain X styling */ }
   #vsdCardsOverlay .floating-close {
@@ -2634,6 +2658,38 @@ const state = {
 /* ---------- helpers ---------- */
 const $ = sel => document.querySelector(sel);
 const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+// Decimal-input guard. Any <input inputmode="decimal"> only accepts digits,
+// optionally followed by a single dot, optionally followed by a single digit.
+// Invalid keystrokes/pastes are BLOCKED (preventDefault on beforeinput) — we
+// don't try to silently fix the user's intent. A toast + red border flash
+// tells them what's wrong.
+const _DECIMAL_RE = /^\d*(?:\.\d?)?$/;
+let _lastDecimalErrorAt = 0;
+document.addEventListener("beforeinput", (e) => {
+  const el = e.target;
+  if (!el || el.tagName !== "INPUT") return;
+  if ((el.inputMode || "").toLowerCase() !== "decimal") return;
+  // All deletion operations are always allowed — they can't turn a valid
+  // value into an invalid one within our grammar.
+  if (e.inputType && e.inputType.startsWith("delete")) return;
+  // Compute what the value would be after this operation
+  const data = e.data || "";
+  const start = el.selectionStart || 0;
+  const end = el.selectionEnd || 0;
+  const proposed = el.value.slice(0, start) + data + el.value.slice(end);
+  if (!_DECIMAL_RE.test(proposed)) {
+    e.preventDefault();
+    // Visual feedback (red border + shake), debounced toast
+    el.classList.add("decimal-invalid");
+    setTimeout(() => el.classList.remove("decimal-invalid"), 600);
+    const now = Date.now();
+    if (now - _lastDecimalErrorAt > 1500) {
+      if (typeof showToast === "function") showToast("Only digits with one decimal and one decimal place");
+      _lastDecimalErrorAt = now;
+    }
+  }
+}, true);
 const fmt = n => {
   const num = Number(n);
   if (!isFinite(num)) return String(n);
@@ -2666,7 +2722,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.35";
+const APP_VERSION = "v1.2.38";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -10286,6 +10342,7 @@ function setOutputSheetMode(mode) {
     rebindOutputActionsForSaved();
   } else {
     foot.innerHTML = `
+      <button type="button" class="btn-secondary" id="freshEditBtn">Edit</button>
       <button type="button" class="btn-primary" id="saveHandBtn">Save</button>
       <button type="button" class="btn-secondary" id="savePngBtn">Save image</button>
       <button type="button" class="btn-secondary" id="shareBtn">Share</button>
@@ -10297,6 +10354,14 @@ function setOutputSheetMode(mode) {
 function rebindOutputActionsForFresh() {
   bindSaveHandBtn();
   bindOutputCopyShareImage();
+  // "Edit" closes the overlay and drops the user back on the form. All entered
+  // state (game, hero, villains, action history) stays in state — they can
+  // adjust anything and re-Generate.
+  const editBtn = $("#freshEditBtn");
+  if (editBtn) editBtn.onclick = () => {
+    $("#overlay").classList.remove("on");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 }
 function rebindOutputActionsForSaved() {
   bindOutputCopyShareImage();
