@@ -2544,9 +2544,10 @@
       </div>
       <div id="pickerError" class="picker-error" style="display:none"></div>
     </div>
-    <div class="foot">
-      <button type="button" class="btn-primary" id="cardSave" style="flex:1;">Save</button>
-    </div>
+    <!-- No Save button: maybeAutoAdvance() commits the card as soon as both
+         rank + suit are picked (or a card tile is tapped in grid mode) and
+         either advances to the next slot or closes the overlay. The previous
+         "Save" was dead UI. -->
   </div>
 </div>
 
@@ -2978,7 +2979,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.64";
+const APP_VERSION = "v1.2.65";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -4607,18 +4608,18 @@ function toggleStreet(streetName) {
   // Re-render street sections so the new "Showdown hidden while wizard active"
   // gate (in refreshStreetSections) takes effect immediately.
   if (typeof refreshStreetSections === "function") refreshStreetSections();
-  // Scroll position: anchor the collapsed Hero section just below the topbar
-  // so the user sees Hero + Villains as faint summaries above the active
-  // street. _scrollSectionTop's early-exit (rect.top within [headerH-4,
-  // headerH+24]) prevents a re-scroll when Hero is already in that band —
-  // i.e., going Preflop → Flop → Turn → River doesn't bounce the page.
+  // Scroll position depends on which street is opening. For preflop / flop
+  // there's room to show Hero + Villains faint above; for turn / river the
+  // earlier streets stack high enough that anchoring on Hero would push the
+  // active panel off-screen. Anchor on the ACTIVE street's top instead so
+  // the whole expanded panel is in view (user can still scroll up to see
+  // Hero / Villains / previous streets).
   setTimeout(() => {
+    if (typeof _scrollSectionTop !== "function") return;
     const heroSec = document.getElementById("sectionHero");
-    if (heroSec && typeof _scrollSectionTop === "function") {
-      _scrollSectionTop(heroSec);
-    } else if (typeof _scrollSectionTop === "function") {
-      _scrollSectionTop(section);
-    }
+    const earlyStreet = (streetName === "preflop" || streetName === "flop");
+    if (earlyStreet && heroSec) _scrollSectionTop(heroSec);
+    else _scrollSectionTop(section);
   }, 60);
 }
 
@@ -5030,6 +5031,18 @@ function renderInlineReview(reviewEl, rt) {
   reviewEl.querySelectorAll("[data-edit-step]").forEach(b => {
     b.addEventListener("click", () => rollbackToStep(+b.dataset.editStep));
   });
+  // Bring the Confirm button into view — when a street has multiple actions,
+  // the review block grows long and the button drops below the fold from the
+  // wizard-open scroll position. scrollIntoView({block:"end"}) puts the
+  // button just above the viewport bottom so the user sees Confirm without
+  // having to scroll down.
+  const _rcBtn = reviewEl.querySelector("#reviewConfirm");
+  if (_rcBtn) {
+    setTimeout(() => {
+      try { _rcBtn.scrollIntoView({ block: "end", behavior: "smooth" }); }
+      catch (_) { _rcBtn.scrollIntoView(false); }
+    }, 80);
+  }
   $("#reviewConfirm").onclick = () => {
     const streetName = rt.streetName;
     // Capture thoughts before save
@@ -5543,25 +5556,7 @@ function rerenderForCardChange(t) {
   if (typeof refreshAll === "function") refreshAll();
 }
 
-$("#cardSave").onclick = () => {
-  if (!pickerTmp.rank || !pickerTmp.suit) { setPickerError("Pick a rank and a suit."); return; }
-  if (!pickerSaved) {
-    const dup = findDuplicateLocation(pickerTarget, pickerTmp.rank, pickerTmp.suit);
-    if (dup) {
-      const glyph = SUITS.find(s => s.s === pickerTmp.suit).glyph;
-      setPickerError(`${pickerTmp.rank}${glyph} is already used at ${dup}. Pick a different card.`);
-      return;
-    }
-    pickerSaved = true;
-    writeCardToTarget(pickerTarget, { rank: pickerTmp.rank, suit: pickerTmp.suit });
-    rerenderForCardChange(pickerTarget);
-  }
-  if (pickerTarget && pickerTarget.next) {
-    openCardPicker(pickerTarget.next);
-  } else {
-    $("#cardOverlay").classList.remove("on");
-  }
-};
+// (cardSave handler removed in v1.2.65 — maybeAutoAdvance commits + closes.)
 $("#cardClose").onclick = () => $("#cardOverlay").classList.remove("on");
 $("#cardOverlay").addEventListener("click", (e) => {
   // Tap outside the sheet dismisses the picker
@@ -8066,28 +8061,35 @@ $("#vsdConfirm").addEventListener("click", () => {
   if (typeof refreshShowdownStatus === "function") refreshShowdownStatus();
   if (typeof refreshGenerateButton === "function") refreshGenerateButton();
   haptic(12);
-  // Mid-hand chain (active wizard): if another live villain still needs cards,
-  // re-aim THIS overlay at them — no close + reopen, so the backdrop never
-  // blanks between picks. If none, fall through to close.
-  if (activeWiz) {
-    const nextUndecided = state.villains.find(x => {
-      if (!x || !x.pos) return false;
-      const rtP = activeWiz.runtime.find(p => p.id === "v" + x.id);
-      if (!rtP || rtP.folded) return false;
-      if (x.showdownResult === "mucked") return false;
-      const h = (typeof getVillainHole === "function") ? getVillainHole(x) : [];
-      return h.length !== 2;
-    });
-    if (nextUndecided) {
-      openVillainShowdownCards(nextUndecided.id);   // re-targets same overlay
-      return;
+  // Chain to the NEXT undecided villain — re-aim THIS overlay at them so
+  // the backdrop never blanks between picks. Used both mid-hand (activeWiz)
+  // and end-of-hand (showdown phase). Folded-state lookup differs slightly
+  // by source: mid-hand uses activeWiz.runtime; end-of-hand uses the saved
+  // street fold tracker so any villain folded in earlier streets is skipped.
+  const _foldedAtShowdown = (vid) => {
+    if (activeWiz) {
+      const rtP = activeWiz.runtime.find(p => p.id === "v" + vid);
+      return !rtP || rtP.folded;
     }
-    closeVillainShowdownCards();
-    if (typeof renderInlinePromptOrReview === "function") {
-      try { renderInlinePromptOrReview(); } catch (_) {}
+    if (typeof foldedIdsFromSaved === "function") {
+      return foldedIdsFromSaved().has("v" + vid);
     }
-  } else {
-    closeVillainShowdownCards();
+    return false;
+  };
+  const nextUndecided = state.villains.find(x => {
+    if (!x || !x.pos) return false;
+    if (_foldedAtShowdown(x.id)) return false;
+    if (x.showdownResult === "mucked") return false;
+    const h = (typeof getVillainHole === "function") ? getVillainHole(x) : [];
+    return h.length !== 2;
+  });
+  if (nextUndecided) {
+    openVillainShowdownCards(nextUndecided.id);   // same overlay, no flash
+    return;
+  }
+  closeVillainShowdownCards();
+  if (activeWiz && typeof renderInlinePromptOrReview === "function") {
+    try { renderInlinePromptOrReview(); } catch (_) {}
   }
   // If confirming THIS villain just completed the hand, route straight to
   // Generate (matches the "Confirm and Generate" button label).
@@ -8120,21 +8122,29 @@ $("#vsdMucked").addEventListener("click", () => {
   if (typeof refreshShowdownStatus === "function") refreshShowdownStatus();
   if (typeof refreshGenerateButton === "function") refreshGenerateButton();
   haptic(10);
-  // Mid-hand chain (active wizard): same as Confirm — re-aim the overlay at
-  // the next undecided villain in the same tick, no close+reopen blink.
-  if (activeWiz) {
-    const nextUndecided = state.villains.find(x => {
-      if (!x || !x.pos) return false;
-      const rtP = activeWiz.runtime.find(p => p.id === "v" + x.id);
-      if (!rtP || rtP.folded) return false;
-      if (x.showdownResult === "mucked") return false;
-      const h = (typeof getVillainHole === "function") ? getVillainHole(x) : [];
-      return h.length !== 2;
-    });
-    if (nextUndecided) {
-      openVillainShowdownCards(nextUndecided.id);
-      return;
+  // Chain to next undecided villain — same as Confirm. Re-aim THIS overlay
+  // without close+reopen so 2+ villains' pickers show back-to-back without
+  // the backdrop blanking.
+  const _foldedAtShowdownM = (vidT) => {
+    if (activeWiz) {
+      const rtP = activeWiz.runtime.find(p => p.id === "v" + vidT);
+      return !rtP || rtP.folded;
     }
+    if (typeof foldedIdsFromSaved === "function") {
+      return foldedIdsFromSaved().has("v" + vidT);
+    }
+    return false;
+  };
+  const nextUndecidedM = state.villains.find(x => {
+    if (!x || !x.pos) return false;
+    if (_foldedAtShowdownM(x.id)) return false;
+    if (x.showdownResult === "mucked") return false;
+    const h = (typeof getVillainHole === "function") ? getVillainHole(x) : [];
+    return h.length !== 2;
+  });
+  if (nextUndecidedM) {
+    openVillainShowdownCards(nextUndecidedM.id);
+    return;
   }
   closeVillainShowdownCards();
 });
