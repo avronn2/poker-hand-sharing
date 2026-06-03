@@ -933,8 +933,30 @@
     margin: 8px auto 0;
     flex: 0 0 auto;
   }
-  /* The card picker sheet is shorter so the form behind stays visible */
-  .picker-sheet { max-height: 72vh; }
+  /* Card picker overlay: centered modal positioned in mid-viewport just below
+     where the active street's FLOP/TURN/RIVER title sits, so the title stays
+     visible above and the picker covers the action log/prompt below it.
+     Semi-transparent backdrop (0.35) keeps the surrounding form readable —
+     user can see they're in the active street's flow. Full teal frame
+     mirrors the input modals. */
+  #cardOverlay.on {
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.35);
+    padding: 16px;
+  }
+  #cardOverlay > .sheet {
+    width: 100%;
+    max-width: 480px;
+    max-height: 80vh;
+    border: 1.5px solid var(--accent);
+    border-radius: 18px;
+    box-shadow:
+      0 12px 40px rgba(0,0,0,0.55),
+      0 0 28px rgba(94,234,212,0.22);
+  }
+  /* Drag handle was a bottom-sheet affordance — hide on the centered modal */
+  #cardOverlay > .sheet > .drag-handle { display: none; }
   .sheet > header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 12px 16px; border-bottom: 1px solid var(--line);
@@ -1861,6 +1883,45 @@
     gap: 12px;
   }
   .wiz-stats .meta { color: var(--ink-dim); text-align: right; font-size: 12px; }
+  /* Inline 52-card board picker — sits directly under the .wiz-board felt
+     strip and replaces the cardOverlay popup. Same look as the popup's
+     .pick-grid (13 columns by 4 rows). Slightly tighter margins so it fits
+     compactly inside the active street panel. */
+  .inline-board-picker {
+    display: grid; grid-template-columns: repeat(13, 1fr);
+    column-gap: 4px; row-gap: 8px;
+    padding: 12px;
+    margin: 0 12px 12px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+  .inline-board-picker:empty { display: none; }
+  .inline-board-picker button {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    line-height: 1.0; gap: 1px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 0 5px;
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .inline-board-picker button .gs { font-size: 11px; opacity: 0.95; }
+  .inline-board-picker button.red { color: var(--red); }
+  .inline-board-picker button.used { opacity: 0.26; cursor: not-allowed; }
+  .inline-board-picker button:hover:not(:disabled) { border-color: var(--accent); }
+  .inline-board-picker button:active:not(:disabled) { transform: scale(0.96); }
+
+  /* Legacy CSS from v1.2.66: while the cardOverlay popup is open for a board
+     pick (now only hero / villain hole cards), hide the inline wiz-board.
+     Retained because the popup is still used for hole cards and the body
+     class is still set in that path. */
+  body.board-picking .wiz-board { display: none; }
+
   /* Inline board on flop/turn/river streets: same green-felt strip as the
      picker preview, so the user sees the same visual whether they're picking
      cards or reviewing the action. Card faces below match the canvas-rendered
@@ -2979,7 +3040,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.65";
+const APP_VERSION = "v1.2.72";
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -4695,6 +4756,7 @@ function renderEditingView(body, streetName) {
       <span class="meta" id="wizMeta"></span>
     </div>
     ${streetName === "preflop" ? "" : '<div class="wiz-board" id="wizBoard"></div>'}
+    ${streetName === "preflop" ? "" : '<div class="inline-board-picker" id="inlineBoardPicker"></div>'}
     <div class="wiz-log" id="wizLog" style="max-height:none;"></div>
     <div class="wiz-prompt" id="wizPrompt"></div>
     <div class="review-block" id="wizReview" style="display:none"></div>
@@ -4702,6 +4764,9 @@ function renderEditingView(body, streetName) {
   if (streetName !== "preflop") renderInlineBoard(streetName);
   renderInlineLog();
   renderInlinePromptOrReview();
+  // Picker render last so its hide-actions side effect wins over
+  // renderInlinePromptOrReview re-showing the prompt block.
+  if (streetName !== "preflop") renderInlineBoardPicker(streetName);
 }
 
 
@@ -4725,10 +4790,83 @@ function renderInlineBoard(streetName) {
     const div = document.createElement("div");
     div.className = "cardchip" + (item.c ? "" : " empty");
     div.innerHTML = item.c ? cardHTML(item.c) : "?";
-    if (item.editable) {
-      div.addEventListener("click", () => openCardPicker(makeBoardTarget(streetName, item.idx)));
+    // Editable + already filled → tap clears it so it can be re-picked from
+    // the inline 52-card grid below. Empty slots have no click handler now
+    // (the inline grid does the filling; no popup).
+    if (item.editable && item.c) {
+      div.style.cursor = "pointer";
+      div.title = "Tap to clear";
+      div.addEventListener("click", () => {
+        const st = state.streets[item.street];
+        st.board[item.idx] = null;
+        renderInlineBoard(streetName);
+        renderInlineBoardPicker(streetName);
+        rerenderForCardChange({ kind: "board", streetName, idx: item.idx });
+        haptic(4);
+      });
     }
     boardEl.appendChild(div);
+  });
+}
+
+// Inline 52-card grid below the felt strip. Replaces the cardOverlay popup
+// for board cards (per user: enter cards directly into the flop / turn /
+// river section). Tap a card → fills the NEXT empty slot of the current
+// street's board. Cards already used elsewhere in the hand (hero hole,
+// villain hole, other board slots) are greyed out + disabled. Grid auto-
+// hides once all slots for the current street are filled.
+function renderInlineBoardPicker(streetName) {
+  const grid = document.getElementById("inlineBoardPicker");
+  if (!grid) return;
+  const st = state.streets[streetName];
+  // Helpers to toggle the action input (log + prompt + review) — per user
+  // direction the player actions should be hidden until the board cards for
+  // this street have been chosen. Once the board is complete the actions
+  // appear; tapping a filled cardchip to clear it hides them again.
+  const logEl = document.getElementById("wizLog");
+  const promptEl = document.getElementById("wizPrompt");
+  const reviewEl = document.getElementById("wizReview");
+  const _showActions = (show) => {
+    if (logEl) logEl.style.display = show ? "" : "none";
+    if (promptEl) promptEl.style.display = show ? "" : "none";
+    // Don't force-show review here; it has its own display logic in
+    // renderInlinePromptOrReview. Only hide it when board isn't ready.
+    if (reviewEl && !show) reviewEl.style.display = "none";
+  };
+  if (!st || !st.board) { grid.innerHTML = ""; grid.style.display = "none"; _showActions(true); return; }
+  // All slots filled → no picker needed; clear, hide grid, reveal actions.
+  const nextEmptyIdx = st.board.findIndex(c => !c || !c.rank || !c.suit);
+  if (nextEmptyIdx < 0) { grid.innerHTML = ""; grid.style.display = "none"; _showActions(true); return; }
+  // Board incomplete → show grid, hide action area.
+  _showActions(false);
+  grid.style.display = "";
+  grid.innerHTML = "";
+  // "Is this card already used in the hand anywhere?" — board slots in this
+  // street that come AFTER the next-empty index are themselves empty so we
+  // don't have to special-case them; reuse findDuplicateLocation by pinning
+  // the target to the next empty slot.
+  const target = { kind: "board", streetName, idx: nextEmptyIdx };
+  SUITS.forEach(suit => {
+    RANKS.forEach(rank => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "gcard" + (suit.red ? " red" : "");
+      b.innerHTML = `${rank}<span class="gs">${suit.glyph}</span>`;
+      if (findDuplicateLocation(target, rank, suit.s)) {
+        b.classList.add("used"); b.disabled = true;
+      }
+      b.onclick = () => {
+        if (b.disabled) return;
+        const idx = st.board.findIndex(c => !c || !c.rank || !c.suit);
+        if (idx < 0) return;
+        st.board[idx] = { rank, suit: suit.s };
+        renderInlineBoard(streetName);
+        renderInlineBoardPicker(streetName);
+        rerenderForCardChange({ kind: "board", streetName, idx });
+        haptic(5);
+      };
+      grid.appendChild(b);
+    });
   });
 }
 
@@ -5005,7 +5143,7 @@ function renderInlineReview(reviewEl, rt) {
     <ol>${items || "<li><span class='txt'><i>(no action this street)</i></span></li>"}</ol>
     <div class="potline">Pot after this street: <b>${fmtBB(rt.pot)}</b></div>
     <label style="margin-top:8px;">Your thinking (optional)</label>
-    <textarea id="streetThoughts" placeholder="What were you thinking? e.g. protecting against draws, want value from a worse Tx" style="min-height:60px;">${escapeHTML(existingThoughts)}</textarea>
+    <textarea id="streetThoughts" maxlength="240" placeholder="What were you thinking? e.g. protecting against draws, want value from a worse Tx (max 240 chars / ~3-4 sentences)" style="min-height:60px;background:#000;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px 12px;">${escapeHTML(existingThoughts)}</textarea>
     <div class="confirmbtns" style="margin-top:10px;">
       <button type="button" class="btn-primary" id="reviewConfirm">${_confirmLabel}</button>
     </div>
@@ -5073,13 +5211,12 @@ function renderInlineReview(reviewEl, rt) {
       }, 60);
       return;
     }
-    // Auto-expand the next street if available, and immediately open its first board card picker.
+    // Auto-expand the next street if available. The inline 52-card grid
+    // inside the next street's body lets the user pick board cards directly;
+    // no need to also pop the cardOverlay (removed in v1.2.70).
     const next = nextStreetName(streetName);
     if (next && !state.streets[next].complete && !streetSection(next).classList.contains("locked")) {
       toggleStreet(next);
-      if (next !== "preflop") {
-        setTimeout(() => openCardPicker(makeBoardTarget(next, 0)), 100);
-      }
     }
   };
 }
@@ -5305,7 +5442,21 @@ function openCardPicker(target) {
   if (titleEl) titleEl.textContent = cardPickerTitle(target);
   renderPicker();
   setPickerError("");
+  // Body class lets CSS hide the inline .wiz-board felt strip while a board
+  // picker is open — otherwise the inline strip and the picker's preview
+  // strip both display the same cards and read as duplicate input.
+  if (target && target.kind === "board") {
+    document.body.classList.add("board-picking");
+  } else {
+    document.body.classList.remove("board-picking");
+  }
   $("#cardOverlay").classList.add("on");
+}
+
+// Single close path so the body class always clears with the overlay.
+function closeCardOverlay() {
+  $("#cardOverlay").classList.remove("on");
+  document.body.classList.remove("board-picking");
 }
 
 // Returns a human-readable label for where the card is already used, or null if unused.
@@ -5516,7 +5667,7 @@ function maybeAutoAdvance() {
   if (pickerTarget.next) {
     setTimeout(() => openCardPicker(pickerTarget.next), 80);
   } else {
-    $("#cardOverlay").classList.remove("on");
+    closeCardOverlay();
   }
 }
 
@@ -5557,10 +5708,10 @@ function rerenderForCardChange(t) {
 }
 
 // (cardSave handler removed in v1.2.65 — maybeAutoAdvance commits + closes.)
-$("#cardClose").onclick = () => $("#cardOverlay").classList.remove("on");
+$("#cardClose").onclick = () => closeCardOverlay();
 $("#cardOverlay").addEventListener("click", (e) => {
   // Tap outside the sheet dismisses the picker
-  if (e.target.id === "cardOverlay") $("#cardOverlay").classList.remove("on");
+  if (e.target.id === "cardOverlay") closeCardOverlay();
 });
 
 // Inline street header wiring
@@ -9116,17 +9267,20 @@ function sdDrawTimeline(ctx, top_y, columns, heroPos) {
     // (~17px) so it reads as part of the same visual hierarchy. Extra gap
     // above the card visually separates "what happened" from "what the pro
     // says about it".
-    if (c.proNote && typeof c.proNote === "string" && c.proNote.trim()) {
-      cy += 12;   // breathing room between action and pro note
-      const note = c.proNote.trim();
+    // Shared word-wrap + card draw for "commentary" tiles (hero thoughts +
+    // pro notes). Each card gets a left accent stripe (3px), a small label
+    // up top (the speaker), and the wrapped text body. Returns the new cy.
+    const _drawNoteCard = (rawText, accent, labelText) => {
+      const text = rawText.trim();
+      if (!text) return;
+      cy += 12;   // breathing room above the card
       const noteFont = `17px -apple-system, "Segoe UI", sans-serif`;
       const labelFont = `bold 12px -apple-system, "Segoe UI", sans-serif`;
       const padTop = 28, padX = 12, padBottom = 12;
       const lineH = 22;
       const maxW = col_w - padX * 2;
       ctx.font = noteFont;
-      // Word-wrap
-      const words = note.split(/\s+/);
+      const words = text.split(/\s+/);
       const noteLines = []; let cur = "";
       for (const wd of words) {
         const test = cur ? cur + " " + wd : wd;
@@ -9135,22 +9289,28 @@ function sdDrawTimeline(ctx, top_y, columns, heroPos) {
       }
       if (cur) noteLines.push(cur);
       const box_h = padTop + lineH * noteLines.length + padBottom;
-      // Card with pink accent on the left, distinguishes from mint hero commentary
-      _sdTile(ctx, x, cy, col_w, box_h, 8, "#221d33", "#19142a", "#ff7eb6", 1.5);
-      ctx.fillStyle = "#ff7eb6";
+      _sdTile(ctx, x, cy, col_w, box_h, 8, "#221d33", "#19142a", accent, 1.5);
+      ctx.fillStyle = accent;
       ctx.fillRect(x, cy, 3, box_h);
-      // "CASILLAS" label at the top of the card
       ctx.font = labelFont;
-      ctx.fillStyle = "#ff7eb6";
+      ctx.fillStyle = accent;
       ctx.textAlign = "left"; ctx.textBaseline = "top";
-      ctx.fillText("CASILLAS", x + padX, cy + 7);
-      // Note text
+      ctx.fillText(labelText, x + padX, cy + 7);
       ctx.font = noteFont;
       ctx.fillStyle = "#e8e3f2";
       for (let i = 0; i < noteLines.length; i++) {
         ctx.fillText(noteLines[i], x + padX, cy + padTop + i * lineH);
       }
       cy += box_h + 4;
+    };
+    // Hero's own thinking comes first (it's the player's voice, closer to
+    // the action). Mint accent matches the in-app hero teal theme.
+    if (c.heroNote && typeof c.heroNote === "string" && c.heroNote.trim()) {
+      _drawNoteCard(c.heroNote, "#5eead4", "MY THINKING");
+    }
+    // Pro note (Casillas) — pink to distinguish from hero teal.
+    if (c.proNote && typeof c.proNote === "string" && c.proNote.trim()) {
+      _drawNoteCard(c.proNote, "#ff7eb6", "CASILLAS");
     }
     if (cy > maxBottom) maxBottom = cy;
   }
@@ -9567,6 +9727,11 @@ async function sdBuildRenderData(upTo, proNotes) {
     if (proNotes && proNotes[sname] && typeof proNotes[sname] === "string") {
       col.proNote = proNotes[sname];
     }
+    // Hero's own thinking for this street (typed into the wizard's review
+    // textarea, stored on state.streets[s].thoughts). Rendered as a mint
+    // card below the actions/equity, distinct from the pink Casillas card.
+    const _heroThoughts = ((st && st.thoughts) || "").trim();
+    if (_heroThoughts) col.heroNote = _heroThoughts;
     timeline.push(col);
   }
   // If 0 timeline columns, force a preflop placeholder so output isn't blank
@@ -9737,7 +9902,14 @@ async function renderHandToCanvas(upTo, proNotes) {
     else if (_hp.indexOf("data:image/svg") !== 0) heroAvatarImg = await _loadImg(_hp);
   }
 
-  const W = SHOWDOWN_W, H = 1230;   // H is the content height — all table/seat/timeline coords use it.
+  // H = content height in canvas units. Coords for table / seats / timeline
+  // anchor against this. Made generous (was 1230) so a hand with full hero
+  // thoughts (~240ch each) + Casillas notes (~240ch each) on every street
+  // can extend the timeline below the table without clipping the bottom.
+  // Auto-crop at the end of renderHandToCanvas trims this back down for
+  // short hands so the shared image stays compact when the extra space
+  // isn't needed.
+  const W = SHOWDOWN_W, H = 2800;
   // Optional title + caption band sits between the header and the table; the canvas grows
   // by its height and the rest of the picture is shifted down to make room.
   const bandTitle = (data.title || "").trim();
