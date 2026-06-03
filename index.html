@@ -2669,9 +2669,9 @@
       <img src="logo-header.png" alt="" class="welcome-logo">
       <h2>Welcome to Showdown</h2>
       <ol class="welcome-steps">
-        <li><b>Set up the game.</b> Pick your stakes (cash or tournament), enter your stack, and add the villains in the hand.</li>
-        <li><b>Record the action.</b> Tap each street and walk through every player's move.</li>
-        <li><b>Share the hand.</b> Tap Generate, add a title or note if you like, then Share — it includes a link for friends.</li>
+        <li><b>Enter Hero + villains.</b> Each one opens in a focused module — position, stack, cards. Settings (stakes / blinds) live in the hamburger.</li>
+        <li><b>Record the action.</b> Each street has Fold / Check / Call / Raise / All-in. Postflop you pick the board cards inline. Add a "My thinking" note per street if you want it on the picture.</li>
+        <li><b>Share the hand.</b> When the hand's done, Confirm and Generate turns it into a clean image. Title or note optional, then Share — includes a link for friends.</li>
       </ol>
       <button type="button" class="btn-secondary" id="welcomeTour">▶ See an example walkthrough</button>
       <button type="button" class="btn-primary" id="welcomeDismiss">Got it</button>
@@ -3040,7 +3040,26 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.72";
+const APP_VERSION = "v1.2.74";
+
+// ============================================================================
+// CASILLAS / PRO FEATURE FLAG — hide every pro-review surface for input-only
+// beta. Flip back to `true` to restore the full flow (no other code changes
+// needed). When false, the user sees: no "Ask Casillas" section in the hand
+// viewer, no autopopping "Ask Casillas" badge, no review-delivered banner,
+// no review chips on My hands rows, no "Casillas reviewed" section header
+// in My hands, no red dot on the hamburger.
+// Touchpoints gated by this flag:
+//   - injectAskAPro(out)                  : returns early
+//   - pro popup setTimeout chain          : returns early
+//   - notifyReviewDelivered banner        : returns early
+//   - renderMyHandsList categorization    : everything bucketed as "saved"
+//   - _buildHandRowHTML reviewChipHtml    : empty string
+//   - updateHamburgerDot                  : forces hidden
+// All the corresponding HTML / CSS / handler wiring stays in place so a
+// single re-flip of this constant brings the entire flow back live.
+// ============================================================================
+const SHOW_CASILLAS = false;
 // Lightweight analytics event wrapper (PostHog). No-op if the script is blocked or absent.
 function track(ev, props) { try { if (window.posthog && window.posthog.capture) window.posthog.capture(ev, props || {}); } catch (_) {} }
 
@@ -6872,6 +6891,7 @@ function showRangeCheckForm() {
    ========================================================================== */
 let _proPopupTimer = null;
 function injectAskAPro(out) {
+  if (typeof SHOW_CASILLAS !== "undefined" && !SHOW_CASILLAS) return;
   if (!out) return;
   if (document.getElementById("proSection")) return;     // already injected this render
   // Cancel any pending popup timer and remove any already-rendered popup BEFORE
@@ -7452,6 +7472,13 @@ function checkAndRenderReviewBanner() {
   const banner = document.getElementById("reviewBanner");
   const txt = document.getElementById("reviewBannerText");
   if (!banner || !txt) return;
+  // SHOW_CASILLAS off: force-hide and bail.
+  if (typeof SHOW_CASILLAS !== "undefined" && !SHOW_CASILLAS) {
+    if (_reviewPopupTimer) { clearTimeout(_reviewPopupTimer); _reviewPopupTimer = null; }
+    banner.style.display = "none";
+    banner.classList.remove("fading");
+    return;
+  }
   const reviews = loadReviews();
   const dismissed = loadBannerDismissed();
   const delivered = reviews.filter(r => r.status === "delivered" && !dismissed[r.id])
@@ -7598,6 +7625,12 @@ if (typeof escapeHTML !== "function") {
 function updateMyHandsMenuBadge() {
   const badge = document.getElementById("myHandsMenuBadge");
   const dot = document.getElementById("hamburgerDot");
+  // SHOW_CASILLAS off: force-hide badge + dot regardless of stored reviews.
+  if (typeof SHOW_CASILLAS !== "undefined" && !SHOW_CASILLAS) {
+    if (badge) badge.style.display = "none";
+    if (dot) dot.style.display = "none";
+    return;
+  }
   const reviews = loadReviews();
   const seen = loadBannerDismissed();
   const unseenReady = reviews.filter(r => r.status === "delivered" && !seen[r.id]);
@@ -10658,13 +10691,20 @@ function loadExampleHand() {
 }
 
 const COACH_STEPS = [
-  { intro: true, title: "", text: "Turn any poker hand into a clean picture you can share. Here's a quick tour with an example hand — a classic Aces-vs-Kings cooler.", cta: "Start tour" },
-  { sel: "#sectionGame",  title: "1 · The game",   text: "Stakes go here — pick cash or tournament, then your blinds. This example is an MTT at 500/1,000." },
-  { sel: "#sectionHero",  title: "2 · You (Hero)", text: "Your seat, stack and hole cards. Here you're on the Button with pocket Aces." },
-  { sel: "#sectionVillains", title: "3 · The villains", text: "Everyone else in the hand. This one's the Big Blind, holding Kings." },
-  { sel: ".street[data-street='preflop']", title: "4 · The action", text: "Record each street, bet by bet — for any bet, tap a quick size or type your own in the amount field. We filled in the preflop here (all-in for 100bb); the flop, turn and river work the same way.", preflop: true },
-  { sel: "#generateBtn",  title: "5 · Make the picture", text: "When the hand's done, this turns it into a clean image. Let's see it.", cta: "Generate it →", generate: true },
-  { result: true, title: "That's your hand story", text: "Your whole hand in one image. Add a title or note, then Share — it sends the picture with a link so friends can make their own. Ready to make yours?", cta: "Input my hand →" },
+  { intro: true, title: "", text: "Turn any poker hand into a clean picture you can share. Quick tour with an example — an Aces-vs-Kings cooler we'll build together.", cta: "Start tour" },
+  { sel: "#sectionHero",  title: "1 · Hero",
+    text: "Tap the Hero box to open a focused module — position, stack, hole cards. Here you're on the Button with pocket Aces." },
+  { sel: "#sectionVillains", title: "2 · Villains",
+    text: "Each villain gets the same focused flow — add as many as you need. This one's the Big Blind with Kings." },
+  { sel: ".street[data-street='preflop']", title: "3 · Record the action",
+    text: "Each street has Fold / Check / Call / Raise / All-in. Tap a preset size or type your own. On flop / turn / river you also pick the board cards directly inside the street. There's a \"My thinking\" field on each review — your note shows up on the shared picture.",
+    preflop: true },
+  { sel: "#generateBtn",  title: "4 · Make the picture",
+    text: "Once the hand finishes — fold-out, river, or all-in — Confirm and Generate turns it into a clean shareable image.",
+    cta: "Generate it →", generate: true },
+  { result: true, title: "That's your hand story",
+    text: "Add a title or note, then Share — sends the picture with a link your friends can use to make their own. Ready to record yours?",
+    cta: "Input my hand →" },
 ];
 let _coachIdx = 0;
 function startCoachTour() {
@@ -11019,14 +11059,18 @@ function _buildHandRowHTML(h, opts) {
   }
   const tinyFace = `<span class="rc-avatar"><img src="eyal.jpg" alt="" onerror="this.remove()"></span>`;
   let reviewChipHtml = "";
-  if (opts.category === "new") {
-    reviewChipHtml = `<div class="row-review-chip ready">${tinyFace}Casillas &middot; ready</div>`;
-  } else if (opts.category === "pending") {
-    reviewChipHtml = `<div class="row-review-chip pending">${tinyFace}Casillas &middot; pending</div>`;
-  } else if (opts.category === "reviewed-seen" && opts.hasReview) {
-    reviewChipHtml = `<div class="row-review-chip ready">${tinyFace}Casillas &middot; ready</div>`;
+  // SHOW_CASILLAS off: never emit the review chip, regardless of opts.category.
+  const _showCasillasUI = !(typeof SHOW_CASILLAS !== "undefined" && !SHOW_CASILLAS);
+  if (_showCasillasUI) {
+    if (opts.category === "new") {
+      reviewChipHtml = `<div class="row-review-chip ready">${tinyFace}Casillas &middot; ready</div>`;
+    } else if (opts.category === "pending") {
+      reviewChipHtml = `<div class="row-review-chip pending">${tinyFace}Casillas &middot; pending</div>`;
+    } else if (opts.category === "reviewed-seen" && opts.hasReview) {
+      reviewChipHtml = `<div class="row-review-chip ready">${tinyFace}Casillas &middot; ready</div>`;
+    }
   }
-  const newBadge = opts.category === "new"
+  const newBadge = (_showCasillasUI && opts.category === "new")
     ? `<span class="row-new-badge">NEW</span>` : "";
   // Layout (titled vs untitled both use the same card-line size):
   //  [main column]                       [right column]
@@ -11094,8 +11138,12 @@ function renderMyHandsList() {
   //   New        = delivered review NOT yet seen
   //   Pending    = paid (sent) review
   //   Reviewed   = delivered review already seen, OR saved hand with no review
-  const reviews = loadReviews();
-  const seen = loadBannerDismissed();
+  // SHOW_CASILLAS off (beta): collapse everything into the Reviewed bucket
+  // so the user sees a single "Saved hands" list with no "New" / "Pending"
+  // sections referencing the pro. Reviews are still loaded for re-flip back.
+  const _showCasillasUI = !(typeof SHOW_CASILLAS !== "undefined" && !SHOW_CASILLAS);
+  const reviews = _showCasillasUI ? loadReviews() : [];
+  const seen = _showCasillasUI ? loadBannerDismissed() : {};
   const byHand = {};
   reviews.forEach(r => {
     if (!r.savedHandId) return;
