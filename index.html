@@ -36,9 +36,11 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
     margin: 0; padding: 0;
+    /* v1.2.97 — slightly brighter ambient glow (was 0.10/0.08, now 0.16/0.13)
+       so the canvas reads as "premium polished" instead of "flat black". */
     background:
-      radial-gradient(ellipse at top right, rgba(251,113,133,0.10) 0%, transparent 50%),
-      radial-gradient(ellipse at bottom left, rgba(94,234,212,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at top right, rgba(251,113,133,0.16) 0%, transparent 55%),
+      radial-gradient(ellipse at bottom left, rgba(94,234,212,0.13) 0%, transparent 55%),
       var(--bg);
     background-attachment: fixed;
     color: var(--ink);
@@ -272,13 +274,15 @@
 
   /* Inline street sections */
   .street { padding: 0; overflow: hidden; transition: border-color 0.18s, box-shadow 0.18s, background 0.18s; }
-  /* Expanded (active) street: mint border + accent glow, brighter background */
+  /* Expanded (active) street: mint border + accent glow, brighter background
+     v1.2.97 — punched up the glow so the active street feels as focal as the
+     wizard-flow input modals (was 24px @0.18, now 36px @0.30 + soft inner). */
   .street.expanded {
     border-color: var(--accent);
     box-shadow:
-      0 0 0 1px var(--accent),
-      0 0 24px rgba(94,234,212,0.18),
-      0 4px 16px rgba(0,0,0,0.22);
+      0 0 0 1.5px var(--accent),
+      0 0 36px rgba(94,234,212,0.30),
+      0 4px 20px rgba(0,0,0,0.30);
     background: linear-gradient(180deg, #20283f 0%, var(--panel-2) 100%);
   }
   /* Done street: subtle mint tint, accent check already on .name */
@@ -462,6 +466,19 @@
     padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
     background: linear-gradient(180deg, transparent 0%, var(--bg) 30%);
     z-index: 10;
+  }
+  /* v1.2.97 — Generate button breathes subtly when the hand has completed,
+     so the user's eye is drawn to the next action. Stops when disabled
+     (hand not yet complete) or when actionbar is hidden. */
+  @keyframes gen-breathing {
+    0%, 100% { box-shadow: 0 4px 18px rgba(94,234,212,0.18); }
+    50%      { box-shadow: 0 4px 30px rgba(94,234,212,0.55); }
+  }
+  .actionbar #generateBtn:not(:disabled) {
+    animation: gen-breathing 2.6s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .actionbar #generateBtn:not(:disabled) { animation: none; }
   }
   /* PROTOTYPE wizard: locked future steps + step buttons */
   .setup-section.locked { opacity: 0.5; pointer-events: none; position: relative; }
@@ -805,10 +822,92 @@
     flex-shrink: 0;
   }
   .game-pill .pill-label { font-weight: 800; color: var(--accent); }
+  /* Saved-villain list inside the Villain modal — shows above the body when
+     adding a new villain (Villain #2, Villain #3, ...) so the user has a
+     clear acknowledgement that prior villains were saved. */
+  .vi-saved-list {
+    margin: 6px 18px 0;
+    padding: 8px 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .vi-saved-list:empty { display: none; }
+  .vi-saved-item {
+    font-size: 13px; font-weight: 600;
+    color: var(--ink); line-height: 1.3;
+    /* Each row is a button so users can tap to edit a saved villain. */
+    background: transparent; border: 1px solid transparent;
+    text-align: left; padding: 6px 8px; border-radius: 8px;
+    font-family: inherit; cursor: pointer;
+    /* Two-child flex: .vi-saved-info on the left, .vi-saved-edit on the
+       right (v1.2.81). */
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px;
+    transition: background .12s ease, border-color .12s ease;
+  }
+  .vi-saved-item:hover, .vi-saved-item:focus-visible {
+    background: rgba(94,234,212,0.08); border-color: rgba(94,234,212,0.25);
+    outline: none;
+  }
+  .vi-saved-item:active { background: rgba(94,234,212,0.16); }
+  .vi-saved-item .vi-saved-info {
+    display: inline-flex; align-items: center; gap: 6px;
+    min-width: 0;
+  }
+  .vi-saved-item .vi-saved-num { color: var(--accent); font-weight: 800; }
+  .vi-saved-item .vi-saved-pos { color: var(--ink); font-weight: 700; }
+  .vi-saved-item .vi-saved-stack { color: var(--ink-dim); }
+  .vi-saved-item .vi-saved-edit {
+    color: var(--ink-dim); font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+    opacity: 0.7; flex: 0 0 auto;
+  }
+  /* v1.2.94 — tap-affordance chevron replaces the "Edit" badge. On touch
+     devices the hover state isn't reachable, so a visual cue is essential. */
+  .vi-saved-item .vi-saved-chev {
+    color: var(--ink-dim);
+    font-size: 18px;
+    font-weight: 700;
+    opacity: 0.55;
+    flex: 0 0 auto;
+    line-height: 1;
+  }
+  .vi-saved-item:hover .vi-saved-chev,
+  .vi-saved-item:focus-visible .vi-saved-chev { opacity: 1; color: var(--accent); }
+
+  /* Cancel button in villain modal footer — link-style, low visual weight,
+     for users who tapped "+ Add another" by mistake. */
+  .vi-cancel-btn {
+    background: transparent; border: 1px solid var(--line);
+    color: var(--ink-dim); font-weight: 700; font-family: inherit;
+    padding: 10px 14px; border-radius: 10px; cursor: pointer;
+    font-size: 14px; transition: color .12s ease, border-color .12s ease;
+  }
+  .vi-cancel-btn:hover { color: var(--ink); border-color: var(--ink-dim); }
+
+  /* Big modal title (HERO / VILLAIN) — sits above the body so the user
+     instantly knows which input module they're in. Teal accent matches
+     the focused-module frame. */
+  .hi-modal-title {
+    font-size: 26px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-align: center;
+    padding: 18px 0 6px;
+    border-bottom: 1px solid var(--line);
+    margin: 0 18px 4px;
+    text-shadow: 0 0 18px rgba(94,234,212,0.3);
+  }
   .hi-body {
     flex: 0 1 auto;          /* don't stretch; size to content */
     overflow-y: auto;        /* only scrolls if the content actually exceeds 92vh */
-    padding: 22px 18px 16px;
+    padding: 18px 18px 16px;
     display: flex; flex-direction: column; gap: 18px;
   }
   .hi-section { display: flex; flex-direction: column; }
@@ -872,9 +971,15 @@
     padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 14px);
     border-top: 1px solid var(--line);
     background: var(--bg);
-    display: flex; gap: 10px;
+    display: flex; gap: 10px; flex-wrap: wrap;
   }
   .hi-foot button { flex: 1; padding: 14px; font-size: 14px; font-weight: 800; }
+  /* v1.2.86 — villain modal footer: "Start hand →" (or "Save changes") drops
+     to its own full-width row so the primary action has room to breathe.
+     Remove + Add another share row 1 when both visible, or one fills row 1
+     alone if Remove is hidden (Villain #1 add). */
+  #viCancel, #viAddAnother { min-width: calc(50% - 5px); }
+  #viStartHand { flex: 1 1 100%; }
   /* CTA button inside the Hero section that opens the focused overlay */
   .hi-open-cta {
     display: flex; align-items: center; gap: 12px;
@@ -1621,6 +1726,17 @@
     cursor: pointer;
   }
   .menu-list button:hover { background: var(--panel-2); }
+  /* v1.2.96 — Lucide-style monoline SVG icon, sits as first flex child of
+     each menu button. Picks up currentColor so hover recolors it teal in
+     sync with the text. */
+  .menu-list .menu-icon {
+    width: 20px; height: 20px;
+    flex: 0 0 20px;
+    color: var(--ink-dim);
+    transition: color 0.16s ease;
+  }
+  .menu-list button:hover .menu-icon,
+  .menu-list button:focus-visible .menu-icon { color: var(--accent); }
   /* Notification badge on a menu item (e.g. "My hands · 2 ready") */
   .menu-list .menu-badge {
     display: inline-flex; align-items: center; justify-content: center;
@@ -1667,7 +1783,83 @@
   }
   .avatar-grid .av.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
   .welcome-body .btn-secondary { width: 100%; padding: 13px; border-radius: 12px; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  /* PLAYER SUMMARY STRIP (v1.2.85) — slim faint chips above the streets
+     showing the saved Hero + Villains. Lets the user re-open any input
+     module while they're filling in the action streets without having to
+     dig through a menu. Hidden until there's at least one player to show. */
+  .player-summary-strip {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 8px 16px 4px;
+  }
+  .player-summary-strip:empty { display: none; }
+  /* v1.2.86 — hide the strip + context pill whenever any overlay is on.
+     They'd be covered by the overlay's solid backdrop anyway; skipping
+     the render is just cleanup. */
+  body:has(.overlay.on) > #playerSummaryStrip,
+  body:has(.overlay.on) > #gameContextPill { display: none; }
+  .player-summary-card {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 130px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 7px 10px;
+    opacity: 0.62;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    transition: opacity 0.16s, border-color 0.16s, transform 0.08s;
+  }
+  .player-summary-card:hover,
+  .player-summary-card:focus-visible {
+    opacity: 1; border-color: var(--accent); outline: none;
+  }
+  .player-summary-card:active { transform: scale(0.99); }
+  .player-summary-card .ps-label {
+    font-size: 10px; font-weight: 800;
+    color: var(--accent);
+    text-transform: uppercase; letter-spacing: 1.2px;
+    margin-bottom: 3px;
+  }
+  .player-summary-card .ps-line {
+    font-size: 13px; font-weight: 700; color: var(--ink);
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    line-height: 1.3;
+  }
+  .player-summary-card .ps-dim {
+    color: var(--ink-dim); font-weight: 600;
+  }
+  /* v1.2.92 — Hero chip gets a 2px teal border so a single glance finds
+     your seat in a row of otherwise-identical villain chips. */
+  .player-summary-card.ps-hero {
+    border: 2px solid var(--accent);
+    opacity: 0.78;
+  }
+  .player-summary-card.ps-hero:hover,
+  .player-summary-card.ps-hero:focus-visible { opacity: 1; }
+  /* v1.2.93 — shrink the inline card chips to fit the small strip chip.
+     Default cardInlineHTML renders 30x30 circles which are too big here. */
+  .player-summary-card .ci {
+    width: 22px !important; height: 22px !important;
+    font-size: 10px !important;
+    vertical-align: -5px !important;
+    margin: 0 1px !important;
+  }
+
+  /* OLD-UI CLEANUP (v1.2.77): the inline setup sections (Game / Hero /
+     Villains) are fully replaced by focused modals + the Settings overlay
+     and the gameContextPill. We keep the markup so the inputs that the
+     engine reads ($("#bb"), $("#sb"), $("#heroPos"), $("#heroStack"), etc.)
+     still exist as hidden holders — but the user no longer sees them as
+     "old UI" behind the modals or behind the action wizard. */
+  #sectionGame,
+  #sectionHero,
+  #sectionVillains { display: none !important; }
+
   /* Coachmark walkthrough (FTUE) */
+  /* While the walkthrough is active, lock the page so background scroll
+     doesn't drift the spotlight off the target. */
+  body.coach-tour-active { overflow: hidden; touch-action: none; }
   /* The tour uses a CORAL identity so it never looks like a (teal) form section. */
   #coachOverlay { position: fixed; inset: 0; z-index: 300; display: none; }
   #coachOverlay.on { display: block; }
@@ -1711,7 +1903,9 @@
 
   /* My hands view (swapped with form via body class) */
   body.viewing-myhands > section.card,
-  body.viewing-myhands > .actionbar { display: none; }
+  body.viewing-myhands > .actionbar,
+  body.viewing-myhands > #playerSummaryStrip,
+  body.viewing-myhands > #gameContextPill { display: none; }
   body:not(.viewing-myhands) #myHandsView { display: none; }
 
   .my-hands-header {
@@ -1736,11 +1930,18 @@
   .iconbtn:hover { background: var(--panel-2); }
   .my-hands-list { display: flex; flex-direction: column; gap: 10px; }
   .my-hands-empty {
-    padding: 50px 16px; text-align: center;
+    padding: 36px 16px 50px; text-align: center;
     color: var(--ink-dim);
   }
   .my-hands-empty p { margin: 0 0 6px; font-size: 14px; }
   .my-hands-empty .sub { font-size: 13px; color: var(--ink-dim); }
+  /* v1.2.97 — stylized two-card illustration above the "No hands yet" copy. */
+  .my-hands-empty-illustration {
+    display: block; margin: 0 auto 18px;
+    width: 140px; height: auto;
+    opacity: 0.85;
+    filter: drop-shadow(0 6px 18px rgba(94,234,212,0.15));
+  }
   /* Row: 2-column grid (left main / right meta column). The right column has
      date on the top row and outcome pill + trash side-by-side on the bottom
      row. Compact overall — tighter padding so the row reads as one glance. */
@@ -1845,14 +2046,23 @@
   .my-hand-row .row-trash svg { display: block; }
 
   /* Branded dialog — replaces native alert()/confirm() */
+  /* v1.2.85 — teal accent frame + dimmer backdrop so confirmation dialogs
+     read as urgent, not subtle. Matches the wizard-flow input modals. */
   .dialog-sheet {
     max-width: 420px;
     margin: 0 auto;
     border-radius: 16px;
     overflow: hidden;
-    border: 1px solid var(--line);
+    border: 1.5px solid var(--accent);
+    box-shadow:
+      0 12px 40px rgba(0,0,0,0.55),
+      0 0 28px rgba(94,234,212,0.22);
   }
-  .overlay.dialog-mode { align-items: center; padding: 16px; }
+  .overlay.dialog-mode {
+    align-items: center;
+    padding: 16px;
+    background: rgba(0,0,0,0.78);   /* dimmer than the default 0.55 */
+  }
   .dialog-body { padding: 22px 22px 12px; }
   .dialog-body h3 {
     margin: 0 0 8px;
@@ -2291,6 +2501,11 @@
   <span class="pill-label" id="gameContextLabel">—</span>
 </div>
 
+<!-- PLAYER SUMMARY STRIP (v1.2.85) — faint Hero + Villain chips above streets.
+     Populated by renderPlayerSummaryStrip(), called from refreshAll. Tap any
+     chip to re-open the corresponding input modal. -->
+<div id="playerSummaryStrip" class="player-summary-strip"></div>
+
 <!-- GAME -->
 <section class="card setup-section" id="sectionGame">
   <h2 class="setup-h2">Game<span class="setup-summary" id="summaryGame" style="display:none;font-weight:normal;color:#aaa5c8;font-size:13px;margin-left:8px;"></span></h2>
@@ -2432,6 +2647,7 @@
 <div class="overlay" id="heroInputOverlay">
   <div class="sheet hero-input-sheet">
     <button type="button" class="floating-close" id="hiClose" aria-label="Close">&times;</button>
+    <div class="hi-modal-title">Hero</div>
     <div class="hi-body">
       <div class="hi-section">
         <div class="hi-label">Your position</div>
@@ -2479,7 +2695,14 @@
        overlay opens. -->
   <div class="input-ghost-bg" id="viGhostBg"></div>
   <div class="sheet hero-input-sheet">
-    <button type="button" class="floating-close" id="viClose" aria-label="Close">&times;</button>
+    <!-- No X close (v1.2.81) — villains exit via Save/Start hand or by tapping
+         "Remove this villain" to back out to the previous one. -->
+    <!-- Saved-villain summary list. Sits ABOVE the modal title so the user
+         sees "Villain #1 UTG 30bb" etc. first, then the title for the
+         villain being added (e.g. "VILLAIN #2"). Populated by
+         openVillainInput when adding a fresh villain (not when editing). -->
+    <div class="vi-saved-list" id="viSavedList"></div>
+    <div class="hi-modal-title" id="viModalTitle">Villain</div>
     <div class="hi-body">
       <div class="hi-section">
         <div class="hi-label" id="viTitleLabel">Villain position</div>
@@ -2500,9 +2723,11 @@
         </div>
       </div>
       <div class="hi-section">
-        <div class="hi-label">Villain stack <span id="viStackUnit" style="font-size:13px;font-weight:600;letter-spacing:0;opacity:.65;"></span></div>
+        <!-- v1.2.98 — explicit "optional" label so users know they can skip
+             the villain stack and still start the hand. -->
+        <div class="hi-label">Villain stack <span id="viStackUnit" style="font-size:13px;font-weight:600;letter-spacing:0;opacity:.65;"></span> <span style="font-size:13px;font-weight:600;letter-spacing:0;opacity:.65;">(optional)</span></div>
         <div class="hi-stack-wrap">
-          <input type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" id="viStack" placeholder="Input villain's stack">
+          <input type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" id="viStack" placeholder="Optional">
           <svg class="hi-stack-pencil" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 20h9"></path>
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
@@ -2515,6 +2740,11 @@
       </div>
     </div>
     <div class="hi-foot">
+      <!-- "Remove this villain" — only shown when adding Villain #2+ as a
+           back button to the previous villain. Hidden for Villain #1 (no
+           previous) and in edit mode. Discards the in-progress new villain
+           and reopens the prior villain in edit mode. -->
+      <button type="button" class="vi-cancel-btn" id="viCancel">Remove this villain</button>
       <button type="button" class="btn-secondary" id="viAddAnother">+ Add another villain</button>
       <button type="button" class="btn-primary" id="viStartHand">Start hand →</button>
     </div>
@@ -2650,12 +2880,40 @@
       <button type="button" class="closebtn" id="menuClose" aria-label="Close">×</button>
     </header>
     <ul class="menu-list">
-      <li><button type="button" data-menu="profile">Profile</button></li>
-      <li><button type="button" data-menu="newhand">New hand</button></li>
-      <li><button type="button" data-menu="myhands">My hands<span class="menu-badge" id="myHandsMenuBadge" style="display:none">0</span></button></li>
-      <li><button type="button" data-menu="tour">Example walkthrough</button></li>
-      <li><button type="button" data-menu="feedback">Send feedback</button></li>
-      <li><button type="button" data-menu="gamesettings">Settings</button></li>
+      <!-- v1.2.95 order: most-frequent destinations at the top
+           (My hands → New hand → Clear), then config (Settings → Profile),
+           then explore / contact (Walkthrough → Feedback).
+           v1.2.96: Lucide-style monoline SVG icons on each item. -->
+      <li><button type="button" data-menu="myhands">
+        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        My hands<span class="menu-badge" id="myHandsMenuBadge" style="display:none">0</span>
+      </button></li>
+      <li><button type="button" data-menu="newhand">
+        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        New hand
+      </button></li>
+      <!-- Clear current hand — only visible when there's an in-progress hand
+           to clear. Toggled by the menuOpen handler (v1.2.93). -->
+      <li id="menuClearItem" style="display:none;"><button type="button" data-menu="clear">
+        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        Clear current hand
+      </button></li>
+      <li><button type="button" data-menu="gamesettings">
+        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </button></li>
+      <li><button type="button" data-menu="profile">
+        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Profile
+      </button></li>
+      <li><button type="button" data-menu="tour">
+        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+        Example walkthrough
+      </button></li>
+      <li><button type="button" data-menu="feedback">
+        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Send feedback
+      </button></li>
     </ul>
     <!-- Build/version marker so we can confirm production is on the latest deploy -->
     <div id="appVersion" style="margin-top:auto;padding:14px 18px 18px;font-size:11px;color:rgba(255,255,255,0.35);"></div>
@@ -2830,6 +3088,26 @@
   </div>
   <div id="myHandsList" class="my-hands-list"></div>
   <div id="myHandsEmpty" class="my-hands-empty" style="display:none">
+    <!-- v1.2.97 — stylized AKs fanned card illustration so the empty state
+         feels inviting instead of empty. Brand colors (teal frame, pink ace,
+         white king on subtle dark cards). -->
+    <svg class="my-hands-empty-illustration" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <!-- Back card, rotated left -->
+      <g transform="translate(38 28) rotate(-12 40 55)">
+        <rect width="80" height="110" rx="10" fill="#1a2540" stroke="#5eead4" stroke-width="1.5" opacity="0.85"/>
+        <text x="14" y="32" fill="#f2eff8" font-family="serif" font-size="24" font-weight="700">K</text>
+        <text x="14" y="56" fill="#f2eff8" font-family="serif" font-size="22">♠</text>
+        <text x="66" y="100" fill="#f2eff8" font-family="serif" font-size="22" text-anchor="end">♠</text>
+        <text x="66" y="100" fill="#f2eff8" font-family="serif" font-size="22" text-anchor="end" transform="rotate(180 60 95)" opacity="0">.</text>
+      </g>
+      <!-- Front card, rotated right -->
+      <g transform="translate(82 28) rotate(12 40 55)">
+        <rect width="80" height="110" rx="10" fill="#1a2540" stroke="#5eead4" stroke-width="1.5"/>
+        <text x="14" y="32" fill="#ff6b8a" font-family="serif" font-size="24" font-weight="700">A</text>
+        <text x="14" y="56" fill="#ff6b8a" font-family="serif" font-size="22">♥</text>
+        <text x="66" y="100" fill="#ff6b8a" font-family="serif" font-size="22" text-anchor="end">♥</text>
+      </g>
+    </svg>
     <p>No hands yet.</p>
     <p class="sub">Tap <b>+ New hand</b> above to record your first one.</p>
   </div>
@@ -3040,7 +3318,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.2.74";
+const APP_VERSION = "v1.3.1";
 
 // ============================================================================
 // CASILLAS / PRO FEATURE FLAG — hide every pro-review surface for input-only
@@ -3399,9 +3677,9 @@ function renderShowdownVillains() {
     }
     return !!state.streets.river.complete;
   })();
-  // In an MTT, all-in players are required to expose their cards (live poker rule).
-  // We force showdownResult → "showed" and disable the Mucked button.
-  const mttForceShow = state.gameType === "mtt" && anyoneAllIn();
+  // v1.2.99 — any all-in (MTT or cash) forces villains to show. Drops the
+  // MTT-only restriction so cash all-ins are also auto-flipped to "showed".
+  const mttForceShow = anyoneAllIn();
   // Defensive filter: never render a villain without a position. Position is
   // required at entry now, but legacy state may still carry empty records.
   state.villains.filter(v => v && v.pos).forEach((v) => {
@@ -3759,9 +4037,20 @@ function foldedIdsFromSaved() {
 
 // True if anyone shoved (`jam`) or was forced all-in by calling.
 function anyoneAllIn() {
+  // v1.2.99 — also detect actions flagged with `isAllIn`. Covers bet/raise
+  // actions that emptied the player's stack.
+  // v1.3.0 — also scan the IN-FLIGHT active wizard's streetActions. The
+  // auto-pop showdown picker fires from renderEditingView (before the
+  // wizard's saveActiveStreet has copied actions to state.streets), so the
+  // saved-state scan was missing the just-recorded jam/call-all-in.
   for (const sname of ["preflop","flop","turn","river"]) {
     for (const a of (state.streets[sname].actions || [])) {
-      if (a.verb === "jam" || a.calledAllIn) return true;
+      if (a.verb === "jam" || a.calledAllIn || a.isAllIn) return true;
+    }
+  }
+  if (typeof activeWiz !== "undefined" && activeWiz && Array.isArray(activeWiz.streetActions)) {
+    for (const a of activeWiz.streetActions) {
+      if (a.verb === "jam" || a.calledAllIn || a.isAllIn) return true;
     }
   }
   return false;
@@ -3784,13 +4073,15 @@ function isHandComplete() {
   if (heroHole.length !== 2) return { ok: false, reason: "Pick hero's two hole cards." };
   const board = getFullBoard();
   if (board.length !== 5) return { ok: false, reason: "Play all streets through to the river." };
-  const mttForceShow = state.gameType === "mtt" && anyoneAllIn();
+  // v1.2.98 — any all-in forces villains to show (was MTT-only). Matches the
+  // vsdCards overlay which now hides the Mucked button in any all-in.
+  const forceShow = anyoneAllIn();
   for (const p of live) {
     if (p.id === "hero") continue;
     const v = state.villains.find(vv => "v"+vv.id === p.id);
     if (!v) continue;
     if (!v.showdownResult) return { ok: false, reason: `${v.pos || "Villain"}: pick Showed or Mucked at showdown.` };
-    if (mttForceShow && v.showdownResult !== "showed") return { ok: false, reason: `${v.pos || "Villain"}: MTT rule — must show cards.` };
+    if (forceShow && v.showdownResult !== "showed") return { ok: false, reason: `${v.pos || "Villain"}: all-in — must show cards.` };
     if (v.showdownResult === "showed") {
       const c1 = state.cards["v"+v.id+"_c1"], c2 = state.cards["v"+v.id+"_c2"];
       if (!c1 || !c1.rank || !c2 || !c2.rank) return { ok: false, reason: `${v.pos || "Villain"}: pick the shown cards.` };
@@ -3811,7 +4102,11 @@ function refreshGenerateButton() {
   // sees two competing primary buttons when a hand ended preflop via folds.
   // Confirm & continue's handler routes to Generate when the hand is over,
   // so there's no loss of capability — just one entry point at a time.
-  const inWizardReview = !!activeWiz;
+  // v1.2.90 — "in review" requires the wizard to actually have recorded
+  // actions. A freshly-initialized empty wizard (auto-opened next street
+  // after Hero folded out preflop) doesn't count; otherwise the user is
+  // stranded with no Generate button even though isHandComplete returns ok.
+  const inWizardReview = !!(activeWiz && activeWiz.streetActions && activeWiz.streetActions.length > 0);
   bar.style.display = (r.ok && !inWizardReview) ? "" : "none";
   btn.disabled = !r.ok;
 }
@@ -4041,13 +4336,12 @@ function startHandHandoff(srcEl) {
     pf.classList.add("expanded");
   }
   // Scroll target: anchor on the Hero section (now collapsed faint) so the
-  // user sees Hero + Villains summaries above the expanded Preflop, matching
-  // the toggleStreet behavior. Falls back to Preflop if Hero isn't available.
+  // Scroll target: the active street's own top. v1.2.77 hid the inline
+  // Hero / Villains sections — no faint context to leave room for above.
   // The blur above schedules a focusout refresh (~100ms) whose auto-scroll
   // could yank the view off; run our scroll AFTER that settles so it wins.
   setTimeout(() => {
-    const target = document.getElementById("sectionHero") || pf;
-    if (target && typeof _scrollSectionTop === "function") _scrollSectionTop(target);
+    if (pf && typeof _scrollSectionTop === "function") _scrollSectionTop(pf);
   }, 200);
 }
 ["pointerdown", "touchstart", "click"].forEach(evt => {
@@ -4638,8 +4932,16 @@ function describeAction(a, rt) {
     : "";
 
   // A bet/raise that emptied the stack reads as an all-in. Same with explicit jam.
+  // v1.3.1 — all-ins follow the SAME annotation rules as non-all-ins:
+  //   - Postflop first aggressive action (raiseIndex === 1) → "(X% pot)"
+  //   - Raises in any street (raiseIndex > 1)              → "(Yx)" multiplier
+  //   - Preflop open jam (raiseIndex === 1)                → no annotation
   if (a.verb === "jam" || a.isAllIn) {
-    return `all-in ${fmtBB(a.inputTo)}${potPctTail}`;
+    const isPostflop = rt.streetName !== "preflop";
+    const tail = (a.raiseIndex > 1)
+      ? multTail
+      : (isPostflop ? potPctTail : "");
+    return `all-in ${fmtBB(a.inputTo)}${tail}`;
   }
   if (rt.streetName === "preflop") {
     if (a.raiseIndex === 1) {
@@ -4688,18 +4990,12 @@ function toggleStreet(streetName) {
   // Re-render street sections so the new "Showdown hidden while wizard active"
   // gate (in refreshStreetSections) takes effect immediately.
   if (typeof refreshStreetSections === "function") refreshStreetSections();
-  // Scroll position depends on which street is opening. For preflop / flop
-  // there's room to show Hero + Villains faint above; for turn / river the
-  // earlier streets stack high enough that anchoring on Hero would push the
-  // active panel off-screen. Anchor on the ACTIVE street's top instead so
-  // the whole expanded panel is in view (user can still scroll up to see
-  // Hero / Villains / previous streets).
+  // Scroll position — anchor on the ACTIVE street's own top. v1.2.77 hid the
+  // inline setup sections (Game / Hero / Villains), so there's no faint
+  // context to leave room for above; the gameContextPill at the form top
+  // provides at-a-glance game info.
   setTimeout(() => {
-    if (typeof _scrollSectionTop !== "function") return;
-    const heroSec = document.getElementById("sectionHero");
-    const earlyStreet = (streetName === "preflop" || streetName === "flop");
-    if (earlyStreet && heroSec) _scrollSectionTop(heroSec);
-    else _scrollSectionTop(section);
+    if (typeof _scrollSectionTop === "function") _scrollSectionTop(section);
   }, 60);
 }
 
@@ -4848,9 +5144,15 @@ function renderInlineBoardPicker(streetName) {
   const _showActions = (show) => {
     if (logEl) logEl.style.display = show ? "" : "none";
     if (promptEl) promptEl.style.display = show ? "" : "none";
-    // Don't force-show review here; it has its own display logic in
-    // renderInlinePromptOrReview. Only hide it when board isn't ready.
-    if (reviewEl && !show) reviewEl.style.display = "none";
+    if (!show && reviewEl) reviewEl.style.display = "none";
+    // Re-run the prompt/review render so the review block (Confirm & continue
+    // button) becomes visible when the board completes. Without this re-call,
+    // the prior hide (display:none) sticks and the user ends up with no way
+    // to advance — happens specifically on the river street after a multi-
+    // villain turn all-in, where the review state should auto-show.
+    if (show && typeof renderInlinePromptOrReview === "function") {
+      try { renderInlinePromptOrReview(); } catch (_) {}
+    }
   };
   if (!st || !st.board) { grid.innerHTML = ""; grid.style.display = "none"; _showActions(true); return; }
   // All slots filled → no picker needed; clear, hide grid, reveal actions.
@@ -5228,6 +5530,16 @@ function renderInlineReview(reviewEl, rt) {
         const gen = document.getElementById("generateBtn");
         if (gen && !gen.disabled) gen.click();
       }, 60);
+      return;
+    }
+    // v1.2.90 — if Hero folded out, multi-way action continues but THIS user
+    // has nothing more to record. refreshStreetSections already hides the
+    // remaining street sections via handEndedByFolds, but the wizard handler
+    // used to auto-expand the next street anyway, leaving a stranded activeWiz
+    // that suppressed Generate. Surface Generate instead.
+    const heroFolded = (typeof foldedIdsFromSaved === "function") && foldedIdsFromSaved().has("hero");
+    if (heroFolded) {
+      if (typeof refreshGenerateButton === "function") refreshGenerateButton();
       return;
     }
     // Auto-expand the next street if available. The inline 52-card grid
@@ -5693,6 +6005,13 @@ function maybeAutoAdvance() {
 function rerenderForCardChange(t) {
   if (t.kind === "board" && activeWiz) {
     renderInlineBoard(activeWiz.streetName);
+    // Defensive: re-evaluate the inline board picker too. The inline grid
+    // click handler already calls it directly, but if a board card changes
+    // via a different path (e.g. clearing a slot from felt strip), this
+    // ensures the picker's hide/show + actions toggle stays in sync.
+    if (typeof renderInlineBoardPicker === "function") {
+      try { renderInlineBoardPicker(activeWiz.streetName); } catch (_) {}
+    }
     // After a board card change, re-render the showdown villains so the
     // auto-open gate (which requires getFullBoard()===5) re-evaluates. Without
     // this, picking the final runout board card silently completed the board
@@ -7767,11 +8086,25 @@ if (_floatClose) _floatClose.addEventListener("click", handleOutputOverlayClose)
    ========================================================================== */
 let _hiSelectedCards = []; // [{rank, suit}], max 2
 
+// Positions already occupied by villains — hero is being edited, so its own
+// current position is not in the taken set (the user can keep their seat).
+// v1.2.85 — was previously not enforced, letting hero take a villain's seat.
+function _hiTakenPositions() {
+  const taken = new Set();
+  (state.villains || []).forEach(v => { if (v && v.pos) taken.add(v.pos); });
+  return taken;
+}
+
 function openHeroInput() {
-  // Pre-fill position from the existing form
+  // Pre-fill position from the existing form, and grey out any seat already
+  // occupied by a villain (.taken → opacity 0.32 + pointer-events: none, see
+  // .hi-pos-row button.taken in CSS).
   const currentPos = $("#heroPos") && $("#heroPos").value;
+  const _hiTaken = _hiTakenPositions();
   document.querySelectorAll("#hiPositions button").forEach(b => {
-    b.classList.toggle("on", b.dataset.pos === currentPos);
+    const p = b.dataset.pos;
+    b.classList.toggle("on", p === currentPos);
+    b.classList.toggle("taken", _hiTaken.has(p) && p !== currentPos);
   });
   // Pre-fill stack input + unit label
   const hiStack = $("#hiStack");
@@ -7863,9 +8196,11 @@ function updateHiCardsPreview() {
   preview.style.color = "";
 }
 
-// Position pill toggles — single-select
+// Position pill toggles — single-select. Skip taken seats (v1.2.85) as a
+// belt-and-suspenders against the CSS pointer-events: none on .taken.
 document.querySelectorAll("#hiPositions button").forEach(btn => {
   btn.addEventListener("click", () => {
+    if (btn.classList.contains("taken")) return;
     document.querySelectorAll("#hiPositions button").forEach(b => b.classList.remove("on"));
     btn.classList.add("on");
     haptic(4);
@@ -7905,13 +8240,107 @@ function renderViPositions(selectedPos) {
   });
 }
 
-function openVillainInput(vid) {
+// Module-level flag — true when the modal is showing the add-mode footer
+// (Remove this villain / + Add another / Start hand →) regardless of whether
+// an existing villain's data is loaded. Set by openVillainInput's `addFooter`
+// opt (v1.2.83). Read by viStartHand to decide whether to run the start-hand
+// handoff after committing.
+let _viFooterAddMode = false;
+
+// opts.addFooter — pass true to force the add-mode footer even when opening
+// an existing villain. Used by the "Remove this villain" back navigation so
+// the user lands on the prior villain with the same Remove/Add/Start hand
+// options they had right after originally saving it.
+function openVillainInput(vid, opts) {
+  opts = opts || {};
   _viEditingVid = (vid == null) ? null : vid;
   const isEdit = _viEditingVid != null;
+  // Add-mode footer: shown when adding a brand-new villain OR when the
+  // caller explicitly opts in (back-stack navigation from "Remove").
+  _viFooterAddMode = !isEdit || !!opts.addFooter;
   const v = isEdit ? state.villains.find(x => x.id === _viEditingVid) : null;
-  $("#viTitleLabel").textContent = isEdit
-    ? `Edit villain V${state.villains.findIndex(x => x.id === _viEditingVid) + 1} — position`
-    : `New villain — position`;
+  $("#viTitleLabel").textContent = "Villain position";
+  // Big modal title at the top reflects which villain (#1 / #2 / ...) or
+  // "Villain #N" for a fresh add.
+  const _modalTitle = document.getElementById("viModalTitle");
+  if (_modalTitle) {
+    _modalTitle.textContent = isEdit
+      ? `Villain #${state.villains.findIndex(x => x.id === _viEditingVid) + 1}`
+      : `Villain #${state.villains.length + 1}`;
+  }
+  // Saved-villain summary list — shown whenever there are OTHER saved
+  // villains to surface (in both add and edit mode, v1.2.82). When editing
+  // Villain #2 of three, the list still shows Villain #1 and #3 at the top
+  // so the user has full context. The filter excludes the villain currently
+  // being edited so it doesn't duplicate itself in the list.
+  const _savedList = document.getElementById("viSavedList");
+  if (_savedList) {
+    _savedList.innerHTML = "";
+    const _saved = (state.villains || []).filter(x => x && x.pos && x.id !== _viEditingVid);
+    if (_saved.length > 0) {
+      const _unitLabel = state.unit === "bb" ? "bb" : "chips";
+      _saved.forEach((v) => {
+        const idxLabel = state.villains.findIndex(x => x.id === v.id) + 1;
+        // Stack is optional — only render the chip if a real number was entered.
+        const stackChips = v.stack ? parseChips(v.stack) : NaN;
+        const hasStack = isFinite(stackChips) && stackChips > 0;
+        const stackHTML = hasStack
+          ? `<span class="vi-saved-stack">${typeof fmt === "function" ? fmt(stackChips) : v.stack} ${_unitLabel}</span>`
+          : "";
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "vi-saved-item";
+        row.setAttribute("aria-label", `Edit Villain #${idxLabel}`);
+        // Info group on the left (num · pos · stack), chevron on the right
+        // (v1.2.94) to telegraph tappability on touch devices where there's
+        // no hover state.
+        row.innerHTML = `<span class="vi-saved-info"><span class="vi-saved-num">Villain #${idxLabel}</span><span class="vi-saved-pos">${v.pos}</span>${stackHTML}</span><span class="vi-saved-chev" aria-hidden="true">›</span>`;
+        // Tap → reopen this villain's modal. Same-tick swap: openVillainInput
+        // resets state in-place inside the already-on overlay so there's no
+        // backdrop flash. Preserve the current footer mode (v1.2.84) so
+        // navigating between villains via the saved list doesn't toggle the
+        // footer between Save changes and Remove/Add/Start.
+        row.addEventListener("click", () => {
+          const _carryAddFooter = (typeof _viFooterAddMode !== "undefined") ? _viFooterAddMode : false;
+          try { openVillainInput(v.id, { addFooter: _carryAddFooter }); } catch (_) {}
+        });
+        _savedList.appendChild(row);
+      });
+    }
+  }
+  // Footer button visibility (v1.2.83):
+  //   - "+ Add another villain":   shown in add-mode footer; hidden in pure
+  //                                edit mode (e.g. tap-saved-row-to-edit)
+  //   - "Start hand →" / "Save":   "Start hand →" in add-mode, "Save changes"
+  //                                in pure edit mode
+  //   - "Remove this villain":     shown in add-mode when at least one OTHER
+  //                                villain exists to back to (hidden for the
+  //                                very first villain since there's no
+  //                                previous one)
+  const _viFootAdd = document.getElementById("viAddAnother");
+  const _viFootStart = document.getElementById("viStartHand");
+  const _viFootCancel = document.getElementById("viCancel");
+  const _priorVillainCount = (state.villains || []).filter(x => x && x.pos && x.id !== _viEditingVid).length;
+  const _showRemove = _viFooterAddMode && _priorVillainCount >= 1;
+  // v1.2.89 — show "+ Add another villain" in pure-edit too, so a user
+  // who taps a player chip mid-streets can still add another villain.
+  // The handler warns + resets streets before opening the fresh modal.
+  if (_viFootAdd) _viFootAdd.style.display = "";
+  if (_viFootStart) {
+    _viFootStart.style.display = "";
+    if (!_viFooterAddMode) {
+      _viFootStart.textContent = "Save changes";
+    } else {
+      // v1.2.87 — show the upcoming villain count when 2+ so the user sees
+      // explicitly what they're about to start. Count is the future state:
+      // brand-new add adds 1 to the array; back-stacked edit keeps current.
+      const _willHave = isEdit ? state.villains.length : (state.villains.length + 1);
+      _viFootStart.textContent = (_willHave >= 2)
+        ? `Start hand with ${_willHave} villains`
+        : "Start hand →";
+    }
+  }
+  if (_viFootCancel) _viFootCancel.style.display = _showRemove ? "" : "none";
   renderViPositions(v ? v.pos : "");
   $("#viStack").value = v && v.stack ? (typeof fmt === "function" ? fmt(parseChips(v.stack)) : v.stack) : "";
   $("#viNotes").value = v ? (v.notes || "") : "";
@@ -7920,7 +8349,11 @@ function openVillainInput(vid) {
   // Populate the faint ghost backdrop with the hero summary (and any saved
   // villains, when we add multi-step backgrounds in a later phase). Re-built
   // on every open so it reflects the latest state.
-  renderInputGhostBg("#viGhostBg", { hero: true, villains: true, excludeVid: _viEditingVid });
+  // v1.2.86 — hero-only ghost behind the villain modal. Villains are now
+  // surfaced in two clearer places: the saved-list at top of this modal,
+  // and the player summary strip behind. Showing them in the ghost too
+  // was triple-listing and added noise.
+  renderInputGhostBg("#viGhostBg", { hero: true, villains: false });
   $("#villainInputOverlay").classList.add("on");
 }
 
@@ -7970,6 +8403,14 @@ function renderInputGhostBg(targetSel, opts) {
       if (currentOverlay) {
         if (currentOverlay.id === "villainInputOverlay") {
           _heroReturnToVid = (typeof _viEditingVid !== "undefined") ? _viEditingVid : null;
+          // ALWAYS flag the return — covers the "+ Add another" case where
+          // _viEditingVid is null but the user still expects to land back
+          // on a villain modal after the Hero edit (v1.2.80).
+          _heroReturnToVillainAdd = (_heroReturnToVid == null);
+          // Capture the villain modal's footer mode so we can restore it
+          // after Hero confirm (v1.2.84). Without this, a back-stacked
+          // villain returning from Hero loses Remove/Add/Start.
+          _heroReturnToVillainAddFooter = (typeof _viFooterAddMode !== "undefined") ? _viFooterAddMode : false;
         } else if (currentOverlay.id === "vsdCardsOverlay") {
           _heroReturnToVsd = true;
         }
@@ -8021,10 +8462,41 @@ document.querySelectorAll("#viPositions button").forEach(btn => {
   });
 });
 
-$("#viClose").addEventListener("click", () => {
-  // If user is adding a NEW villain and bails out, don't leave an empty record
-  if (_viEditingVid == null) closeVillainInput();
-  else closeVillainInput();
+// "Remove this villain" (v1.2.81, semantics extended v1.2.83) — back button
+// for the villain stack.
+//   - If the current modal is showing a brand-new villain (not yet saved),
+//     just discard the in-progress form and open the prior villain.
+//   - If the current modal is showing an existing villain (e.g. the user
+//     pressed Remove again while back-stacked), actually delete that villain
+//     from state, then open the new-prior villain.
+// Either way, the destination opens with `addFooter: true` so the user sees
+// the same Remove/Add/Start hand options they had right after originally
+// saving that villain — not the "Save changes" of pure-edit mode.
+$("#viCancel").addEventListener("click", () => {
+  // 1. If editing an existing villain, delete it.
+  const currentVid = _viEditingVid;
+  if (currentVid != null) {
+    const idx = state.villains.findIndex(v => v.id === currentVid);
+    if (idx >= 0) {
+      state.villains.splice(idx, 1);
+      if (typeof renderVillains === "function") renderVillains();
+      if (typeof refreshAllPositionSelects === "function") refreshAllPositionSelects();
+      if (typeof renderShowdownVillains === "function") renderShowdownVillains();
+      if (typeof invalidateStreetsAfter === "function") invalidateStreetsAfter(null);
+      if (typeof refreshAll === "function") refreshAll();
+    }
+  }
+  // 2. Open the now-last villain in back-stack mode.
+  const prev = state.villains.filter(v => v && v.pos).slice(-1)[0];
+  if (prev) {
+    // Same-tick swap: openVillainInput resets state in-place inside the
+    // already-on overlay so there's no backdrop flash.
+    try { openVillainInput(prev.id, { addFooter: true }); } catch (_) {}
+  } else {
+    // Defensive — shouldn't fire since the button is hidden when no prior
+    // villains exist. Fall back to a plain close.
+    closeVillainInput();
+  }
 });
 
 // Module-scoped return target — set by ghost-tap on a hero card when leaving
@@ -8033,6 +8505,18 @@ $("#viClose").addEventListener("click", () => {
 // the title and was redundant with ghost-tap.)
 var _heroReturnToVid = null;
 var _heroReturnToVsd = false;
+// v1.2.80 — separate flag for "came from villain modal, vid unknown" case
+// (e.g. user was on a fresh new-villain modal with _viEditingVid still null).
+// Ensures Hero Confirm reopens a villain modal even when no specific vid
+// was being edited. Without this, a user editing Hero from "+ Add another"
+// would be dropped into a silent close because villains already exist.
+var _heroReturnToVillainAdd = false;
+// v1.2.84 — preserve the villain modal's footer mode across a hero edit.
+// Without this, a user who back-stacked into Villain #2 via "Remove" (so
+// the add-mode footer was showing) and then tapped the Hero ghost would
+// land back on Villain #2 in pure-edit mode (Save changes only), losing
+// the Remove/Add/Start hand options they had moments earlier.
+var _heroReturnToVillainAddFooter = false;
 
 // Shared commit helper: validates the form, writes to state, returns true on
 // success. Position is required; stack and notes are optional.
@@ -8067,9 +8551,34 @@ function _viCommit() {
   return true;
 }
 
+// True when ANY street has user-entered content (action, board card, or
+// is marked complete). Used to gate "this is destructive" confirmations
+// in the villain modal flow. v1.2.89.
+function _streetsHaveContent() {
+  if (!state || !state.streets) return false;
+  return ["preflop","flop","turn","river"].some(s => {
+    const st = state.streets[s];
+    if (!st) return false;
+    if (st.complete) return true;
+    if (Array.isArray(st.actions) && st.actions.length > 0) return true;
+    if (Array.isArray(st.board) && st.board.some(c => !!c)) return true;
+    return false;
+  });
+}
+
 // "+ Add another villain" — save the current villain, then open the overlay
-// fresh for the next one.
-$("#viAddAnother").addEventListener("click", () => {
+// fresh for the next one. When invoked mid-streets (pure-edit footer + the
+// hand has visible action), confirm the reset first since adding a villain
+// changes the seat structure and _viCommit cascades through
+// invalidateStreetsAfter(null) which clears every street.
+$("#viAddAnother").addEventListener("click", async () => {
+  if (_streetsHaveContent()) {
+    const ok = await showConfirm(
+      "Adding a villain will reset every street in this hand. Continue?",
+      { title: "Add villain?", confirmLabel: "Add and reset", danger: true }
+    );
+    if (!ok) return;
+  }
   if (!_viCommit()) return;
   // Same-tick swap — open a fresh villain modal so the overlay never blanks
   // out between save and re-open. openVillainInput just resets state +
@@ -8136,16 +8645,16 @@ function openVillainShowdownCards(vid) {
   const _willFinishHand = _otherUndecided.length === 0 && _boardDone && _heroDone;
   const _confirmBtn = document.getElementById("vsdConfirm");
   if (_confirmBtn) _confirmBtn.textContent = _willFinishHand ? "Confirm and Generate" : "Confirm";
-  // MTT all-in: villains are required to show. Disable Mucked + surface the
-  // rule so the user understands why the choice is constrained.
-  const mttForceShow = state.gameType === "mtt" && (typeof anyoneAllIn === "function") && anyoneAllIn();
+  // v1.2.98 — any all-in (MTT or cash) forces a show. Mucked button is
+  // HIDDEN entirely (was just disabled in MTT pre-v1.2.98), so the user
+  // can't even consider it. Note still surfaces the rule.
+  const forceShow = (typeof anyoneAllIn === "function") && anyoneAllIn();
   const muckBtn = document.getElementById("vsdMucked");
   if (muckBtn) {
-    muckBtn.disabled = !!mttForceShow;
-    muckBtn.style.opacity = mttForceShow ? "0.35" : "";
-    muckBtn.style.cursor = mttForceShow ? "not-allowed" : "";
+    muckBtn.style.display = forceShow ? "none" : "";
+    muckBtn.disabled = !!forceShow;
   }
-  // Insert / toggle the MTT note in the body. Re-used across opens.
+  // Insert / toggle the all-in note in the body. Re-used across opens.
   let noteEl = document.getElementById("vsdMttNote");
   const body = document.querySelector("#vsdCardsOverlay .hi-body");
   if (!noteEl && body) {
@@ -8155,7 +8664,7 @@ function openVillainShowdownCards(vid) {
     noteEl.style.cssText = "font-size:12px;font-weight:600;color:#f0c44d;margin:0 0 10px;padding:8px 10px;background:rgba(240,196,77,0.08);border-radius:8px;border:1px solid rgba(240,196,77,0.35);text-align:center;";
     body.insertBefore(noteEl, body.firstChild);
   }
-  if (noteEl) noteEl.style.display = mttForceShow ? "" : "none";
+  if (noteEl) noteEl.style.display = forceShow ? "" : "none";
   // Faint hero + villains summary in the backdrop (tap any ghost to reopen
   // its input). Excludes the villain currently being edited so they don't
   // see a stale ghost of themselves behind the picker.
@@ -8288,10 +8797,11 @@ $("#vsdConfirm").addEventListener("click", () => {
 // next undecided villain (suppress flag cleared).
 $("#vsdMucked").addEventListener("click", () => {
   if (_vsdEditingVid == null) { closeVillainShowdownCards(); return; }
-  // MTT rule: all-in villains must show. Block muck in that case.
-  const mttForceShow = state.gameType === "mtt" && (typeof anyoneAllIn === "function") && anyoneAllIn();
-  if (mttForceShow) {
-    showToast("MTT all-in — cards must be shown");
+  // v1.2.99 — any all-in (MTT or cash) blocks muck. Mirrors the open-time
+  // hide of the button so this is just a defensive net.
+  const forceShow = (typeof anyoneAllIn === "function") && anyoneAllIn();
+  if (forceShow) {
+    showToast("All-in — cards must be shown");
     return;
   }
   const vid = _vsdEditingVid;
@@ -8441,6 +8951,13 @@ $("#gsConfirm").addEventListener("click", () => {
   if (typeof renderGameContextPill === "function") renderGameContextPill();
   haptic(10);
   closeGameSettings();
+  // Walkthrough end → Settings → SAVE should drop the user into a fresh
+  // new-hand flow with their just-saved defaults applied. Flag is set when
+  // the walkthrough's result step opens Settings (see coachNext).
+  if (sessionStorage.getItem("walkthrough_settings_save") === "1") {
+    sessionStorage.removeItem("walkthrough_settings_save");
+    if (typeof startNewHandFlow === "function") startNewHandFlow();
+  }
 });
 
 // Build/refresh the read-only context pill at the top of the form. Reads from
@@ -8473,8 +8990,26 @@ function renderGameContextPill() {
   pill.style.display = "";
 }
 
-// Tap pill → open the settings overlay in override-only mode
-document.getElementById("gameContextPill").addEventListener("click", () => openGameSettings(true));
+// Tap pill → open the settings overlay in override-only mode. v1.2.91:
+// once any street has user-entered content (action / board / complete),
+// block the change. Changing blinds or game type mid-hand silently breaks
+// the pot math on every street already recorded. v1.2.93: offer Clear as
+// a danger action so the user can act on the message in one step.
+document.getElementById("gameContextPill").addEventListener("click", async () => {
+  if (typeof _streetsHaveContent === "function" && _streetsHaveContent()) {
+    const ok = await showConfirm(
+      "Settings can't be changed mid-hand without losing the action you've recorded. Clear the hand to change them now?",
+      { title: "Hand in progress", confirmLabel: "Clear and change", danger: true }
+    );
+    if (!ok) return;
+    // v1.2.93 — drop a flag so the post-reload boot auto-opens Settings.
+    // Without this the user'd have to tap the pill again after the reload.
+    try { sessionStorage.setItem("open_settings_after_reload", "1"); } catch (_) {}
+    location.reload();
+    return;
+  }
+  openGameSettings(true);
+});
 
 // "Start hand →" — save the current villain and trigger the existing
 // "Start hand" handoff which moves the wizard from setup to streets.
@@ -8482,18 +9017,36 @@ document.getElementById("gameContextPill").addEventListener("click", () => openG
 // BEFORE closing the villain modal so the form behind is already in its
 // final state when the overlay drops. Prevents the user from seeing the
 // Villain section briefly expand then collapse.
-$("#viStartHand").addEventListener("click", () => {
+$("#viStartHand").addEventListener("click", async () => {
+  // v1.2.83 — when the add-mode footer is shown the button reads "Start
+  // hand →" and should run the handoff (covers both brand-new villains AND
+  // back-stacked edits arrived at via "Remove this villain"). When showing
+  // the "Save changes" label (pure edit mode, e.g. tap-saved-row-to-edit)
+  // just save & close.
+  const shouldStartHand = _viFooterAddMode;
+  // v1.2.89 — pure-edit (Save changes) mid-streets warns the user. _viCommit
+  // cascades through invalidateStreetsAfter(null) which clears action data
+  // on every street; previously this happened silently.
+  if (!shouldStartHand && _streetsHaveContent()) {
+    const ok = await showConfirm(
+      "Editing this villain will reset every street you've already played. Save anyway?",
+      { title: "Save changes?", confirmLabel: "Save and reset", danger: true }
+    );
+    if (!ok) return;
+  }
   if (!_viCommit()) return;
-  const btn = document.getElementById("confirmPlayers");
-  if (btn && typeof startHandHandoff === "function") {
-    startHandHandoff(btn);
+  if (shouldStartHand) {
+    const btn = document.getElementById("confirmPlayers");
+    if (btn && typeof startHandHandoff === "function") {
+      startHandHandoff(btn);
+    }
   }
   closeVillainInput();
 });
 
 // Confirm — write everything back to the main form's state, then close.
 // Requires ALL three: position, stack (parseable as positive), and both cards.
-$("#hiConfirm").addEventListener("click", () => {
+$("#hiConfirm").addEventListener("click", async () => {
   const posBtn = document.querySelector("#hiPositions button.on");
   if (!posBtn) {
     showToast("Pick your position");
@@ -8513,6 +9066,18 @@ $("#hiConfirm").addEventListener("click", () => {
     const grid = $("#hiCardGrid"); if (grid) grid.scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
+  // v1.2.91 — editing Hero mid-streets (e.g. tap Hero chip in the summary
+  // strip while preflop has actions) breaks the action runtime: position
+  // and stack feed into the wizard's pot math. Warn the user, then invalidate
+  // every street on confirm. Mirrors the villain warn-and-reset from v1.2.89.
+  const _hadStreets = (typeof _streetsHaveContent === "function") && _streetsHaveContent();
+  if (_hadStreets) {
+    const ok = await showConfirm(
+      "Editing Hero will reset every street you've already played. Save anyway?",
+      { title: "Save changes?", confirmLabel: "Save and reset", danger: true }
+    );
+    if (!ok) return;
+  }
   // All validated — write back into the form
   if (typeof _setSelectValue === "function") _setSelectValue($("#heroPos"), pos);
   else if ($("#heroPos")) $("#heroPos").value = pos;
@@ -8528,6 +9093,14 @@ $("#hiConfirm").addEventListener("click", () => {
   if (typeof renderHeroHoleChips === "function") { try { renderHeroHoleChips(); } catch (_) {} }
   if (typeof updateSectionUnlocks === "function") { try { updateSectionUnlocks(); } catch (_) {} }
   if (typeof refreshAllPositionSelects === "function") { try { refreshAllPositionSelects(); } catch (_) {} }
+  // v1.2.91 — if streets had content, reset them now that hero state has
+  // been overwritten. Same cascade _viCommit triggers for villains.
+  if (_hadStreets && typeof invalidateStreetsAfter === "function") {
+    invalidateStreetsAfter(null);
+  }
+  // v1.2.85 — refresh the player-summary strip so the chip above the streets
+  // reflects the freshly-edited Hero (position / stack / cards).
+  if (typeof refreshAll === "function") { try { refreshAll(); } catch (_) {} }
   haptic(12);
   // Advance the wizard directly past the inline Hero section to Villains
   // (the user has just filled in all of Hero in the focused module).
@@ -8537,8 +9110,12 @@ $("#hiConfirm").addEventListener("click", () => {
   // (same JS tick, single render → no gap).
   const _retVid = _heroReturnToVid;
   const _retVsd = _heroReturnToVsd;
+  const _retVillainAdd = _heroReturnToVillainAdd;
+  const _retVillainAddFooter = _heroReturnToVillainAddFooter;
   _heroReturnToVid = null;
   _heroReturnToVsd = false;
+  _heroReturnToVillainAdd = false;
+  _heroReturnToVillainAddFooter = false;
   if (_retVsd) {
     // Returned to Hero from vsd showdown overlay → reopen vsd for the first
     // live villain still needing cards.
@@ -8552,8 +9129,16 @@ $("#hiConfirm").addEventListener("click", () => {
       openVillainShowdownCards(target.id);
     }
   } else if (_retVid != null) {
-    // Came here via ghost-tap from Villain modal → reopen the same villain
-    try { openVillainInput(_retVid); } catch (_) {}
+    // Came here via ghost-tap from Villain modal → reopen the same villain,
+    // preserving whatever footer mode it had (back-stacked add-mode vs
+    // pure-edit). v1.2.84.
+    try { openVillainInput(_retVid, { addFooter: _retVillainAddFooter }); } catch (_) {}
+  } else if (_retVillainAdd) {
+    // v1.2.80 — user was on a fresh "+ Add another villain" modal and tapped
+    // the Hero ghost. _viEditingVid was null so _retVid is null, but we still
+    // need to return to a villain modal (not silently close). Open a fresh
+    // new-villain modal so they can continue where they left off.
+    try { openVillainInput(null); } catch (_) {}
   } else if (state.villains.length === 0) {
     // Standard new-hand flow → auto-open the first villain
     try { openVillainInput(null); } catch (_) {}
@@ -9701,12 +10286,12 @@ async function sdBuildRenderData(upTo, proNotes) {
       tail = ` (${Math.round((a.amountAdded / a.potBefore) * 100)}% pot)`;
     }
     // Jam OR any bet/raise that emptied the stack reads as "All-In" on the
-    // canvas, with the (% pot) annotation jams already get.
+    // canvas. v1.3.1 — annotation tail follows the same rules as non-all-in
+    // (already computed above as `tail`): raise → multiplier; postflop first
+    // bet → % pot; preflop open → none. Previously the all-in branch always
+    // applied % pot, even for a preflop 6-bet jam.
     if (a.verb === "jam" || a.isAllIn) {
-      const jamPctTail = (a.potBefore > 0 && a.amountAdded > 0)
-        ? ` (${Math.round((a.amountAdded / a.potBefore) * 100)}% pot)`
-        : "";
-      return ["All-In", sizeAmt + jamPctTail];
+      return ["All-In", sizeAmt + tail];
     }
     if (!isPostflop) {
       if (a.raiseIndex === 1) return ["Open", sizeAmt + tail];
@@ -10564,7 +11149,25 @@ function saveHands(arr) {
 }
 
 /* Hamburger menu */
+// True when ANY hand-in-progress data exists — used to gate the
+// "Clear current hand" menu item (v1.2.93). Broader than _streetsHaveContent
+// since hero/villains/blinds can be entered before any street is played.
+function _handHasContent() {
+  try {
+    if (typeof _streetsHaveContent === "function" && _streetsHaveContent()) return true;
+    if (state.villains && state.villains.length > 0) return true;
+    if (state.cards && Object.keys(state.cards).length > 0) return true;
+    const heroPos = $("#heroPos") && $("#heroPos").value;
+    if (heroPos) return true;
+    const heroStack = $("#heroStack") && $("#heroStack").value;
+    if (heroStack && heroStack.trim()) return true;
+  } catch (_) {}
+  return false;
+}
 $("#menuOpen").addEventListener("click", () => {
+  // Show "Clear current hand" only when there's something to clear.
+  const _clearItem = document.getElementById("menuClearItem");
+  if (_clearItem) _clearItem.style.display = _handHasContent() ? "" : "none";
   $("#menuOverlay").classList.add("on");
 });
 $("#menuClose").addEventListener("click", () => $("#menuOverlay").classList.remove("on"));
@@ -10577,7 +11180,7 @@ document.querySelectorAll("[data-menu]").forEach(b => {
     $("#menuOverlay").classList.remove("on");
     if (which === "myhands") openMyHands();
     else if (which === "welcome") $("#welcomeOverlay").classList.add("on");
-    else if (which === "tour") startCoachTour();
+    else if (which === "tour") startCoachTour({ isFtue: false });
     else if (which === "profile") openProfile();
     else if (which === "gamesettings") openGameSettings(false);
     else if (which === "feedback") {
@@ -10591,6 +11194,16 @@ document.querySelectorAll("[data-menu]").forEach(b => {
       // Use location.href so iOS Mail / macOS Mail / Gmail handler picks it up.
       window.location.href = mail;
       track && track("feedback_clicked", { from: "menu" });
+    }
+    else if (which === "clear") {
+      // v1.2.93 — same behaviour as the actionbar Clear button, accessible
+      // mid-hand. Confirms then reloads to a blank form.
+      const ok = await showConfirm(
+        "This will clear everything you've entered and start a fresh hand.",
+        { title: "Clear hand?", confirmLabel: "Clear", danger: true }
+      );
+      if (!ok) return;
+      location.reload();
     }
     else if (which === "newhand") {
       // Only warn when the user is in the FORM with in-progress data (not on
@@ -10627,12 +11240,27 @@ function maybeShowWelcome() {
   if (!seen) $("#welcomeOverlay").classList.add("on");
 }
 
+// v1.2.93 — consume the "open Settings after a Clear-and-change reload" flag.
+// Set by the gameContextPill tap handler when the user agrees to clear the
+// in-progress hand specifically to change Settings.
+(function _maybeOpenSettingsAfterReload() {
+  try {
+    if (sessionStorage.getItem("open_settings_after_reload") !== "1") return;
+    sessionStorage.removeItem("open_settings_after_reload");
+    // Wait a tick so the rest of boot wires up before the modal opens.
+    setTimeout(() => { try { openGameSettings(false); } catch (_) {} }, 60);
+  } catch (_) {}
+})();
+
 /* ===== Example hand + coachmark walkthrough (FTUE) ===== */
 // Builds a complete, illustrative example hand (an AA vs KK preflop cooler) by driving
 // the real action engine, so the picture and Generate button behave exactly as normal.
 function loadExampleHand() {
   ["preflop","flop","turn","river"].forEach(s => { if (typeof resetStreet === "function") resetStreet(s); });
   state.cards = {};
+  // v1.2.91 — pre-set the hand title so when the user generates from the
+  // walkthrough, the resulting saved hand in My Hands is clearly labeled.
+  state.handTitle = "Example from walkthrough";
   // Game
   state.gameType = "mtt"; state.stage = "Early";
   document.querySelectorAll("#gameType button").forEach(b => b.classList.toggle("on", b.dataset.val === "mtt"));
@@ -10692,22 +11320,65 @@ function loadExampleHand() {
 
 const COACH_STEPS = [
   { intro: true, title: "", text: "Turn any poker hand into a clean picture you can share. Quick tour with an example — an Aces-vs-Kings cooler we'll build together.", cta: "Start tour" },
-  { sel: "#sectionHero",  title: "1 · Hero",
-    text: "Tap the Hero box to open a focused module — position, stack, hole cards. Here you're on the Button with pocket Aces." },
-  { sel: "#sectionVillains", title: "2 · Villains",
-    text: "Each villain gets the same focused flow — add as many as you need. This one's the Big Blind with Kings." },
-  { sel: ".street[data-street='preflop']", title: "3 · Record the action",
+  // Step 1: open the actual Hero modal and spotlight it
+  { sel: "#heroInputOverlay .sheet",
+    title: "1 · Hero",
+    text: "Tap the Hero box to open a focused module — position, stack, hole cards. Here you're on the Button with pocket Aces.",
+    before: () => { if (typeof openHeroInput === "function") openHeroInput(); } },
+  // Step 2: close Hero, open Villain modal — show the EXISTING example villain
+  // (BB with Kings), not a fresh slot.
+  { sel: "#villainInputOverlay .sheet",
+    title: "2 · Villains",
+    text: "Each villain gets the same focused flow — add as many as you need. This one's the Big Blind with Kings.",
+    before: () => {
+      const heroOv = document.getElementById("heroInputOverlay");
+      if (heroOv) heroOv.classList.remove("on");
+      if (typeof openVillainInput === "function") {
+        const _v = state.villains && state.villains[0];
+        openVillainInput(_v ? _v.id : null);
+      }
+    } },
+  // Step 3: close Villain, point at the preflop street
+  { sel: ".street[data-street='preflop']",
+    title: "3 · Record the action",
     text: "Each street has Fold / Check / Call / Raise / All-in. Tap a preset size or type your own. On flop / turn / river you also pick the board cards directly inside the street. There's a \"My thinking\" field on each review — your note shows up on the shared picture.",
-    preflop: true },
-  { sel: "#generateBtn",  title: "4 · Make the picture",
+    preflop: true,
+    before: () => {
+      const viOv = document.getElementById("villainInputOverlay");
+      if (viOv) viOv.classList.remove("on");
+    } },
+  // Step 4 (v1.2.86): spotlight the player summary strip — explain that the
+  // faint Hero + Villain chips above the streets are tappable for quick edits.
+  { sel: "#playerSummaryStrip",
+    title: "4 · Edit any player",
+    text: "These chips above the streets show every player in the hand. Tap one mid-action to fix a position, stack, or hole cards — you'll land back exactly where you left off.",
+    before: () => {
+      // Safety: ensure no leftover input modal is on (would hide the strip
+      // via the body:has(.overlay.on) rule).
+      ["heroInputOverlay","villainInputOverlay","vsdCardsOverlay"].forEach(id => {
+        const o = document.getElementById(id);
+        if (o) o.classList.remove("on");
+      });
+    } },
+  { sel: "#generateBtn",  title: "5 · Make the picture",
     text: "Once the hand finishes — fold-out, river, or all-in — Confirm and Generate turns it into a clean shareable image.",
     cta: "Generate it →", generate: true },
+  // Result: now opens Settings so the user starts a new hand with their preset
   { result: true, title: "That's your hand story",
-    text: "Add a title or note, then Share — sends the picture with a link your friends can use to make their own. Ready to record yours?",
-    cta: "Input my hand →" },
+    text: "Add a title or note, then Share — sends the picture with a link your friends can use to make their own. Last step: set your defaults (game type, blinds) so the next hand starts ready to go.",
+    cta: "Open Settings →",
+    settings: true },
 ];
 let _coachIdx = 0;
-function startCoachTour() {
+// v1.2.88 — track how the walkthrough was launched. true → first-run welcome
+// flow ("Tour" button on the welcome overlay); the result step routes the
+// user to Settings to set defaults before their first hand. false → invoked
+// from the hamburger menu after the app's already in use; the result step
+// starts a fresh hand instead since defaults are already configured.
+let _coachIsFtue = false;
+function startCoachTour(opts) {
+  opts = opts || {};
+  _coachIsFtue = !!opts.isFtue;
   $("#menuOverlay").classList.remove("on");
   $("#welcomeOverlay").classList.remove("on");
   if (typeof closeMyHands === "function") closeMyHands();
@@ -10722,16 +11393,37 @@ function startCoachTour() {
     ov.querySelector(".coach-skip").addEventListener("click", () => location.reload());
   }
   ov.classList.add("on");
+  // Lock page scroll for the duration of the tour — see CSS rule.
+  document.body.classList.add("coach-tour-active");
   setTimeout(showCoachStep, 380);   // let the example hand lay out first
 }
 function coachNext() {
   const step = COACH_STEPS[_coachIdx];
-  if (step.result) { location.reload(); return; }       // "Input my hand" → fresh blank hand
-  if (step.generate) {                                  // make the picture, then explain it
+  if (step.result) {
+    // End behavior depends on how the tour was launched (v1.2.88).
+    //   FTUE (welcome → Tour): step into Settings so the user picks their
+    //   defaults (MTT/cash, blinds) before their first hand. The Settings
+    //   save handler reads the sessionStorage flag and starts a new hand.
+    //   Hamburger menu: defaults are already configured — go straight into
+    //   a fresh new-hand flow.
+    endCoachTour();
+    const outputOv = document.getElementById("overlay");
+    if (outputOv) outputOv.classList.remove("on");
+    if (_coachIsFtue && step.settings && typeof openGameSettings === "function") {
+      try { sessionStorage.setItem("walkthrough_settings_save", "1"); } catch (_) {}
+      setTimeout(() => { try { openGameSettings(false); } catch (_) {} }, 100);
+    } else if (typeof startNewHandFlow === "function") {
+      setTimeout(() => { try { startNewHandFlow(); } catch (_) {} }, 100);
+    } else {
+      location.reload();
+    }
+    return;
+  }
+  if (step.generate) {
     const gen = $("#generateBtn");
     if (gen && !gen.disabled) gen.click();
     _coachIdx++;
-    setTimeout(showCoachStep, 480);                     // wait for the output picture to open
+    setTimeout(showCoachStep, 480);
     return;
   }
   if (_coachIdx >= COACH_STEPS.length - 1) { endCoachTour(); return; }
@@ -10740,23 +11432,44 @@ function coachNext() {
 function _coachSetTip(step) {
   const tip = $("#coachTip");
   tip.querySelector(".coach-title").textContent = step.title;
-  tip.querySelector(".coach-text").textContent = step.text;
-  tip.querySelector(".coach-next").textContent = step.cta || "Next";
+  // Result step: text + CTA fork by FTUE vs hamburger launch (v1.2.88).
+  // FTUE keeps the "set your defaults" sentence; menu users skip it since
+  // they've already configured defaults.
+  let _text = step.text;
+  let _cta = step.cta || "Next";
+  if (step.result && !_coachIsFtue) {
+    _text = "Add a title or note, then Share — sends the picture with a link your friends can use to make their own. Ready when you are.";
+    _cta = "New hand";
+  }
+  tip.querySelector(".coach-text").textContent = _text;
+  tip.querySelector(".coach-next").textContent = _cta;
   // Skip (= start a fresh hand) is shown on every step except the final one.
   tip.querySelector(".coach-skip").style.display = step.result ? "none" : "";
 }
 function showCoachStep() {
   const step = COACH_STEPS[_coachIdx];
   const ov = $("#coachOverlay"), spot = $("#coachSpot"), tip = $("#coachTip");
+  // Hide the tip IMMEDIATELY so the user never sees it at a stale position
+  // while we run before()-hooks, scroll-into-view, or wait the 370ms for
+  // spotlight measurement. Previously the tip stayed visible at its old
+  // position, then jumped — read as a "corner flash" mid-transition.
+  tip.style.visibility = "hidden";
   tip.classList.toggle("intro", !!step.intro);
-  // Centered steps with no target: intro (branded, dim backdrop) and result (top of screen,
-  // no dim, so most of the generated picture stays visible below it).
+
+  // Run any pre-step setup (open hero / villain modal, close prior overlay).
+  // Defined per-step on the COACH_STEPS entry; lets the walkthrough drive the
+  // wizard-flow modals without separate orchestration code below.
+  if (typeof step.before === "function") { try { step.before(); } catch (_) {} }
+
+  // Centered steps with no target: intro (branded, dim backdrop) and result.
   if (step.intro || step.result) {
     if (step.result) track("walkthrough_completed");
     spot.style.display = "none";
     ov.style.background = step.intro ? "rgba(8,6,16,0.82)" : "transparent";
     _coachSetTip(step);
-    tip.style.visibility = "hidden"; tip.style.left = "0px"; tip.style.top = "0px";
+    // Position off-screen, force layout, measure, then put it where it belongs.
+    tip.style.left = "-9999px"; tip.style.top = "-9999px";
+    void tip.offsetHeight;
     const th = tip.offsetHeight, tw = tip.offsetWidth;
     const tx = Math.max(12, (window.innerWidth - tw) / 2);
     const ty = step.result ? 16 : Math.max(12, (window.innerHeight - th) / 2);
@@ -10766,17 +11479,20 @@ function showCoachStep() {
   // Spotlight step.
   ov.style.background = "transparent";
   spot.style.display = "";
-  if (step.preflop) {  // make sure the preflop street is open before we point at it
+  if (step.preflop) {
     const pf = (typeof streetSection === "function") ? streetSection("preflop") : null;
     if (pf && !pf.classList.contains("expanded")) {
       if (typeof renderStreetBody === "function") renderStreetBody("preflop");
       pf.classList.add("expanded");
     }
   }
-  const el = document.querySelector(step.sel);
-  if (!el) { if (_coachIdx < COACH_STEPS.length - 1) { _coachIdx++; return showCoachStep(); } return endCoachTour(); }
-  if (el.scrollIntoView) el.scrollIntoView({ block: "center", behavior: "smooth" });
+  // Modal opens (Hero / Villain via step.before) need a paint cycle before the
+  // sheet has measurable size. Wait the full 370ms used for spot positioning
+  // so r.getBoundingClientRect() reads the real rect.
   setTimeout(() => {
+    const el = document.querySelector(step.sel);
+    if (!el) { if (_coachIdx < COACH_STEPS.length - 1) { _coachIdx++; return showCoachStep(); } return endCoachTour(); }
+    if (el.scrollIntoView) el.scrollIntoView({ block: "center", behavior: "smooth" });
     const r = el.getBoundingClientRect();
     const pad = 6;
     spot.style.top = (r.top - pad) + "px";
@@ -10784,10 +11500,21 @@ function showCoachStep() {
     spot.style.width = (r.width + pad*2) + "px";
     spot.style.height = (r.height + pad*2) + "px";
     _coachSetTip(step);
-    tip.style.visibility = "hidden"; tip.style.left = "0px"; tip.style.top = "0px";
+    // Off-screen measure, then snap into final position. Clamp so the tip is
+    // ALWAYS in view — for tall spots (like the preflop street panel with
+    // several actions) the spotlight can extend past the viewport, in which
+    // case "below" and "above" are both off-screen. We then dock the tip to
+    // the bottom of the viewport with margin, even if it visually overlaps
+    // the bottom of the spot — better than having Next/Skip buttons hidden.
+    tip.style.left = "-9999px"; tip.style.top = "-9999px";
+    void tip.offsetHeight;
     const th = tip.offsetHeight, tw = tip.offsetWidth;
     let ty = r.bottom + 14;
-    if (ty + th > window.innerHeight - 12) ty = Math.max(12, r.top - th - 14);
+    if (ty + th > window.innerHeight - 12) {
+      const above = r.top - th - 14;
+      ty = (above >= 12) ? above : (window.innerHeight - th - 12);
+    }
+    if (ty < 12) ty = 12;
     let tx = Math.min(Math.max(12, r.left + r.width/2 - tw/2), window.innerWidth - tw - 12);
     tip.style.top = ty + "px"; tip.style.left = tx + "px"; tip.style.visibility = "visible";
   }, 370);
@@ -10797,11 +11524,12 @@ function endCoachTour() {
   ov.classList.remove("on");
   ov.style.background = "transparent";
   $("#coachSpot").style.display = "";
+  document.body.classList.remove("coach-tour-active");
 }
 const _welcomeTourBtn = $("#welcomeTour");
 if (_welcomeTourBtn) _welcomeTourBtn.addEventListener("click", () => {
   try { localStorage.setItem(WELCOME_SEEN_KEY, "1"); } catch (_) {}
-  startCoachTour();
+  startCoachTour({ isFtue: true });
 });
 
 /* ===== Profile (name + avatar) — appears on the hero seat in the picture ===== */
@@ -11667,8 +12395,85 @@ function autoScrollIfCollapsed() {
   }
   _lastCollapsedSet = collapsed;
 }
-// Refresh everything together: button gating, collapse, scroll.
-function refreshAll() { refreshGenerateButton(); refreshSetupCollapsing(); autoScrollIfCollapsed(); if (typeof refreshStreetSections === "function") refreshStreetSections(); }
+// Render the faint Hero + Villain summary chips above the streets (v1.2.85).
+// Each chip opens the matching input modal on tap so the user can edit a
+// player while in the middle of the action streets.
+function renderPlayerSummaryStrip() {
+  const strip = document.getElementById("playerSummaryStrip");
+  if (!strip) return;
+  strip.innerHTML = "";
+  const heroPos = $("#heroPos") && $("#heroPos").value;
+  const heroStackRaw = $("#heroStack") && $("#heroStack").value;
+  const heroFilled = !!heroPos;
+  const villains = (state.villains || []).filter(v => v && v.pos);
+  // Nothing to summarize yet — leave hidden (CSS :empty rule does the work).
+  if (!heroFilled && villains.length === 0) return;
+  const unitLabel = state.unit === "bb" ? "bb" : "chips";
+  // --- Hero chip ---
+  if (heroFilled) {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "player-summary-card ps-hero";
+    card.setAttribute("aria-label", "Edit Hero");
+    const h1 = state.cards && state.cards.hero1;
+    const h2 = state.cards && state.cards.hero2;
+    // v1.2.93 — render Hero cards with the SAME inline card chips the rest
+    // of the UI uses (rank in ink, suit as a coloured symbol — red for ♥/♦,
+    // black for ♠/♣) instead of plain "AhAs" letter text. Falls back to a
+    // simple rank+suit-letter span if cardInlineHTML isn't available.
+    const cardsHTML = (h1 && h2)
+      ? `<span class="ps-dim ps-cards">${
+          [h1, h2]
+            .filter(c => c && c.rank && c.suit)
+            .map(c => (typeof cardInlineHTML === "function") ? cardInlineHTML(c) : escapeHTML(c.rank + c.suit))
+            .join("")
+        }</span>`
+      : "";
+    const stackChips = heroStackRaw ? parseChips(heroStackRaw) : NaN;
+    const hasStack = isFinite(stackChips) && stackChips > 0;
+    const stackHTML = hasStack
+      ? `<span class="ps-dim">${typeof fmt === "function" ? fmt(stackChips) : heroStackRaw} ${unitLabel}</span>`
+      : "";
+    card.innerHTML = `<div class="ps-label">Hero</div><div class="ps-line">${escapeHTML(heroPos)} ${cardsHTML} ${stackHTML}</div>`;
+    card.addEventListener("click", () => {
+      if (typeof openHeroInput === "function") openHeroInput();
+    });
+    strip.appendChild(card);
+  }
+  // --- Villain chips ---
+  villains.forEach((v) => {
+    const idxLabel = state.villains.findIndex(x => x.id === v.id) + 1;
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "player-summary-card ps-villain";
+    card.setAttribute("aria-label", `Edit Villain #${idxLabel}`);
+    const stackChips = v.stack ? parseChips(v.stack) : NaN;
+    const hasStack = isFinite(stackChips) && stackChips > 0;
+    const stackHTML = hasStack
+      ? `<span class="ps-dim">${typeof fmt === "function" ? fmt(stackChips) : v.stack} ${unitLabel}</span>`
+      : "";
+    // v1.2.94 — when villain has shown cards at showdown, render them with
+    // the same inline-card chips Hero uses (parity, glanceable completed hand).
+    const vc1 = state.cards && state.cards["v" + v.id + "_c1"];
+    const vc2 = state.cards && state.cards["v" + v.id + "_c2"];
+    const vCardsHTML = (vc1 && vc2 && vc1.rank && vc2.rank)
+      ? `<span class="ps-dim ps-cards">${
+          [vc1, vc2]
+            .filter(c => c && c.rank && c.suit)
+            .map(c => (typeof cardInlineHTML === "function") ? cardInlineHTML(c) : escapeHTML(c.rank + c.suit))
+            .join("")
+        }</span>`
+      : "";
+    card.innerHTML = `<div class="ps-label">Villain #${idxLabel}</div><div class="ps-line">${escapeHTML(v.pos)} ${vCardsHTML} ${stackHTML}</div>`;
+    card.addEventListener("click", () => {
+      if (typeof openVillainInput === "function") openVillainInput(v.id);
+    });
+    strip.appendChild(card);
+  });
+}
+
+// Refresh everything together: button gating, collapse, scroll, summary chips.
+function refreshAll() { refreshGenerateButton(); refreshSetupCollapsing(); autoScrollIfCollapsed(); if (typeof refreshStreetSections === "function") refreshStreetSections(); renderPlayerSummaryStrip(); }
 // Default the amount unit to the game type's natural one (MTT → big blinds, cash → chips).
 // This also hides the blind fields on load (bb-mode), surfacing them only if chips is chosen.
 // Runs here, after refreshAll/_setupOrder are defined, since applyUnit triggers refreshAll.
