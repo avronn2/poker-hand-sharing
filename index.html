@@ -15,8 +15,12 @@
 <meta name="apple-mobile-web-app-title" content="Showdown">
 <style>
   :root {
-    --bg: #14121f;
-    --bg-2: #0c0a14;
+    /* v1.4.2 — soft dark. Shifted from near-black (#14121f) to a slate-navy
+       with subtle purple tint (#1c1929). Reduces OLED amplification — accents
+       feel proportional instead of explosive on a true-black phone screen.
+       Identity (dark + teal + pink) preserved; just less noise floor. */
+    --bg: #1c1929;
+    --bg-2: #14121f;
     --panel: #1f1c30;
     --panel-2: #272338;
     --line: #3a3450;
@@ -36,11 +40,13 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
     margin: 0; padding: 0;
-    /* v1.2.97 — slightly brighter ambient glow (was 0.10/0.08, now 0.16/0.13)
-       so the canvas reads as "premium polished" instead of "flat black". */
+    /* v1.4.2 — ambient gradient reverted to softer 0.10/0.08 opacities.
+       The v1.2.97 bump (0.16/0.13) read as "another thing pulling the eye
+       to the screen edges" once the rest of the UI accumulated more accent
+       elements. Subtler corner glows let the primary action be primary. */
     background:
-      radial-gradient(ellipse at top right, rgba(251,113,133,0.16) 0%, transparent 55%),
-      radial-gradient(ellipse at bottom left, rgba(94,234,212,0.13) 0%, transparent 55%),
+      radial-gradient(ellipse at top right, rgba(251,113,133,0.10) 0%, transparent 55%),
+      radial-gradient(ellipse at bottom left, rgba(94,234,212,0.08) 0%, transparent 55%),
       var(--bg);
     background-attachment: fixed;
     color: var(--ink);
@@ -275,14 +281,16 @@
   /* Inline street sections */
   .street { padding: 0; overflow: hidden; transition: border-color 0.18s, box-shadow 0.18s, background 0.18s; }
   /* Expanded (active) street: mint border + accent glow, brighter background
-     v1.2.97 — punched up the glow so the active street feels as focal as the
-     wizard-flow input modals (was 24px @0.18, now 36px @0.30 + soft inner). */
+     v1.4.2 — toned back to the original calmer levels (was 36px @0.30,
+     1.5px border; now 22px @0.16, 1px border). The user is RECORDING action
+     here; this surface should be focused, not staged. The v1.2.97 bump was
+     over-eager. */
   .street.expanded {
     border-color: var(--accent);
     box-shadow:
-      0 0 0 1.5px var(--accent),
-      0 0 36px rgba(94,234,212,0.30),
-      0 4px 20px rgba(0,0,0,0.30);
+      0 0 0 1px var(--accent),
+      0 0 22px rgba(94,234,212,0.16),
+      0 4px 14px rgba(0,0,0,0.22);
     background: linear-gradient(180deg, #20283f 0%, var(--panel-2) 100%);
   }
   /* Done street: subtle mint tint, accent check already on .name */
@@ -324,6 +332,22 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .street.done .street-status { color: var(--ink); }
+  /* v1.5.1 — small red ALL-IN pill prepended to a completed street's status
+     when the street had any all-in action. Makes the dramatic moment
+     scannable from the streets list without expanding. */
+  .all-in-pill {
+    display: inline-block;
+    background: rgba(255,107,138,0.14);
+    color: var(--red);
+    border: 1px solid rgba(255,107,138,0.45);
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    padding: 2px 6px;
+    margin-right: 7px;
+    vertical-align: 1px;
+  }
   .street-caret {
     font-size: 14px; color: var(--ink-dim);
     transition: transform 0.15s;
@@ -1901,12 +1925,68 @@
     padding: 10px 18px; font-weight: 800; font-size: 14px; cursor: pointer;
   }
 
-  /* My hands view (swapped with form via body class) */
+  /* v1.5.0 — two top-level views: my hands (default landing, includes the
+     action-launcher CTA at the top) and form. Form is the "no body class"
+     state — it shows when the user is recording a hand. */
   body.viewing-myhands > section.card,
   body.viewing-myhands > .actionbar,
   body.viewing-myhands > #playerSummaryStrip,
   body.viewing-myhands > #gameContextPill { display: none; }
   body:not(.viewing-myhands) #myHandsView { display: none; }
+
+  /* MY HANDS VIEW (action launcher + saved hands library) */
+  #myHandsView {
+    padding: 8px 0 80px;
+  }
+  /* v1.4.1 — fanned-cards illustration. Compact at the top of home when
+     there are saved hands; expanded (larger + brighter) when empty.
+     v1.4.2: dropped the teal drop-shadow filter. Decoration shouldn't
+     compete with the CTA below it. */
+  .mh-illustration {
+    display: block;
+    margin: 8px auto 0;
+    width: 100px; height: auto;
+    opacity: 0.5;
+    transition: width 0.3s ease, opacity 0.3s ease;
+  }
+  .mh-illustration.large {
+    width: 140px;
+    opacity: 0.75;
+  }
+  .mh-cta-wrap {
+    text-align: center;
+    padding: 14px 0 22px;
+  }
+  .mh-cta {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: linear-gradient(135deg, #5eead4, #3cc4a8);
+    color: #0a1a18;
+    border: none;
+    padding: 18px 38px;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 800;
+    font-family: inherit;
+    cursor: pointer;
+    /* v1.4.2 — dropped the gen-breathing animation. Breathing here didn't
+       earn its motion (no state change to celebrate; user just opened the
+       app). Reserve the breathing pulse for Generate, which IS a moment
+       (hand becomes shareable). Static teal glow stays so the CTA still
+       reads as primary. */
+    box-shadow: 0 4px 22px rgba(94,234,212,0.28);
+    transition: transform 0.08s, box-shadow 0.16s;
+  }
+  .mh-cta:hover { box-shadow: 0 4px 26px rgba(94,234,212,0.40); }
+  .mh-cta:active { transform: scale(0.98); }
+  .mh-cta-sub {
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--ink-dim);
+    letter-spacing: 0.4px;
+  }
+  /* v1.5.0 — Recent section + back arrow removed when Home was consolidated
+     into My Hands. The CTA at the top is the single landing affordance; the
+     full list below replaces the "Recent + See all" pattern. */
 
   .my-hands-header {
     display: flex; align-items: center; gap: 10px;
@@ -1951,13 +2031,27 @@
     border-radius: 12px;
     padding: 10px 12px;
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
     column-gap: 12px;
     align-items: center;
     cursor: pointer;
     transition: border-color 0.15s, transform 0.08s;
   }
   .my-hand-row:hover { border-color: var(--accent); }
+  /* v1.5.1 — tap-affordance chevron at the far right of every saved-hand
+     row. Telegraphs "tap to view" on touch where there's no hover state. */
+  .my-hand-row .row-chev {
+    color: var(--ink-dim);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+    opacity: 0.45;
+    margin-left: 4px;
+    flex: 0 0 auto;
+    transition: color 0.15s, opacity 0.15s;
+  }
+  .my-hand-row:hover .row-chev,
+  .my-hand-row:focus-visible .row-chev { opacity: 1; color: var(--accent); }
   .my-hand-row:active { transform: scale(0.99); }
   .my-hand-row .row-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   /* Title sits ABOVE the card line when present. Standard prominent size. */
@@ -2668,7 +2762,7 @@
         </div>
       </div>
       <div class="hi-section">
-        <div class="hi-label">Your stack <span id="hiStackUnit" style="font-size:13px;font-weight:600;letter-spacing:0;opacity:.65;"></span></div>
+        <div class="hi-label">Your stack <span id="hiStackUnit" style="font-size:14px;font-weight:800;letter-spacing:0;color:var(--accent);opacity:1;"></span></div>
         <div class="hi-stack-wrap">
           <input type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" id="hiStack" placeholder="Input your stack size">
           <svg class="hi-stack-pencil" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -2725,7 +2819,7 @@
       <div class="hi-section">
         <!-- v1.2.98 — explicit "optional" label so users know they can skip
              the villain stack and still start the hand. -->
-        <div class="hi-label">Villain stack <span id="viStackUnit" style="font-size:13px;font-weight:600;letter-spacing:0;opacity:.65;"></span> <span style="font-size:13px;font-weight:600;letter-spacing:0;opacity:.65;">(optional)</span></div>
+        <div class="hi-label">Villain stack <span id="viStackUnit" style="font-size:14px;font-weight:800;letter-spacing:0;color:var(--accent);opacity:1;"></span> <span style="font-size:13px;font-weight:600;letter-spacing:0;opacity:.65;">(optional)</span></div>
         <div class="hi-stack-wrap">
           <input type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" id="viStack" placeholder="Optional">
           <svg class="hi-stack-pencil" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -2880,10 +2974,10 @@
       <button type="button" class="closebtn" id="menuClose" aria-label="Close">×</button>
     </header>
     <ul class="menu-list">
-      <!-- v1.2.95 order: most-frequent destinations at the top
-           (My hands → New hand → Clear), then config (Settings → Profile),
-           then explore / contact (Walkthrough → Feedback).
-           v1.2.96: Lucide-style monoline SVG icons on each item. -->
+      <!-- v1.5.0 order: My hands at top (the consolidated landing — illustration
+           + breathing CTA + saved-hands list), then New hand, Clear (conditional),
+           config (Settings, Profile), explore / contact (Walkthrough, Feedback).
+           Lucide-style monoline SVG icons on each item. -->
       <li><button type="button" data-menu="myhands">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
         My hands<span class="menu-badge" id="myHandsMenuBadge" style="display:none">0</span>
@@ -3079,37 +3173,38 @@
   </div>
 </div>
 
-<!-- MY HANDS VIEW (home view — back button removed; "+ New hand" CTA is the
-     way out, hamburger > New hand also works). -->
+<!-- MY HANDS VIEW (v1.5.0 — consolidated). The Home + My Hands split from
+     v1.4.0 was redundant; folded into a single landing here. Layout: fanned-
+     cards illustration → big "+ New hand" CTA → "Capture the hand from memory"
+     subtitle → saved-hands sections + list (or empty-state copy if none). -->
 <div id="myHandsView">
-  <div class="my-hands-header">
-    <h2>My hands</h2>
-    <button type="button" class="my-hands-cta" id="myHandsNewBtn">+ New hand</button>
+  <!-- Illustration always visible; larger + brighter when empty, smaller +
+       softer when hands exist (via .mh-illustration.large class on JS). -->
+  <svg class="mh-illustration" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <g transform="translate(38 28) rotate(-12 40 55)">
+      <rect width="80" height="110" rx="10" fill="#1a2540" stroke="#5eead4" stroke-width="1.5" opacity="0.85"/>
+      <text x="14" y="32" fill="#f2eff8" font-family="serif" font-size="24" font-weight="700">K</text>
+      <text x="14" y="56" fill="#f2eff8" font-family="serif" font-size="22">♠</text>
+    </g>
+    <g transform="translate(82 28) rotate(12 40 55)">
+      <rect width="80" height="110" rx="10" fill="#1a2540" stroke="#5eead4" stroke-width="1.5"/>
+      <text x="14" y="32" fill="#ff6b8a" font-family="serif" font-size="24" font-weight="700">A</text>
+      <text x="14" y="56" fill="#ff6b8a" font-family="serif" font-size="22">♥</text>
+    </g>
+  </svg>
+  <div class="mh-cta-wrap">
+    <button type="button" class="mh-cta" id="myHandsNewBtn">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New hand
+    </button>
+    <div class="mh-cta-sub">Capture the hand from memory</div>
   </div>
   <div id="myHandsList" class="my-hands-list"></div>
+  <!-- v1.5.0 — empty state is now just text. The fanned-cards illustration
+       lives above the CTA and scales to .large when empty, so it doubles
+       as the empty-state visual. -->
   <div id="myHandsEmpty" class="my-hands-empty" style="display:none">
-    <!-- v1.2.97 — stylized AKs fanned card illustration so the empty state
-         feels inviting instead of empty. Brand colors (teal frame, pink ace,
-         white king on subtle dark cards). -->
-    <svg class="my-hands-empty-illustration" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <!-- Back card, rotated left -->
-      <g transform="translate(38 28) rotate(-12 40 55)">
-        <rect width="80" height="110" rx="10" fill="#1a2540" stroke="#5eead4" stroke-width="1.5" opacity="0.85"/>
-        <text x="14" y="32" fill="#f2eff8" font-family="serif" font-size="24" font-weight="700">K</text>
-        <text x="14" y="56" fill="#f2eff8" font-family="serif" font-size="22">♠</text>
-        <text x="66" y="100" fill="#f2eff8" font-family="serif" font-size="22" text-anchor="end">♠</text>
-        <text x="66" y="100" fill="#f2eff8" font-family="serif" font-size="22" text-anchor="end" transform="rotate(180 60 95)" opacity="0">.</text>
-      </g>
-      <!-- Front card, rotated right -->
-      <g transform="translate(82 28) rotate(12 40 55)">
-        <rect width="80" height="110" rx="10" fill="#1a2540" stroke="#5eead4" stroke-width="1.5"/>
-        <text x="14" y="32" fill="#ff6b8a" font-family="serif" font-size="24" font-weight="700">A</text>
-        <text x="14" y="56" fill="#ff6b8a" font-family="serif" font-size="22">♥</text>
-        <text x="66" y="100" fill="#ff6b8a" font-family="serif" font-size="22" text-anchor="end">♥</text>
-      </g>
-    </svg>
-    <p>No hands yet.</p>
-    <p class="sub">Tap <b>+ New hand</b> above to record your first one.</p>
+    <p>Your hands will appear here.</p>
   </div>
 </div>
 
@@ -3318,7 +3413,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.3.1";
+const APP_VERSION = "v1.5.1";
 
 // ============================================================================
 // CASILLAS / PRO FEATURE FLAG — hide every pro-review surface for input-only
@@ -5442,9 +5537,19 @@ function renderInlineReview(reviewEl, rt) {
   // the focused 52-card overlay should auto-pop instead. So we keep the
   // showdownResult-forcing logic but drop the inline panel; the auto-pop
   // hook at the end of this function opens the picker straight away.
-  const hadAllIn = rt.streetActions.some(a => a.verb === "jam" || a.calledAllIn);
+  const hadAllIn = rt.streetActions.some(a => a.verb === "jam" || a.calledAllIn || a.isAllIn);
   const liveRT = rt.runtime.filter(p => !p.folded);
-  const mttAllInNow = (state.gameType === "mtt") && hadAllIn && liveRT.length >= 2;
+  // v1.4.1 — only treat the hand as "in MTT all-in mode" (force-show + auto-pop
+  // the card picker) when there's NO MORE ACTION to record. Two ways "no more
+  // action" can hold: either every live player is all-in (run-out only) or
+  // the river has been completed and no further bets are possible. Previously
+  // the pop fired the moment any all-in happened — even when one player was
+  // short and the others kept playing. That demanded cards from non-all-in
+  // villains in the middle of the hand.
+  const allLiveAllIn = liveRT.length >= 2 && liveRT.every(p => p.allIn);
+  const riverDone = !!(state.streets.river && state.streets.river.complete);
+  const noMoreAction = allLiveAllIn || riverDone;
+  const mttAllInNow = (state.gameType === "mtt") && hadAllIn && liveRT.length >= 2 && noMoreAction;
   if (mttAllInNow) {
     state.villains.forEach(v => {
       if (liveRT.some(p => p.id === "v"+v.id)) {
@@ -5594,7 +5699,12 @@ function refreshStreetSections() {
       const prev = idx > 0 ? state.streets[order[idx-1]] : null;
       const inRunout = prev && prev.allInRunout;
       const lead = (inRunout && st.actions.length === 0) ? "all-in run-out" : `${st.actions.length} action${st.actions.length===1?"":"s"}`;
-      status.textContent = `${lead} · pot ${fmtBB(st.potAfter)}`;
+      // v1.5.1 — small ALL-IN pill when this street had any all-in action
+      // (jam, called all-in, or bet/raise that emptied stack). Makes the
+      // dramatic moment scannable from the streets list at a glance.
+      const _streetHadAllIn = Array.isArray(st.actions) && st.actions.some(a => a && (a.verb === "jam" || a.calledAllIn || a.isAllIn));
+      const _allInPill = (_streetHadAllIn || inRunout) ? `<span class="all-in-pill">ALL-IN</span>` : "";
+      status.innerHTML = `${_allInPill}${lead} · pot ${fmtBB(st.potAfter)}`;
     } else if (!prevComplete) {
       status.textContent = "Locked";
     } else if (activeWiz && activeWiz.streetName === s) {
@@ -8055,6 +8165,7 @@ async function handleOutputOverlayClose() {
   if (isSaved) {
     overlay.classList.remove("on");
     currentSavedHand = null;
+    // v1.4.0 — return to whichever view they came from (My Hands or Home).
     if (typeof openMyHands === "function") openMyHands();
     return;
   }
@@ -11320,48 +11431,31 @@ function loadExampleHand() {
 
 const COACH_STEPS = [
   { intro: true, title: "", text: "Turn any poker hand into a clean picture you can share. Quick tour with an example — an Aces-vs-Kings cooler we'll build together.", cta: "Start tour" },
-  // Step 1: open the actual Hero modal and spotlight it
+  // v1.3.2 — trimmed from 5 spotlight steps to 3. Hero+Villain merged into
+  // "Enter players" (villains share Hero's focused-input flow, so showing one
+  // demonstrates both). The summary-strip step folded into the action step's
+  // caption (discover-on-use is fine since the chips are persistent).
+  // Step 1: Hero modal (the focused-input pattern). Villains use the same
+  // flow so the caption just mentions them.
   { sel: "#heroInputOverlay .sheet",
-    title: "1 · Hero",
-    text: "Tap the Hero box to open a focused module — position, stack, hole cards. Here you're on the Button with pocket Aces.",
+    title: "1 · Enter players",
+    text: "Each player gets a focused module — position, stack, hole cards for Hero. Villains use the same flow; add as many as you need.",
     before: () => { if (typeof openHeroInput === "function") openHeroInput(); } },
-  // Step 2: close Hero, open Villain modal — show the EXISTING example villain
-  // (BB with Kings), not a fresh slot.
-  { sel: "#villainInputOverlay .sheet",
-    title: "2 · Villains",
-    text: "Each villain gets the same focused flow — add as many as you need. This one's the Big Blind with Kings.",
-    before: () => {
-      const heroOv = document.getElementById("heroInputOverlay");
-      if (heroOv) heroOv.classList.remove("on");
-      if (typeof openVillainInput === "function") {
-        const _v = state.villains && state.villains[0];
-        openVillainInput(_v ? _v.id : null);
-      }
-    } },
-  // Step 3: close Villain, point at the preflop street
+  // Step 2: preflop street + chip-strip mention.
   { sel: ".street[data-street='preflop']",
-    title: "3 · Record the action",
-    text: "Each street has Fold / Check / Call / Raise / All-in. Tap a preset size or type your own. On flop / turn / river you also pick the board cards directly inside the street. There's a \"My thinking\" field on each review — your note shows up on the shared picture.",
+    title: "2 · Record the action",
+    text: "Each street has Fold / Check / Call / Raise / All-in. On flop / turn / river you pick the board cards inline. Need to fix a player mid-hand? Tap the chips above the streets — opens the input again.",
     preflop: true,
     before: () => {
-      const viOv = document.getElementById("villainInputOverlay");
-      if (viOv) viOv.classList.remove("on");
-    } },
-  // Step 4 (v1.2.86): spotlight the player summary strip — explain that the
-  // faint Hero + Villain chips above the streets are tappable for quick edits.
-  { sel: "#playerSummaryStrip",
-    title: "4 · Edit any player",
-    text: "These chips above the streets show every player in the hand. Tap one mid-action to fix a position, stack, or hole cards — you'll land back exactly where you left off.",
-    before: () => {
-      // Safety: ensure no leftover input modal is on (would hide the strip
-      // via the body:has(.overlay.on) rule).
+      // Close any leftover input modal so the spotlight target is visible.
       ["heroInputOverlay","villainInputOverlay","vsdCardsOverlay"].forEach(id => {
         const o = document.getElementById(id);
         if (o) o.classList.remove("on");
       });
     } },
-  { sel: "#generateBtn",  title: "5 · Make the picture",
-    text: "Once the hand finishes — fold-out, river, or all-in — Confirm and Generate turns it into a clean shareable image.",
+  // Step 3: Generate. Result step follows.
+  { sel: "#generateBtn",  title: "3 · Make the picture",
+    text: "When the hand finishes — fold-out, river, or all-in — Confirm and Generate turns it into a clean shareable image.",
     cta: "Generate it →", generate: true },
   // Result: now opens Settings so the user starts a new hand with their preset
   { result: true, title: "That's your hand story",
@@ -11735,7 +11829,10 @@ function loadHandData(hand) {
   });
 }
 
-/* My hands view */
+/* v1.5.0 — single landing view. The Home / My Hands split from v1.4.0 was
+   redundant; they showed overlapping content with extra taps both ways.
+   Consolidated into a single view: illustration + breathing CTA at top,
+   saved-hands library below. */
 function openMyHands() {
   renderMyHandsList();
   document.body.classList.add("viewing-myhands");
@@ -11744,10 +11841,9 @@ function openMyHands() {
 function closeMyHands() {
   document.body.classList.remove("viewing-myhands");
 }
-// (Back button removed — My hands is the home view.)
-// "+ New hand" CTA in My hands header — drops a flag so the reload lands on
-// the form (not back on My hands), and skips the "unsaved work" warning
-// (there's no in-progress form work when you're already on the My hands page).
+// "+ New hand" CTA — drops a flag so the reload lands on the form (not back
+// on the my hands view), and skips the "unsaved work" warning (there's no
+// in-progress form work when you're already on the landing).
 function startNewHandFlow() {
   try { sessionStorage.setItem("showdown_show_form_next", "1"); } catch (_) {}
   location.reload();
@@ -11848,19 +11944,25 @@ function _buildHandRowHTML(h, opts) {
           </svg>
         </button>
       </div>
-    </div>`;
+    </div>
+    <span class="row-chev" aria-hidden="true">›</span>`;
 }
 
 function renderMyHandsList() {
   const list = $("#myHandsList");
   const empty = $("#myHandsEmpty");
   const hands = loadHands();
+  // v1.5.0 — toggle the .large class on the top-of-view illustration so it
+  // scales bigger + brighter on empty state, smaller + softer with hands.
+  const illus = document.querySelector(".mh-illustration");
   if (hands.length === 0) {
     list.innerHTML = "";
     empty.style.display = "";
+    if (illus) illus.classList.add("large");
     return;
   }
   empty.style.display = "none";
+  if (illus) illus.classList.remove("large");
 
   // Categorize each hand. Three buckets:
   //   New        = delivered review NOT yet seen
@@ -12188,7 +12290,7 @@ $("#saveConfirm").onclick = async () => {
   showToast("Saved to My hands");
   haptic(12);
   // If we got here via the X-close "save first" flow, finish the close +
-  // navigate to My hands now.
+  // navigate back to wherever they came from (Home / My Hands).
   if (_closeOverlayAfterSave) {
     _closeOverlayAfterSave = false;
     $("#overlay").classList.remove("on");
@@ -12303,9 +12405,10 @@ window.scrollTo(0, 0);
 (() => { const _v = document.getElementById("appVersion"); if (_v) _v.textContent = APP_VERSION; })();
 // First-open welcome — runs once per browser
 maybeShowWelcome();
-// My hands is the home view. Land there on every page load UNLESS the user just
-// clicked "+ New hand" (which sets the showdown_show_form_next flag) — in that
-// case stay on the form so they can enter their hand.
+// v1.5.0 — My Hands is the default landing on every page load UNLESS the
+// user just clicked "+ New hand" (showdown_show_form_next flag) — in that
+// case stay on the form so they can enter their hand. The big CTA at the
+// top of My Hands is the action-launcher; no separate Home view.
 let _showFormThisLoad = false;
 try {
   if (sessionStorage.getItem("showdown_show_form_next") === "1") {
@@ -12315,7 +12418,7 @@ try {
 } catch (_) {}
 if (!_showFormThisLoad) {
   document.body.classList.add("viewing-myhands");
-  renderMyHandsList();
+  if (typeof renderMyHandsList === "function") renderMyHandsList();
 }
 
 // Defer the new-hand boot setup AND the pill render to the next tick. The code
