@@ -3605,7 +3605,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.6.2";
+const APP_VERSION = "v1.6.3";
 
 // ============================================================================
 // CASILLAS / PRO FEATURE FLAG — hide every pro-review surface for input-only
@@ -9274,7 +9274,12 @@ document.querySelectorAll("#gsUnit button").forEach(b => {
   });
 });
 
-$("#gsClose").addEventListener("click", closeGameSettings);
+$("#gsClose").addEventListener("click", () => {
+  // Closing WITHOUT saving must drop any pending chain-into-new-hand flag,
+  // otherwise a later unrelated "Save settings" would unexpectedly start a hand.
+  try { sessionStorage.removeItem("walkthrough_settings_save"); } catch (_) {}
+  closeGameSettings();
+});
 
 $("#gsConfirm").addEventListener("click", () => {
   const gameType = (document.querySelector("#gsGameType button.on") || {}).dataset?.val || "mtt";
@@ -12813,7 +12818,17 @@ setTimeout(() => {
           catch (e) { console.warn("[showdown] openHeroInput failed:", e); }
         }, 180);
       } else {
-        console.log("[showdown] no saved game settings — staying on Game section");
+        // FIRST HAND EVER — no saved game settings. The setup sections are
+        // hidden by the wizard, so without intervention the user lands on a
+        // dead screen of locked streets (FTUE bug, fixed v1.6.3). Open Game
+        // Settings as step 0; saving chains straight back into the new-hand
+        // flow (same flag the walkthrough uses) which then opens Hero input.
+        console.log("[showdown] no saved game settings — first hand: opening Settings, chaining to Hero");
+        try { sessionStorage.setItem("walkthrough_settings_save", "1"); } catch (_) {}
+        setTimeout(() => {
+          try { if (typeof openGameSettings === "function") openGameSettings(false); }
+          catch (e) { console.warn("[showdown] openGameSettings failed:", e); }
+        }, 150);
       }
     }
     if (typeof renderGameContextPill === "function") renderGameContextPill();
