@@ -3,11 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#081226">
+<meta name="theme-color" content="#0f1d14">
 <title>Showdown</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="icon-16.png">
 <link rel="shortcut icon" href="favicon.ico">
@@ -18,27 +15,27 @@
 <meta name="apple-mobile-web-app-title" content="Showdown">
 <style>
   :root {
-    /* v1.4.2 — soft dark. Shifted from near-black (#081226) to a slate-navy
-       with subtle purple tint (#0b1830). Reduces OLED amplification — accents
+    /* v1.4.2 — soft dark. Shifted from near-black (#14121f) to a slate-navy
+       with subtle purple tint (#1c1929). Reduces OLED amplification — accents
        feel proportional instead of explosive on a true-black phone screen.
        Identity (dark + teal + pink) preserved; just less noise floor. */
-    --bg: #0b1830;
-    --bg-2: #081226;
-    --panel: #0f2440;
-    --panel-2: #163252;
-    --line: #28456b;
-    --ink: #eaf2ff;
-    --ink-dim: #8fa3c0;
-    --accent: #3ec5ff;            /* mint */
-    --accent-ink: #04263c;
-    --brand: #7aa2ff;             /* coral pink, brand pop */
-    --brand-glow: rgba(122,162,255,0.25);
-    --red: #ff7a8a;
+    --bg: #1c1929;
+    --bg-2: #14121f;
+    --panel: #1f1c30;
+    --panel-2: #272338;
+    --line: #3a3450;
+    --ink: #f2eff8;
+    --ink-dim: #a39cb8;
+    --accent: #5eead4;            /* mint */
+    --accent-ink: #06322c;
+    --brand: #fb7185;             /* coral pink, brand pop */
+    --brand-glow: rgba(251,113,133,0.25);
+    --red: #ff6b8a;
     --warn: #fbbf24;
     --radius: 16px;
     --radius-sm: 10px;
     --chip-felt: radial-gradient(circle at 30% 25%, #2a3e6e 0%, #15203f 65%);
-    --chip-felt-empty: radial-gradient(circle at 30% 25%, #152c4a 0%, #0d1d36 65%);
+    --chip-felt-empty: radial-gradient(circle at 30% 25%, #2a273d 0%, #1a182a 65%);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
@@ -48,8 +45,8 @@
        to the screen edges" once the rest of the UI accumulated more accent
        elements. Subtler corner glows let the primary action be primary. */
     background:
-      radial-gradient(ellipse at top right, rgba(122,162,255,0.10) 0%, transparent 55%),
-      radial-gradient(ellipse at bottom left, rgba(62,197,255,0.08) 0%, transparent 55%),
+      radial-gradient(ellipse at top right, rgba(251,113,133,0.10) 0%, transparent 55%),
+      radial-gradient(ellipse at bottom left, rgba(94,234,212,0.08) 0%, transparent 55%),
       var(--bg);
     background-attachment: fixed;
     color: var(--ink);
@@ -118,14 +115,14 @@
   }
   header.top .brand .mark img {
     width: 100%; height: auto;
-    filter: drop-shadow(0 4px 16px rgba(62,197,255,0.22));
+    filter: drop-shadow(0 4px 16px rgba(94,234,212,0.22));
   }
   header.top .brand .text { min-width: 0; }
   header.top h1 {
     font-size: 30px; font-weight: 900; margin: 0;
     letter-spacing: -0.5px;
     line-height: 1;
-    background: linear-gradient(135deg, var(--brand) 0%, #9bb8ff 50%, var(--accent) 100%);
+    background: linear-gradient(135deg, var(--brand) 0%, #a78bfa 50%, var(--accent) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -292,13 +289,13 @@
     border-color: var(--accent);
     box-shadow:
       0 0 0 1px var(--accent),
-      0 0 22px rgba(62,197,255,0.16),
+      0 0 22px rgba(94,234,212,0.16),
       0 4px 14px rgba(0,0,0,0.22);
     background: linear-gradient(180deg, #20283f 0%, var(--panel-2) 100%);
   }
   /* Done street: subtle mint tint, accent check already on .name */
   .street.done {
-    border-color: rgba(62,197,255,0.35);
+    border-color: rgba(94,234,212,0.35);
     background: linear-gradient(180deg, #1e2533 0%, var(--panel-2) 100%);
   }
   /* Locked street: dim */
@@ -498,8 +495,8 @@
      so the user's eye is drawn to the next action. Stops when disabled
      (hand not yet complete) or when actionbar is hidden. */
   @keyframes gen-breathing {
-    0%, 100% { box-shadow: 0 4px 18px rgba(62,197,255,0.18); }
-    50%      { box-shadow: 0 4px 30px rgba(62,197,255,0.55); }
+    0%, 100% { box-shadow: 0 4px 18px rgba(94,234,212,0.18); }
+    50%      { box-shadow: 0 4px 30px rgba(94,234,212,0.55); }
   }
   .actionbar #generateBtn:not(:disabled) {
     animation: gen-breathing 2.6s ease-in-out infinite;
@@ -532,7 +529,7 @@
     border-color: var(--accent);
     box-shadow:
       0 0 0 1px var(--accent),
-      0 0 32px rgba(62,197,255,0.28),
+      0 0 32px rgba(94,234,212,0.28),
       0 4px 18px rgba(0,0,0,0.25);
     background: linear-gradient(180deg, #243150 0%, #1c2236 100%);
   }
@@ -663,7 +660,7 @@
     border-radius: 18px;   /* all four corners rounded — full card */
     box-shadow:
       0 12px 40px rgba(0,0,0,0.55),
-      0 0 28px rgba(62,197,255,0.22);
+      0 0 28px rgba(94,234,212,0.22);
     /* Sit above the ghost-summary backdrop */
     position: relative;
     z-index: 2;
@@ -762,7 +759,7 @@
     border: 1.5px solid var(--accent);
     border-top: 0;
     border-radius: 0 0 18px 18px;
-    box-shadow: 0 10px 36px rgba(0,0,0,0.55), 0 0 24px rgba(62,197,255,0.18);
+    box-shadow: 0 10px 36px rgba(0,0,0,0.55), 0 0 24px rgba(94,234,212,0.18);
     transform: translateY(-100%);
     transition: transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
   }
@@ -877,10 +874,10 @@
     transition: background .12s ease, border-color .12s ease;
   }
   .vi-saved-item:hover, .vi-saved-item:focus-visible {
-    background: rgba(62,197,255,0.08); border-color: rgba(62,197,255,0.25);
+    background: rgba(94,234,212,0.08); border-color: rgba(94,234,212,0.25);
     outline: none;
   }
-  .vi-saved-item:active { background: rgba(62,197,255,0.16); }
+  .vi-saved-item:active { background: rgba(94,234,212,0.16); }
   .vi-saved-item .vi-saved-info {
     display: inline-flex; align-items: center; gap: 6px;
     min-width: 0;
@@ -929,7 +926,7 @@
     padding: 18px 0 6px;
     border-bottom: 1px solid var(--line);
     margin: 0 18px 4px;
-    text-shadow: 0 0 18px rgba(62,197,255,0.3);
+    text-shadow: 0 0 18px rgba(94,234,212,0.3);
   }
   .hi-body {
     flex: 0 1 auto;          /* don't stretch; size to content */
@@ -1011,8 +1008,8 @@
   .hi-open-cta {
     display: flex; align-items: center; gap: 12px;
     width: 100%; box-sizing: border-box;
-    background: linear-gradient(135deg, rgba(62,197,255,0.15), rgba(176,124,255,0.08));
-    border: 1px solid rgba(62,197,255,0.4);
+    background: linear-gradient(135deg, rgba(94,234,212,0.15), rgba(176,124,255,0.08));
+    border: 1px solid rgba(94,234,212,0.4);
     border-radius: 12px; padding: 14px 16px;
     color: var(--ink); font: inherit; cursor: pointer;
     margin: 0 0 16px;
@@ -1085,7 +1082,7 @@
     border-radius: 18px;
     box-shadow:
       0 12px 40px rgba(0,0,0,0.55),
-      0 0 28px rgba(62,197,255,0.22);
+      0 0 28px rgba(94,234,212,0.22);
   }
   /* Drag handle was a bottom-sheet affordance — hide on the centered modal */
   #cardOverlay > .sheet > .drag-handle { display: none; }
@@ -1364,7 +1361,7 @@
   }
   .checkout-body input[type="email"]:focus { outline: none; border-color: var(--accent); }
   .checkout-body .ck-note {
-    background: rgba(62,197,255,0.08); border: 1px solid rgba(62,197,255,0.25);
+    background: rgba(94,234,212,0.08); border: 1px solid rgba(94,234,212,0.25);
     border-radius: 8px; padding: 8px 10px; margin-top: 12px;
     font-size: 11px; color: var(--ink-dim); line-height: 1.5;
   }
@@ -1434,8 +1431,8 @@
      (form, My hands, even the full-screen output overlay). Slides in from the
      right, auto-fades after 5 seconds, click opens the reviewed hand. */
   @keyframes rb-pulse-glow {
-    0%,100% { box-shadow: 0 0 0 0 rgba(62,197,255,0.55); }
-    50%     { box-shadow: 0 0 0 8px rgba(62,197,255,0); }
+    0%,100% { box-shadow: 0 0 0 0 rgba(94,234,212,0.55); }
+    50%     { box-shadow: 0 0 0 8px rgba(94,234,212,0); }
   }
   @keyframes rp-slidein  { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
   @keyframes rp-slideout { from { transform: translateX(0); opacity: 1; }   to { transform: translateX(110%); opacity: 0; } }
@@ -1446,8 +1443,8 @@
     z-index: 250;   /* above overlay (100) and topbar (150) */
     max-width: 340px;
     padding: 12px 14px;
-    background: linear-gradient(135deg, rgba(62,197,255,0.22), rgba(176,124,255,0.16)), var(--panel);
-    border: 1px solid rgba(62,197,255,0.55); border-radius: 14px;
+    background: linear-gradient(135deg, rgba(94,234,212,0.22), rgba(176,124,255,0.16)), var(--panel);
+    border: 1px solid rgba(94,234,212,0.55); border-radius: 14px;
     display: flex; align-items: center; gap: 12px; cursor: pointer;
     font-size: 13px; color: var(--ink);
     box-shadow: 0 8px 24px rgba(0,0,0,0.45);
@@ -1534,10 +1531,10 @@
     border: 1px solid rgba(251,191,36,0.35);
   }
   .my-hand-row .row-review-chip.ready {
-    background: rgba(62,197,255,0.15); color: var(--accent);
-    border: 1px solid rgba(62,197,255,0.4); cursor: pointer;
+    background: rgba(94,234,212,0.15); color: var(--accent);
+    border: 1px solid rgba(94,234,212,0.4); cursor: pointer;
   }
-  .my-hand-row .row-review-chip.ready:hover { background: rgba(62,197,255,0.25); }
+  .my-hand-row .row-review-chip.ready:hover { background: rgba(94,234,212,0.25); }
 
   /* ===== Review viewer overlay ===== */
   /* Header row needs its own scoped avatar — sharing the rb-avatar class with
@@ -1699,7 +1696,7 @@
     background: radial-gradient(circle at 30% 25%, #2a3e6e 0%, #15203f 65%);
     border: 1.5px solid rgba(255,255,255,0.22);
     font-size: 12px; font-weight: 800;
-    color: #eaf2ff;
+    color: #f2eff8;
     margin: 0 1px;
     vertical-align: -8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.35);
@@ -1771,7 +1768,7 @@
     background: var(--accent); color: #0c1226;
     border-radius: 999px;
     font-size: 11px; font-weight: 800;
-    box-shadow: 0 0 0 3px rgba(62,197,255,0.18);
+    box-shadow: 0 0 0 3px rgba(94,234,212,0.18);
   }
 
   /* Welcome / How it works screen */
@@ -1782,10 +1779,10 @@
     text-align: center;
   }
   .welcome-body { padding: 28px 24px 22px; }
-  .welcome-logo { width: 90px; height: auto; margin: 0 auto 12px; display: block; filter: drop-shadow(0 4px 16px rgba(62,197,255,0.22)); }
+  .welcome-logo { width: 90px; height: auto; margin: 0 auto 12px; display: block; filter: drop-shadow(0 4px 16px rgba(94,234,212,0.22)); }
   .welcome-body h2 {
     font-size: 22px; font-weight: 900; margin: 0 0 18px;
-    background: linear-gradient(135deg, var(--brand), #9bb8ff, var(--accent));
+    background: linear-gradient(135deg, var(--brand), #a78bfa, var(--accent));
     -webkit-background-clip: text; background-clip: text;
     -webkit-text-fill-color: transparent; color: transparent;
   }
@@ -1892,7 +1889,7 @@
   #coachOverlay.on { display: block; }
   #coachSpot {
     position: fixed; border-radius: 12px; border: 2px solid var(--brand);
-    box-shadow: 0 0 0 9999px rgba(8,6,16,0.80), 0 0 22px rgba(122,162,255,0.55);
+    box-shadow: 0 0 0 9999px rgba(8,6,16,0.80), 0 0 22px rgba(251,113,133,0.55);
     transition: top .25s, left .25s, width .25s, height .25s; pointer-events: none;
   }
   #coachTip {
@@ -1912,10 +1909,10 @@
   #coachTip.intro .coach-tag, #coachTip.intro .coach-title { display: none; }
   #coachTip.intro p { text-align: center; }
   #coachTip.intro .coach-btns { justify-content: center; }
-  #coachTip .coach-logo { width: 72px; height: auto; margin-bottom: 8px; filter: drop-shadow(0 4px 14px rgba(62,197,255,0.25)); }
+  #coachTip .coach-logo { width: 72px; height: auto; margin-bottom: 8px; filter: drop-shadow(0 4px 14px rgba(94,234,212,0.25)); }
   #coachTip .coach-wordmark {
     font-size: 28px; font-weight: 800; line-height: 1;
-    background: linear-gradient(135deg, var(--brand) 0%, #9bb8ff 50%, var(--accent) 100%);
+    background: linear-gradient(135deg, var(--brand) 0%, #a78bfa 50%, var(--accent) 100%);
     -webkit-background-clip: text; background-clip: text; color: transparent;
   }
   #coachTip .coach-welcome { font-size: 12px; color: var(--ink-dim); margin-top: 4px; letter-spacing: .3px; }
@@ -1962,7 +1959,7 @@
   }
   .mh-cta {
     display: inline-flex; align-items: center; gap: 10px;
-    background: linear-gradient(135deg, #3ec5ff, #3cc4a8);
+    background: linear-gradient(135deg, #5eead4, #3cc4a8);
     color: #0a1a18;
     border: none;
     padding: 18px 38px;
@@ -1976,10 +1973,10 @@
        app). Reserve the breathing pulse for Generate, which IS a moment
        (hand becomes shareable). Static teal glow stays so the CTA still
        reads as primary. */
-    box-shadow: 0 4px 22px rgba(62,197,255,0.28);
+    box-shadow: 0 4px 22px rgba(94,234,212,0.28);
     transition: transform 0.08s, box-shadow 0.16s;
   }
-  .mh-cta:hover { box-shadow: 0 4px 26px rgba(62,197,255,0.40); }
+  .mh-cta:hover { box-shadow: 0 4px 26px rgba(94,234,212,0.40); }
   .mh-cta:active { transform: scale(0.98); }
   .mh-cta-sub {
     margin-top: 14px;
@@ -2023,7 +2020,7 @@
     display: block; margin: 0 auto 18px;
     width: 140px; height: auto;
     opacity: 0.85;
-    filter: drop-shadow(0 6px 18px rgba(62,197,255,0.15));
+    filter: drop-shadow(0 6px 18px rgba(94,234,212,0.15));
   }
   /* Row: 2-column grid (left main / right meta column). The right column has
      date on the top row and outcome pill + trash side-by-side on the bottom
@@ -2114,8 +2111,8 @@
   }
   .my-hand-row .row-outcome.outcome-win {
     color: var(--accent);
-    background: rgba(62,197,255,0.10);
-    border-color: rgba(62,197,255,0.30);
+    background: rgba(94,234,212,0.10);
+    border-color: rgba(94,234,212,0.30);
   }
   .my-hand-row .row-outcome.outcome-lose {
     color: var(--red);
@@ -2153,7 +2150,7 @@
     border: 1.5px solid var(--accent);
     box-shadow:
       0 12px 40px rgba(0,0,0,0.55),
-      0 0 28px rgba(62,197,255,0.22);
+      0 0 28px rgba(94,234,212,0.22);
   }
   .overlay.dialog-mode {
     align-items: center;
@@ -2547,180 +2544,9 @@
   .pick-preview .slot.current {
     border-color: var(--accent);
     box-shadow:
-      0 0 0 3px rgba(62,197,255,0.4),
+      0 0 0 3px rgba(94,234,212,0.4),
       0 4px 10px rgba(0,0,0,0.45);
   }
-
-  /* ════════════════════════════════════════════════════════════════
-     OCEAN GLASS THEME — deep blue · frosted glass · azure light.
-     Appended override layer: glass surfaces, typography, motion.
-     ════════════════════════════════════════════════════════════════ */
-
-  :root {
-    --radius: 20px;
-    --radius-sm: 13px;
-    --glass: rgba(16, 36, 66, 0.52);
-    --glass-line: rgba(140, 190, 255, 0.16);
-  }
-
-  /* ---- modern geometric type everywhere ---- */
-  html, body, button, input, select, textarea {
-    font-family: "Outfit", -apple-system, "Segoe UI", sans-serif;
-  }
-  h1, h2, .street-name, .hi-modal-title, .coach-wordmark, .mh-cta {
-    font-family: "Outfit", -apple-system, sans-serif !important;
-    font-weight: 700; letter-spacing: -0.02em;
-  }
-
-  /* ---- the water: layered aurora glow + two drifting light orbs ---- */
-  body {
-    background:
-      radial-gradient(90% 60% at 80% -10%, rgba(62,197,255,0.16), transparent 60%),
-      radial-gradient(70% 50% at 8% 30%, rgba(122,162,255,0.12), transparent 65%),
-      radial-gradient(100% 80% at 50% 115%, rgba(3,10,24,0.9), transparent 70%),
-      linear-gradient(180deg, #0b1830 0%, #081226 55%, #050d1c 100%);
-    background-attachment: fixed;
-  }
-  body::before, body::after {
-    content: ""; position: fixed; border-radius: 50%;
-    filter: blur(70px); pointer-events: none; z-index: 0;
-  }
-  body::before {
-    width: 420px; height: 420px; top: -160px; right: -140px;
-    background: radial-gradient(circle, rgba(62,197,255,0.20), transparent 70%);
-    animation: orbDriftA 16s ease-in-out infinite alternate;
-  }
-  body::after {
-    width: 360px; height: 360px; bottom: -150px; left: -130px;
-    background: radial-gradient(circle, rgba(122,162,255,0.16), transparent 70%);
-    animation: orbDriftB 21s ease-in-out infinite alternate;
-  }
-  @keyframes orbDriftA { from { transform: translate(0,0) scale(1); } to { transform: translate(-60px, 50px) scale(1.18); } }
-  @keyframes orbDriftB { from { transform: translate(0,0) scale(1); } to { transform: translate(70px, -45px) scale(1.12); } }
-
-  /* ---- frosted glass surfaces ---- */
-  section.card, .sheet, .menu-panel, .tourney-form {
-    background: var(--glass) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(150%);
-    backdrop-filter: blur(20px) saturate(150%);
-    border: 1px solid var(--glass-line) !important;
-    box-shadow: 0 1px 0 rgba(255,255,255,0.07) inset, 0 18px 44px rgba(2,8,20,0.5);
-  }
-  .topbar {
-    background: rgba(8, 18, 38, 0.6) !important;
-    -webkit-backdrop-filter: blur(22px) saturate(160%);
-    backdrop-filter: blur(22px) saturate(160%);
-    border-bottom: 1px solid var(--glass-line);
-  }
-  .actionbar .inner {
-    background: rgba(10, 22, 44, 0.55);
-    -webkit-backdrop-filter: blur(20px) saturate(150%);
-    backdrop-filter: blur(20px) saturate(150%);
-    border: 1px solid var(--glass-line);
-    border-radius: 22px;
-    padding: 10px;
-    box-shadow: 0 14px 36px rgba(2,8,20,0.55);
-  }
-
-  /* ---- global motion defaults ---- */
-  button, .street-header, .my-hand-row, .pill, .seg button, .vi-saved-card {
-    transition: transform 0.22s cubic-bezier(.34,1.4,.45,1),
-                box-shadow 0.28s ease, background-color 0.22s ease,
-                border-color 0.22s ease, color 0.22s ease, opacity 0.22s ease;
-  }
-  button:active { transform: scale(0.96); }
-
-  /* ---- primary buttons: liquid azure with breathing glow ---- */
-  .btn-primary, .mh-cta {
-    position: relative; overflow: hidden;
-    background: linear-gradient(135deg, #59d2ff 0%, #38bdf8 48%, #2f7ce8 100%) !important;
-    color: #03182a !important;
-    border: 1px solid rgba(190,232,255,0.6) !important;
-    box-shadow: 0 8px 26px rgba(56,189,248,0.34), 0 1px 0 rgba(255,255,255,0.4) inset;
-    animation: azureBreathe 3.4s ease-in-out infinite;
-  }
-  @keyframes azureBreathe {
-    0%, 100% { box-shadow: 0 8px 26px rgba(56,189,248,0.30), 0 1px 0 rgba(255,255,255,0.4) inset; }
-    50%      { box-shadow: 0 10px 36px rgba(56,189,248,0.52), 0 1px 0 rgba(255,255,255,0.4) inset; }
-  }
-  .btn-primary::after, .mh-cta::after {
-    content: ""; position: absolute; top: -40%; bottom: -40%; width: 34%;
-    left: -50%; transform: skewX(-20deg);
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
-    animation: glassSweep 4.2s cubic-bezier(.6,.1,.3,.9) infinite;
-    pointer-events: none;
-  }
-  @keyframes glassSweep { 0%, 70% { left: -50%; } 100% { left: 135%; } }
-  .btn-primary:hover, .mh-cta:hover { transform: translateY(-1px); }
-  .btn-primary:disabled { filter: saturate(0.2) brightness(0.55); animation: none; }
-  .btn-primary:disabled::after { animation: none; }
-  .btn-secondary {
-    background: rgba(255,255,255,0.05) !important;
-    border: 1px solid var(--glass-line) !important;
-    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  }
-  .btn-secondary:hover { background: rgba(140,190,255,0.10) !important; }
-
-  /* ---- overlays: depth-of-field fade, sheets surface like rising bubbles ---- */
-  .overlay { background: rgba(3, 9, 22, 0.6); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
-  .overlay.on { animation: oceanFade 0.34s ease both; }
-  .overlay.on > .sheet, .overlay.on .hero-input-sheet {
-    animation: oceanSurface 0.5s cubic-bezier(.2,1.15,.32,1) both;
-  }
-  @keyframes oceanFade { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes oceanSurface {
-    from { opacity: 0; transform: translateY(44px) scale(0.96); filter: blur(4px); }
-    to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
-  }
-
-  /* ---- 52-card grid: ripple-pop ---- */
-  .pick-grid button { transition: transform 0.16s cubic-bezier(.34,1.6,.5,1), box-shadow 0.2s ease, opacity 0.2s; }
-  .pick-grid button:hover { transform: translateY(-3px); }
-  .pick-grid button:active { transform: scale(1.12); z-index: 2; }
-  .pick-grid button.on { animation: cardSplash 0.32s cubic-bezier(.34,1.5,.5,1); }
-  @keyframes cardSplash {
-    0% { transform: scale(0.7); box-shadow: 0 0 0 0 rgba(62,197,255,0.55); }
-    70% { transform: scale(1.1); box-shadow: 0 0 0 12px rgba(62,197,255,0); }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
-  }
-
-  /* ---- street headers glow on hover; caret eases ---- */
-  .street-caret { transition: transform 0.3s cubic-bezier(.34,1.3,.45,1); }
-  .street-header { border-radius: var(--radius-sm); }
-  .street-header:hover { background: rgba(62,197,255,0.07); }
-  .my-hand-row:hover { transform: translateX(4px); }
-
-  /* ---- focus ring: azure halo ---- */
-  input:focus, select:focus, textarea:focus, button:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(62,197,255,0.5);
-  }
-
-  /* ---- sections float up in sequence on load ---- */
-  section.card { animation: floatIn 0.6s cubic-bezier(.2,.9,.3,1) both; }
-  section.card:nth-of-type(1) { animation-delay: 0.04s; }
-  section.card:nth-of-type(2) { animation-delay: 0.11s; }
-  section.card:nth-of-type(3) { animation-delay: 0.18s; }
-  section.card:nth-of-type(4) { animation-delay: 0.25s; }
-  section.card:nth-of-type(5) { animation-delay: 0.32s; }
-  section.card:nth-of-type(6) { animation-delay: 0.39s; }
-  @keyframes floatIn {
-    from { opacity: 0; transform: translateY(18px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  /* ---- output image surfaces with light bloom ---- */
-  #outputImagePreview { animation: imageBloom 0.65s cubic-bezier(.2,1.05,.34,1) both; }
-  @keyframes imageBloom {
-    from { opacity: 0; transform: translateY(20px) scale(0.97); filter: brightness(1.4) blur(3px); }
-    to   { opacity: 1; transform: translateY(0) scale(1); filter: brightness(1) blur(0); }
-  }
-
-  /* ---- calm water for reduced motion ---- */
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation: none !important; transition: none !important; }
-  }
-
 </style>
 <!-- PostHog analytics — initialised only on the live domain so local/dev testing never pollutes the data. -->
 <script>
@@ -3356,14 +3182,14 @@
        softer when hands exist (via .mh-illustration.large class on JS). -->
   <svg class="mh-illustration" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <g transform="translate(38 28) rotate(-12 40 55)">
-      <rect width="80" height="110" rx="10" fill="#1a2540" stroke="#3ec5ff" stroke-width="1.5" opacity="0.85"/>
-      <text x="14" y="32" fill="#eaf2ff" font-family="serif" font-size="24" font-weight="700">K</text>
-      <text x="14" y="56" fill="#eaf2ff" font-family="serif" font-size="22">♠</text>
+      <rect width="80" height="110" rx="10" fill="#1a2540" stroke="#5eead4" stroke-width="1.5" opacity="0.85"/>
+      <text x="14" y="32" fill="#f2eff8" font-family="serif" font-size="24" font-weight="700">K</text>
+      <text x="14" y="56" fill="#f2eff8" font-family="serif" font-size="22">♠</text>
     </g>
     <g transform="translate(82 28) rotate(12 40 55)">
-      <rect width="80" height="110" rx="10" fill="#1a2540" stroke="#3ec5ff" stroke-width="1.5"/>
-      <text x="14" y="32" fill="#ff7a8a" font-family="serif" font-size="24" font-weight="700">A</text>
-      <text x="14" y="56" fill="#ff7a8a" font-family="serif" font-size="22">♥</text>
+      <rect width="80" height="110" rx="10" fill="#1a2540" stroke="#5eead4" stroke-width="1.5"/>
+      <text x="14" y="32" fill="#ff6b8a" font-family="serif" font-size="24" font-weight="700">A</text>
+      <text x="14" y="56" fill="#ff6b8a" font-family="serif" font-size="22">♥</text>
     </g>
   </svg>
   <div class="mh-cta-wrap">
@@ -3587,7 +3413,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.6.0";
+const APP_VERSION = "v1.5.2";
 
 // ============================================================================
 // CASILLAS / PRO FEATURE FLAG — hide every pro-review surface for input-only
@@ -4176,12 +4002,12 @@ function cardInlineHTML(c) {
   if (!c || !c.rank || !c.suit) return "";
   const su = SUITS.find(x => x.s === c.suit);
   const g = su ? su.glyph : "";
-  const suitColor = su && su.red ? "#ff7a8a" : "#eaf2ff";
+  const suitColor = su && su.red ? "#ff6b8a" : "#f2eff8";
   const style = "display:inline-flex;align-items:center;justify-content:center;"
     + "width:30px;height:30px;border-radius:50%;"
     + "background:radial-gradient(circle at 30% 25%, #2a3e6e 0%, #15203f 65%);"
     + "border:1.5px solid rgba(255,255,255,0.22);"
-    + "font-size:12px;font-weight:800;color:#eaf2ff;"
+    + "font-size:12px;font-weight:800;color:#f2eff8;"
     + "margin:0 1px;vertical-align:-8px;"
     + "box-shadow:0 1px 3px rgba(0,0,0,0.35);letter-spacing:-0.5px;"
     + "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;";
@@ -6702,7 +6528,7 @@ function injectFeedbackNudge(out, img) {
   const n = document.createElement("div");
   n.id = "feedbackNudge";
   n.style.cssText = "text-align:center;margin:-4px auto 14px;font:500 13px -apple-system,'Segoe UI',sans-serif;color:#8a86a0;cursor:pointer;user-select:none;";
-  n.innerHTML = `Anything feel off? <span style="color:#3ec5ff;text-decoration:underline;text-underline-offset:3px;">Tap to tell us.</span>`;
+  n.innerHTML = `Anything feel off? <span style="color:#5eead4;text-decoration:underline;text-underline-offset:3px;">Tap to tell us.</span>`;
   n.onclick = () => {
     track("feedback_nudge_clicked", { game: state.gameType });
     const heroPos = $("#heroPos") ? $("#heroPos").value : "";
@@ -6938,7 +6764,7 @@ function rcStrategy(spot, notation) {
 
 // Action display metadata (label + colour for the breakdown bar).
 const RC_ACT = {
-  raise:    { label: "Open",  color: "#38bdf8" },
+  raise:    { label: "Open",  color: "#3bd6c6" },
   threeBet: { label: "3-bet", color: "#f0a35e" },
   fourBet:  { label: "4-bet", color: "#e06b6b" },
   jam:      { label: "Jam",   color: "#e06b6b" },
@@ -9848,7 +9674,7 @@ function sdDrawAvatarPreset(ctx, cx, cy, r, p) {
   } else if (T === "dice") {
     const s = r * 1.35;
     sdRoundRect(ctx, cx - s/2, cy - s/2, s, s, s * 0.18, "#f6f4ee", "rgba(0,0,0,0.25)", Math.max(1, r*0.04));
-    ctx.fillStyle = "#122c4a";
+    ctx.fillStyle = "#2a2440";
     const o = r * 0.42, pip = (px, py) => { ctx.beginPath(); ctx.arc(cx + px, cy + py, r * 0.12, 0, Math.PI*2); ctx.fill(); };
     pip(-o, -o); pip(o, -o); pip(0, 0); pip(-o, o); pip(o, o);
   } else if (T === "shades") {
@@ -10263,7 +10089,7 @@ function sdDrawTimeline(ctx, top_y, columns, heroPos) {
     // Hero's own thinking comes first (it's the player's voice, closer to
     // the action). Mint accent matches the in-app hero teal theme.
     if (c.heroNote && typeof c.heroNote === "string" && c.heroNote.trim()) {
-      _drawNoteCard(c.heroNote, "#3ec5ff", "MY THINKING");
+      _drawNoteCard(c.heroNote, "#5eead4", "MY THINKING");
     }
     // Pro note (Casillas) — pink to distinguish from hero teal.
     if (c.proNote && typeof c.proNote === "string" && c.proNote.trim()) {
@@ -10847,7 +10673,7 @@ function sdDrawRangeCheck(ctx, topY, r) {
   const W = SHOWDOWN_W;
   const x = 24, w = W - 48, padX = 18, padY = 16, innerW = w - padX * 2;
   const strip = s => String(s || "").replace(/<[^>]*>/g, "");
-  const VERDICT_COL = { match: "#38bdf8", dev: "#f0c44d", info: "#aaa5c8" };
+  const VERDICT_COL = { match: "#3bd6c6", dev: "#f0c44d", info: "#aaa5c8" };
   const lab = k => (RC_ACT[k] ? RC_ACT[k].label : k);
   const pct = v => Math.round(v * 100);
 
@@ -10885,21 +10711,21 @@ function sdDrawRangeCheck(ctx, topY, r) {
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.4)"; ctx.shadowBlur = 10; ctx.shadowOffsetY = 4;
   const g = ctx.createLinearGradient(0, y, 0, y + h);
-  g.addColorStop(0, "#102742"); g.addColorStop(1, "#0b1d36");
+  g.addColorStop(0, "#262040"); g.addColorStop(1, "#1d1834");
   sdRoundRect(ctx, x, y, w, h, 14, g, null, 0);
   ctx.restore();
-  sdRoundRect(ctx, x, y, w, h, 14, null, "rgba(62,197,255,0.35)", 1.5);
+  sdRoundRect(ctx, x, y, w, h, 14, null, "rgba(94,234,212,0.35)", 1.5);
 
   // Header: "PREFLOP CHECK" + hand notation on the right.
   let cy2 = y + padY;
   ctx.textAlign = "left"; ctx.textBaseline = "top";
   ctx.font = `800 15px ${FF}`;
-  ctx.fillStyle = "#3ec5ff";
+  ctx.fillStyle = "#5eead4";
   ctx.fillText("PREFLOP CHECK", x + padX, cy2);
   if (r.notation) {
     ctx.textAlign = "right";
     ctx.font = `800 15px ${FF}`;
-    ctx.fillStyle = "#eaf2ff";
+    ctx.fillStyle = "#f2eff8";
     ctx.fillText(`${r.notation} · ${r.pos || ""}`.trim(), x + w - padX, cy2);
     ctx.textAlign = "left";
   }
@@ -10985,9 +10811,9 @@ async function renderHandToCanvas(upTo, proNotes) {
 
   // Background — vertical gradient for depth
   const bgG = ctx.createLinearGradient(0, 0, 0, totalH);
-  bgG.addColorStop(0, "#0d1f3c");
-  bgG.addColorStop(0.5, "#081226");
-  bgG.addColorStop(1, "#050d1c");
+  bgG.addColorStop(0, "#1b1733");
+  bgG.addColorStop(0.5, "#14121f");
+  bgG.addColorStop(1, "#0e0c17");
   ctx.fillStyle = bgG;
   ctx.fillRect(0, 0, W, totalH);
 
@@ -10995,10 +10821,10 @@ async function renderHandToCanvas(upTo, proNotes) {
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = 12; ctx.shadowOffsetY = 5;
   const hg = ctx.createLinearGradient(0, 8, 0, 80);
-  hg.addColorStop(0, "#16406a"); hg.addColorStop(1, "#0e2a4a");
+  hg.addColorStop(0, "#322861"); hg.addColorStop(1, "#221b40");
   sdRoundRect(ctx, 10, 8, W - 20, 72, 18, hg, null, 0);
   ctx.restore();
-  sdRoundRect(ctx, 10, 8, W - 20, 72, 18, null, "rgba(62,197,255,0.5)", 2);
+  sdRoundRect(ctx, 10, 8, W - 20, 72, 18, null, "rgba(94,234,212,0.5)", 2);
   // top inner highlight for a glossy edge
   ctx.save();
   _sdRRPath(ctx, 11, 9, W - 22, 70, 17); ctx.clip();
@@ -11015,18 +10841,18 @@ async function renderHandToCanvas(upTo, proNotes) {
   ctx.font = `800 32px -apple-system, "Segoe UI", sans-serif`;
   ctx.textAlign = "left"; ctx.textBaseline = "top";
   const wg = ctx.createLinearGradient(textX, 0, textX + 210, 0);
-  wg.addColorStop(0, "#7aa2ff"); wg.addColorStop(0.5, "#9bb8ff"); wg.addColorStop(1, "#3ec5ff");
+  wg.addColorStop(0, "#fb7185"); wg.addColorStop(0.5, "#a78bfa"); wg.addColorStop(1, "#5eead4");
   ctx.fillStyle = wg;
   ctx.fillText("Showdown", textX, 17);
   ctx.font = `500 15px -apple-system, "Segoe UI", sans-serif`;
-  ctx.fillStyle = "#c9d8f0";
+  ctx.fillStyle = "#d3cdee";
   ctx.fillText(data.titleSub, textX, 53);
   // Date right
   const dt = new Date();
   const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const dtStr = `${monthNames[dt.getMonth()]} ${dt.getDate()} · ${String(dt.getHours()).padStart(2,"0")}:${String(dt.getMinutes()).padStart(2,"0")}`;
   ctx.font = `13px -apple-system, "Segoe UI", sans-serif`;
-  ctx.fillStyle = "#9fb4d4";
+  ctx.fillStyle = "#b3adcf";
   ctx.textAlign = "right";
   ctx.fillText(dtStr, W - 22, 22);
 
@@ -11036,13 +10862,13 @@ async function renderHandToCanvas(upTo, proNotes) {
     ctx.textAlign = "left"; ctx.textBaseline = "top";
     if (bandTitle) {
       ctx.font = `800 ${BAND_TITLE_FS}px -apple-system, "Segoe UI", sans-serif`;
-      ctx.fillStyle = "#f2f7ff";
+      ctx.fillStyle = "#f4f1fb";
       ctx.fillText(bandTitle, 24, by, W - 48);
       by += 32 + (bandCaption ? 6 : 0);
     }
     if (bandCaption) {
       ctx.font = `400 ${BAND_CAP_FS}px -apple-system, "Segoe UI", sans-serif`;
-      ctx.fillStyle = "#b6c8e6";
+      ctx.fillStyle = "#c4bee0";
       for (const ln of bandCapLines) { ctx.fillText(ln, 24, by); by += BAND_CAP_LH; }
     }
     // hairline divider under the band
@@ -11412,7 +11238,7 @@ async function renderHandToCanvas(upTo, proNotes) {
     const tw = ctx.measureText(text).width;
     const bw = tw + 28, bh = 32;
     const bx = (W - bw) / 2, by = H - 48;
-    sdRoundRect(ctx, bx, by, bw, bh, 16, "#122c4a", "#f0c44d", 2);
+    sdRoundRect(ctx, bx, by, bw, bh, 16, "#2a2440", "#f0c44d", 2);
     ctx.fillStyle = "#f0c44d";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -11968,7 +11794,7 @@ const PRESET_DEFS = [
   { type: "visor",     bg0: "#1f3a2c", bg1: "#0e1f16" },
   { type: "mustache",  bg0: "#3a3024", bg1: "#1f1810" },
   { type: "chipstack", bg0: "#1d2440", bg1: "#0e1326" },
-  { type: "spade",     bg0: "#33375c", bg1: "#181b32", glyph: "♠", fg: "#eaf2ff" },
+  { type: "spade",     bg0: "#33375c", bg1: "#181b32", glyph: "♠", fg: "#f2eff8" },
   { type: "heart",     bg0: "#cf4150", bg1: "#7c1f24", glyph: "♥", fg: "#ffffff" },
   { type: "club",      bg0: "#2a8a5c", bg1: "#124a30", glyph: "♣", fg: "#ffffff" },
   { type: "dice",      bg0: "#3a3460", bg1: "#1f1b38" },
