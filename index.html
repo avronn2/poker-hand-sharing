@@ -1883,51 +1883,6 @@
   #sectionHero,
   #sectionVillains { display: none !important; }
 
-  /* Coachmark walkthrough (FTUE) */
-  /* While the walkthrough is active, lock the page so background scroll
-     doesn't drift the spotlight off the target. */
-  body.coach-tour-active { overflow: hidden; touch-action: none; }
-  /* The tour uses a CORAL identity so it never looks like a (teal) form section. */
-  #coachOverlay { position: fixed; inset: 0; z-index: 300; display: none; }
-  #coachOverlay.on { display: block; }
-  #coachSpot {
-    position: fixed; border-radius: 12px; border: 2px solid var(--brand);
-    box-shadow: 0 0 0 9999px rgba(8,6,16,0.80), 0 0 22px rgba(122,162,255,0.55);
-    transition: top .25s, left .25s, width .25s, height .25s; pointer-events: none;
-  }
-  #coachTip {
-    position: fixed; max-width: 320px; width: calc(100% - 28px); box-sizing: border-box;
-    background: linear-gradient(180deg, #2a1820 0%, #211622 100%);
-    border: 1.5px solid var(--brand); border-radius: 14px;
-    padding: 14px 16px; box-shadow: 0 14px 40px rgba(0,0,0,0.6);
-  }
-  #coachTip .coach-tag {
-    display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 1px;
-    text-transform: uppercase; color: #2a0510; background: var(--brand);
-    padding: 2px 9px; border-radius: 6px; margin-bottom: 9px;
-  }
-  /* Branded intro card */
-  #coachTip .coach-brand { display: none; flex-direction: column; align-items: center; text-align: center; margin-bottom: 12px; }
-  #coachTip.intro .coach-brand { display: flex; }
-  #coachTip.intro .coach-tag, #coachTip.intro .coach-title { display: none; }
-  #coachTip.intro p { text-align: center; }
-  #coachTip.intro .coach-btns { justify-content: center; }
-  #coachTip .coach-logo { width: 72px; height: auto; margin-bottom: 8px; filter: drop-shadow(0 4px 14px rgba(62,197,255,0.25)); }
-  #coachTip .coach-wordmark {
-    font-size: 28px; font-weight: 800; line-height: 1;
-    background: linear-gradient(135deg, var(--brand) 0%, #9bb8ff 50%, var(--accent) 100%);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-  #coachTip .coach-welcome { font-size: 12px; color: var(--ink-dim); margin-top: 4px; letter-spacing: .3px; }
-  #coachTip h4 { margin: 0 0 6px; color: var(--brand); font-size: 16px; }
-  #coachTip p { margin: 0 0 14px; color: #f3e9ee; font-size: 13.5px; line-height: 1.55; }
-  #coachTip .coach-btns { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-  #coachTip .coach-skip { background: transparent; border: 0; color: #b59aa4; font-size: 13px; cursor: pointer; padding: 6px; }
-  #coachTip .coach-next {
-    background: var(--brand); color: #2a0510; border: 0; border-radius: 10px;
-    padding: 10px 18px; font-weight: 800; font-size: 14px; cursor: pointer;
-  }
-
   /* v1.5.0 — two top-level views: my hands (default landing, includes the
      action-launcher CTA at the top) and form. Form is the "no body class"
      state — it shows when the user is recording a hand. */
@@ -2570,7 +2525,7 @@
   html, body, button, input, select, textarea {
     font-family: "Outfit", -apple-system, "Segoe UI", sans-serif;
   }
-  h1, h2, .street-name, .hi-modal-title, .coach-wordmark, .mh-cta {
+  h1, h2, .street-name, .hi-modal-title, .mh-cta {
     font-family: "Outfit", -apple-system, sans-serif !important;
     font-weight: 700; letter-spacing: -0.02em;
   }
@@ -3192,11 +3147,7 @@
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         Profile
       </button></li>
-      <li><button type="button" data-menu="tour">
-        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
-        Example walkthrough
-      </button></li>
-      <li><button type="button" data-menu="feedback">
+            <li><button type="button" data-menu="feedback">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
         Send feedback
       </button></li>
@@ -3212,32 +3163,8 @@
     <div class="welcome-body">
       <img src="logo-header.png" alt="" class="welcome-logo">
       <h2>Welcome to Showdown</h2>
-      <ol class="welcome-steps">
-        <li><b>Enter Hero + villains.</b> Each one opens in a focused module — position, stack, cards. Settings (stakes / blinds) live in the hamburger.</li>
-        <li><b>Record the action.</b> Each street has Fold / Check / Call / Raise / All-in. Postflop you pick the board cards inline. Add a "My thinking" note per street if you want it on the picture.</li>
-        <li><b>Share the hand.</b> When the hand's done, Confirm and Generate turns it into a clean image. Title or note optional, then Share — includes a link for friends.</li>
-      </ol>
-      <button type="button" class="btn-secondary" id="welcomeTour">▶ See an example walkthrough</button>
+      <p style="color:var(--ink-dim);font-size:14.5px;line-height:1.65;margin:2px 0 18px;text-align:center;">Rebuild a hand from memory and get a clean picture your friends can replay. Two example hands are waiting in <b style="color:var(--ink)">My hands</b> — open one to see how it looks.</p>
       <button type="button" class="btn-primary" id="welcomeDismiss">Got it</button>
-    </div>
-  </div>
-</div>
-
-<!-- COACHMARK WALKTHROUGH (FTUE) -->
-<div id="coachOverlay">
-  <div id="coachSpot"></div>
-  <div id="coachTip">
-    <div class="coach-brand">
-      <img src="logo-header.png" alt="" class="coach-logo">
-      <div class="coach-wordmark">Showdown</div>
-      <div class="coach-welcome">Review the hand. Refine the play.</div>
-    </div>
-    <span class="coach-tag">Guide</span>
-    <h4 class="coach-title"></h4>
-    <p class="coach-text"></p>
-    <div class="coach-btns">
-      <button type="button" class="coach-skip">Skip</button>
-      <button type="button" class="coach-next">Next</button>
     </div>
   </div>
 </div>
@@ -3605,7 +3532,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.6.4";
+const APP_VERSION = "v1.7.0";
 
 // ============================================================================
 // CASILLAS / PRO FEATURE FLAG — hide every pro-review surface for input-only
@@ -9336,9 +9263,9 @@ $("#gsConfirm").addEventListener("click", () => {
   if (typeof renderGameContextPill === "function") renderGameContextPill();
   haptic(10);
   closeGameSettings();
-  // Walkthrough end → Settings → SAVE should drop the user into a fresh
-  // new-hand flow with their just-saved defaults applied. Flag is set when
-  // the walkthrough's result step opens Settings (see coachNext).
+  // First-hand chain: when Settings was forced open at the start of a new
+  // hand (no saved defaults), SAVE drops the user straight into the fresh
+  // new-hand flow with the just-saved defaults applied.
   if (sessionStorage.getItem("walkthrough_settings_save") === "1") {
     sessionStorage.removeItem("walkthrough_settings_save");
     if (typeof startNewHandFlow === "function") startNewHandFlow();
@@ -11678,7 +11605,6 @@ document.querySelectorAll("[data-menu]").forEach(b => {
     $("#menuOverlay").classList.remove("on");
     if (which === "myhands") openMyHands();
     else if (which === "welcome") $("#welcomeOverlay").classList.add("on");
-    else if (which === "tour") startCoachTour({ isFtue: false });
     else if (which === "profile") openProfile();
     else if (which === "gamesettings") openGameSettings(false);
     else if (which === "feedback") {
@@ -11750,7 +11676,7 @@ function maybeShowWelcome() {
   } catch (_) {}
 })();
 
-/* ===== Example hand + coachmark walkthrough (FTUE) ===== */
+/* ===== Example hands (seeded into My Hands on first run) ===== */
 // Builds a complete, illustrative example hand (an AA vs KK preflop cooler) by driving
 // the real action engine, so the picture and Generate button behave exactly as normal.
 function loadExampleHand() {
@@ -11758,7 +11684,7 @@ function loadExampleHand() {
   state.cards = {};
   // v1.2.91 — pre-set the hand title so when the user generates from the
   // walkthrough, the resulting saved hand in My Hands is clearly labeled.
-  state.handTitle = "Example from walkthrough";
+  state.handTitle = "Pocket aces meet pocket kings";
   // Game
   state.gameType = "mtt"; state.stage = "Early";
   document.querySelectorAll("#gameType button").forEach(b => b.classList.toggle("on", b.dataset.val === "mtt"));
@@ -11816,202 +11742,106 @@ function loadExampleHand() {
   refreshAll();
 }
 
-const COACH_STEPS = [
-  { intro: true, title: "", text: "Turn any poker hand into a clean picture you can share. Quick tour with an example — an Aces-vs-Kings cooler we'll build together.", cta: "Start tour" },
-  // v1.3.2 — trimmed from 5 spotlight steps to 3. Hero+Villain merged into
-  // "Enter players" (villains share Hero's focused-input flow, so showing one
-  // demonstrates both). The summary-strip step folded into the action step's
-  // caption (discover-on-use is fine since the chips are persistent).
-  // Step 1: Hero modal (the focused-input pattern). Villains use the same
-  // flow so the caption just mentions them.
-  { sel: "#heroInputOverlay .sheet",
-    title: "1 · Enter players",
-    text: "Each player gets a focused module — position, stack, hole cards for Hero. Villains use the same flow; add as many as you need.",
-    before: () => { if (typeof openHeroInput === "function") openHeroInput(); } },
-  // Step 2: preflop street + chip-strip mention.
-  { sel: ".street[data-street='preflop']",
-    title: "2 · Record the action",
-    text: "Each street has Fold / Check / Call / Raise / All-in. On flop / turn / river you pick the board cards inline. Need to fix a player mid-hand? Tap the chips above the streets — opens the input again.",
-    preflop: true,
-    before: () => {
-      // Close any leftover input modal so the spotlight target is visible.
-      ["heroInputOverlay","villainInputOverlay","vsdCardsOverlay"].forEach(id => {
-        const o = document.getElementById(id);
-        if (o) o.classList.remove("on");
-      });
-    } },
-  // Step 3: Generate. Result step follows.
-  { sel: "#generateBtn",  title: "3 · Make the picture",
-    text: "When the hand finishes — fold-out, river, or all-in — Confirm and Generate turns it into a clean shareable image.",
-    cta: "Generate it →", generate: true },
-  // Result: now opens Settings so the user starts a new hand with their preset
-  { result: true, title: "That's your hand story",
-    text: "Add a title or note, then Share — sends the picture with a link your friends can use to make their own. Last step: set your defaults (game type, blinds) so the next hand starts ready to go.",
-    cta: "Open Settings →",
-    settings: true },
-];
-let _coachIdx = 0;
-// v1.2.88 — track how the walkthrough was launched. true → first-run welcome
-// flow ("Tour" button on the welcome overlay); the result step routes the
-// user to Settings to set defaults before their first hand. false → invoked
-// from the hamburger menu after the app's already in use; the result step
-// starts a fresh hand instead since defaults are already configured.
-let _coachIsFtue = false;
-function startCoachTour(opts) {
-  opts = opts || {};
-  _coachIsFtue = !!opts.isFtue;
-  $("#menuOverlay").classList.remove("on");
-  $("#welcomeOverlay").classList.remove("on");
-  if (typeof closeMyHands === "function") closeMyHands();
-  $("#overlay").classList.remove("on");
-  loadExampleHand();
-  track("walkthrough_started");
-  _coachIdx = 0;
-  const ov = $("#coachOverlay");
-  if (!ov.dataset.wired) {
-    ov.dataset.wired = "1";
-    ov.querySelector(".coach-next").addEventListener("click", coachNext);
-    ov.querySelector(".coach-skip").addEventListener("click", () => location.reload());
-  }
-  ov.classList.add("on");
-  // Lock page scroll for the duration of the tour — see CSS rule.
-  document.body.classList.add("coach-tour-active");
-  setTimeout(showCoachStep, 380);   // let the example hand lay out first
-}
-function coachNext() {
-  const step = COACH_STEPS[_coachIdx];
-  if (step.result) {
-    // End behavior depends on how the tour was launched (v1.2.88).
-    //   FTUE (welcome → Tour): step into Settings so the user picks their
-    //   defaults (MTT/cash, blinds) before their first hand. The Settings
-    //   save handler reads the sessionStorage flag and starts a new hand.
-    //   Hamburger menu: defaults are already configured — go straight into
-    //   a fresh new-hand flow.
-    endCoachTour();
-    const outputOv = document.getElementById("overlay");
-    if (outputOv) outputOv.classList.remove("on");
-    if (_coachIsFtue && step.settings && typeof openGameSettings === "function") {
-      try { sessionStorage.setItem("walkthrough_settings_save", "1"); } catch (_) {}
-      setTimeout(() => { try { openGameSettings(false); } catch (_) {} }, 100);
-    } else if (typeof startNewHandFlow === "function") {
-      setTimeout(() => { try { startNewHandFlow(); } catch (_) {} }, 100);
-    } else {
-      location.reload();
-    }
-    return;
-  }
-  if (step.generate) {
-    const gen = $("#generateBtn");
-    if (gen && !gen.disabled) gen.click();
-    _coachIdx++;
-    setTimeout(showCoachStep, 480);
-    return;
-  }
-  if (_coachIdx >= COACH_STEPS.length - 1) { endCoachTour(); return; }
-  _coachIdx++; showCoachStep();
-}
-function _coachSetTip(step) {
-  const tip = $("#coachTip");
-  tip.querySelector(".coach-title").textContent = step.title;
-  // Result step: text + CTA fork by FTUE vs hamburger launch (v1.2.88).
-  // FTUE keeps the "set your defaults" sentence; menu users skip it since
-  // they've already configured defaults.
-  let _text = step.text;
-  let _cta = step.cta || "Next";
-  if (step.result && !_coachIsFtue) {
-    _text = "Add a title or note, then Share — sends the picture with a link your friends can use to make their own. Ready when you are.";
-    _cta = "New hand";
-  }
-  tip.querySelector(".coach-text").textContent = _text;
-  tip.querySelector(".coach-next").textContent = _cta;
-  // Skip (= start a fresh hand) is shown on every step except the final one.
-  tip.querySelector(".coach-skip").style.display = step.result ? "none" : "";
-}
-function showCoachStep() {
-  const step = COACH_STEPS[_coachIdx];
-  const ov = $("#coachOverlay"), spot = $("#coachSpot"), tip = $("#coachTip");
-  // Hide the tip IMMEDIATELY so the user never sees it at a stale position
-  // while we run before()-hooks, scroll-into-view, or wait the 370ms for
-  // spotlight measurement. Previously the tip stayed visible at its old
-  // position, then jumped — read as a "corner flash" mid-transition.
-  tip.style.visibility = "hidden";
-  tip.classList.toggle("intro", !!step.intro);
 
-  // Run any pre-step setup (open hero / villain modal, close prior overlay).
-  // Defined per-step on the COACH_STEPS entry; lets the walkthrough drive the
-  // wizard-flow modals without separate orchestration code below.
-  if (typeof step.before === "function") { try { step.before(); } catch (_) {} }
+// Second seeded example — a 3-way all-in with a SIDE POT, so new users see the
+// pot-breakdown panel: short-stack aces win the main pot, Hero's queens beat the
+// busted nut-flush draw to take the (bigger) side pot.
+function loadExampleHand2() {
+  ["preflop","flop","turn","river"].forEach(s => { if (typeof resetStreet === "function") resetStreet(s); });
+  state.cards = {};
+  state.handTitle = "Aces hold — Hero takes the side pot";
+  state.gameType = "mtt"; state.stage = "Middle";
+  document.querySelectorAll("#gameType button").forEach(b => b.classList.toggle("on", b.dataset.val === "mtt"));
+  $("#mttBlock").classList.remove("hide"); $("#cashBlock").classList.add("hide");
+  if (typeof applyUnit === "function") applyUnit("chips");
+  $("#bb").value = fmt(1000); $("#sb").value = fmt(500);
+  if ($("#stage")) $("#stage").value = "Middle";
+  if ($("#tournamentType")) $("#tournamentType").value = "Freezeout";
+  if ($("#buyinAmount")) $("#buyinAmount").value = fmt(215);
+  if ($("#buyinCurrency")) $("#buyinCurrency").value = "USD";
+  // Hero — CO with queens.
+  $("#heroPos").value = "CO"; $("#heroStack").value = fmt(45000);
+  state.cards.hero1 = { rank:"Q", suit:"h" };
+  state.cards.hero2 = { rank:"Q", suit:"c" };
+  // Villains — HJ big stack chasing the nut-flush draw, BB short stack with aces.
+  const v1 = state.nextVid++, v2 = state.nextVid++;
+  state.villains = [
+    { id: v1, pos:"HJ", stack:"40000", notes:"loose, chases draws", showCards:false, strength:"", showdownResult:"showed" },
+    { id: v2, pos:"BB", stack:"12000", notes:"", showCards:false, strength:"", showdownResult:"showed" },
+  ];
+  state.cards["v"+v1+"_c1"] = { rank:"A", suit:"s" };
+  state.cards["v"+v1+"_c2"] = { rank:"K", suit:"s" };
+  state.cards["v"+v2+"_c1"] = { rank:"A", suit:"h" };
+  state.cards["v"+v2+"_c2"] = { rank:"A", suit:"d" };
+  fillPosSelect($("#heroPos"), "CO", "CO");
+  renderVillains(); refreshAllPositionSelects(); renderHeroHoleChips();
+  // Preflop: HJ opens, Hero 3-bets, BB jams the short stack, both call.
+  let rt = initStreetRuntime("preflop");
+  if (rt) {
+    const hero = rt.runtime.find(p => p.id === "hero");
+    const hj = rt.runtime.find(p => p.pos === "HJ");
+    const bbP = rt.runtime.find(p => p.pos === "BB");
+    applyAction(rt, hj, "bet", 2500);
+    applyAction(rt, hero, "raise", 7500);
+    applyAction(rt, bbP, "jam");
+    applyAction(rt, hj, "call");
+    applyAction(rt, hero, "call");
+    activeWiz = rt; activeWizStreet = "preflop";
+    saveActiveStreet();
+    activeWiz = null; activeWizStreet = null;
+  }
+  // Flop 9s 7s 2c: HJ check-jams the draw, Hero calls — side pot forms.
+  state.streets.flop.board = [{rank:"9",suit:"s"},{rank:"7",suit:"s"},{rank:"2",suit:"c"}];
+  rt = initStreetRuntime("flop");
+  if (rt) {
+    const hero = rt.runtime.find(p => p.id === "hero");
+    const hj = rt.runtime.find(p => p.pos === "HJ");
+    applyAction(rt, hj, "check");
+    applyAction(rt, hero, "bet", 8000);
+    applyAction(rt, hj, "jam");
+    applyAction(rt, hero, "call");
+    activeWiz = rt; activeWizStreet = "flop";
+    saveActiveStreet();
+    activeWiz = null; activeWizStreet = null;
+  }
+  // Run-out — the flush misses.
+  const pot = state.streets.flop.potAfter || 0;
+  state.streets.turn  = { complete:true, potBefore:pot, potAfter:pot, board:[{rank:"4",suit:"d"}], actions:[] };
+  state.streets.river = { complete:true, potBefore:pot, potAfter:pot, board:[{rank:"3",suit:"h"}], actions:[] };
+  if (typeof wizStep !== "undefined") wizStep = 3;
+  renderShowdownVillains();
+  refreshStreetSections();
+  if (typeof refreshShowdownStatus === "function") refreshShowdownStatus();
+  refreshAll();
+}
 
-  // Centered steps with no target: intro (branded, dim backdrop) and result.
-  if (step.intro || step.result) {
-    if (step.result) track("walkthrough_completed");
-    spot.style.display = "none";
-    ov.style.background = step.intro ? "rgba(8,6,16,0.82)" : "transparent";
-    _coachSetTip(step);
-    // Position off-screen, force layout, measure, then put it where it belongs.
-    tip.style.left = "-9999px"; tip.style.top = "-9999px";
-    void tip.offsetHeight;
-    const th = tip.offsetHeight, tw = tip.offsetWidth;
-    const tx = Math.max(12, (window.innerWidth - tw) / 2);
-    const ty = step.result ? 16 : Math.max(12, (window.innerHeight - th) / 2);
-    tip.style.left = tx + "px"; tip.style.top = ty + "px"; tip.style.visibility = "visible";
-    return;
-  }
-  // Spotlight step.
-  ov.style.background = "transparent";
-  spot.style.display = "";
-  if (step.preflop) {
-    const pf = (typeof streetSection === "function") ? streetSection("preflop") : null;
-    if (pf && !pf.classList.contains("expanded")) {
-      if (typeof renderStreetBody === "function") renderStreetBody("preflop");
-      pf.classList.add("expanded");
+// Seed the two finished example hands into My Hands on first run. Replaces the
+// old coachmark walkthrough — show the destination, skip the guided tour.
+// Mutating live state here is safe: every route into the form goes through a
+// full page reload (startNewHandFlow / Clear), so example data can't leak.
+async function seedExampleHands() {
+  try {
+    if (localStorage.getItem("showdown_examples_seeded_v1")) return;
+    if (loadHands().length > 0) { localStorage.setItem("showdown_examples_seeded_v1", "1"); return; }
+    const defs = [
+      { load: loadExampleHand2, title: "Example · Side pot: aces hold, Hero profits" },
+      { load: loadExampleHand,  title: "Example · AA vs KK cooler" },
+    ];
+    const all = loadHands();
+    for (const d of defs) {
+      d.load();
+      const canvas = await renderHandToCanvas("full");
+      const hand = serializeHand();
+      hand.title = d.title;
+      if (canvas) hand.imageDataUrl = canvas.toDataURL("image/jpeg", 0.7);
+      all.push(hand);
     }
-  }
-  // Modal opens (Hero / Villain via step.before) need a paint cycle before the
-  // sheet has measurable size. Wait the full 370ms used for spot positioning
-  // so r.getBoundingClientRect() reads the real rect.
-  setTimeout(() => {
-    const el = document.querySelector(step.sel);
-    if (!el) { if (_coachIdx < COACH_STEPS.length - 1) { _coachIdx++; return showCoachStep(); } return endCoachTour(); }
-    if (el.scrollIntoView) el.scrollIntoView({ block: "center", behavior: "smooth" });
-    const r = el.getBoundingClientRect();
-    const pad = 6;
-    spot.style.top = (r.top - pad) + "px";
-    spot.style.left = (r.left - pad) + "px";
-    spot.style.width = (r.width + pad*2) + "px";
-    spot.style.height = (r.height + pad*2) + "px";
-    _coachSetTip(step);
-    // Off-screen measure, then snap into final position. Clamp so the tip is
-    // ALWAYS in view — for tall spots (like the preflop street panel with
-    // several actions) the spotlight can extend past the viewport, in which
-    // case "below" and "above" are both off-screen. We then dock the tip to
-    // the bottom of the viewport with margin, even if it visually overlaps
-    // the bottom of the spot — better than having Next/Skip buttons hidden.
-    tip.style.left = "-9999px"; tip.style.top = "-9999px";
-    void tip.offsetHeight;
-    const th = tip.offsetHeight, tw = tip.offsetWidth;
-    let ty = r.bottom + 14;
-    if (ty + th > window.innerHeight - 12) {
-      const above = r.top - th - 14;
-      ty = (above >= 12) ? above : (window.innerHeight - th - 12);
-    }
-    if (ty < 12) ty = 12;
-    let tx = Math.min(Math.max(12, r.left + r.width/2 - tw/2), window.innerWidth - tw - 12);
-    tip.style.top = ty + "px"; tip.style.left = tx + "px"; tip.style.visibility = "visible";
-  }, 370);
+    saveHands(all);
+    localStorage.setItem("showdown_examples_seeded_v1", "1");
+    if (document.body.classList.contains("viewing-myhands") && typeof renderMyHandsList === "function") renderMyHandsList();
+    console.log("[showdown] seeded example hands");
+  } catch (e) { console.warn("[showdown] example seeding failed:", e); }
 }
-function endCoachTour() {
-  const ov = $("#coachOverlay");
-  ov.classList.remove("on");
-  ov.style.background = "transparent";
-  $("#coachSpot").style.display = "";
-  document.body.classList.remove("coach-tour-active");
-}
-const _welcomeTourBtn = $("#welcomeTour");
-if (_welcomeTourBtn) _welcomeTourBtn.addEventListener("click", () => {
-  try { localStorage.setItem(WELCOME_SEEN_KEY, "1"); } catch (_) {}
-  startCoachTour({ isFtue: true });
-});
 
 /* ===== Profile (name + avatar) — appears on the hero seat in the picture ===== */
 const PROFILE_KEY = "showdown_profile";
@@ -12860,6 +12690,7 @@ setTimeout(() => {
       }
     }
     if (typeof renderGameContextPill === "function") renderGameContextPill();
+    if (!_showFormThisLoad && typeof seedExampleHands === "function") seedExampleHands();
   } catch (e) {
     console.warn("[showdown] new-hand boot failed:", e);
   }
