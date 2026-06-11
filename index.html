@@ -3131,7 +3131,7 @@
     </div>
     <div class="body" id="output"></div>
     <div class="foot">
-      <button type="button" class="btn-primary" id="saveHandBtn">Save</button>
+      <button type="button" class="btn-primary" id="saveHandBtn">Save hand</button>
       <button type="button" class="btn-secondary" id="savePngBtn">Save image</button>
       <button type="button" class="btn-secondary" id="shareBtn">Share</button>
     </div>
@@ -3587,7 +3587,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.6.0";
+const APP_VERSION = "v1.6.1";
 
 // ============================================================================
 // CASILLAS / PRO FEATURE FLAG — hide every pro-review surface for input-only
@@ -11053,6 +11053,18 @@ async function renderHandToCanvas(upTo, proNotes) {
   ctx.save();
   ctx.translate(0, bandH);
 
+  // Pot breakdown panel (multiway side pots / split pots) — drawn ABOVE the table,
+  // in its own band between the header and the felt. Previously it sat at the top
+  // of the table area and overlapped the plates/cards of top-half seats. The rest
+  // of the picture is shifted down by the panel's height to make room.
+  let potsShift = 0;
+  if (data.pots && data.pots.length) {
+    const potsPanelH = 12 + 24 + data.pots.length * 26 + 8;   // mirrors sdDrawPotBreakdown's box height
+    sdDrawPotBreakdown(ctx, SHOWDOWN_W / 2, 90, data.pots);
+    potsShift = potsPanelH + 16;
+    ctx.translate(0, potsShift);
+  }
+
   // Table
   const cx = W/2, cy = 370, rx = 320, ry = 170;
   // ---- soft drop shadow under the whole table — lifts it off the dark background ----
@@ -11385,8 +11397,7 @@ async function renderHandToCanvas(upTo, proNotes) {
   // hide a player's cards when seats bunch up at the bottom of the table.
   for (const sc of seatCards) sdDrawSeatCards(ctx, sc.x, sc.y, sc.p, sc.isHero, featherImg);
 
-  // Pot breakdown panel (only present for multiway side pots or split pots).
-  if (data.pots && data.pots.length) sdDrawPotBreakdown(ctx, cx, 92, data.pots);
+  // (Pot breakdown panel moved ABOVE the table — see potsShift before the table draw.)
 
   // Timeline — captures the bottom Y of the deepest column so we can crop the canvas
   // to the actual content (avoids a big empty gap for short hands).
@@ -11425,8 +11436,11 @@ async function renderHandToCanvas(upTo, proNotes) {
   // with one column) leave a tall empty area below the timeline; we trim that off and
   // re-anchor the version stamp to the new bottom.
   const STAMP_PAD = 18;
-  const minH = Math.max(cy + ry + 130, 500);                // never crop above the table
-  const desiredH = Math.max((timelineBottomY || 0) + STAMP_PAD, minH);
+  // timelineBottomY is measured inside the translated context — add the band and
+  // pot-breakdown shifts to get the true content bottom in canvas coordinates.
+  const contentShift = bandH + potsShift;
+  const minH = Math.max(cy + ry + 130 + contentShift, 500); // never crop above the table
+  const desiredH = Math.max((timelineBottomY || 0) + contentShift + STAMP_PAD, minH);
   const finalH = Math.min(totalH, desiredH);
   let outCanvas = canvas;
   if (finalH < totalH - 4) {
@@ -12506,7 +12520,7 @@ function setOutputSheetMode(mode) {
   } else {
     foot.innerHTML = `
       <button type="button" class="btn-secondary" id="freshEditBtn">Edit</button>
-      <button type="button" class="btn-primary" id="saveHandBtn">Save</button>
+      <button type="button" class="btn-primary" id="saveHandBtn">Save hand</button>
       <button type="button" class="btn-secondary" id="savePngBtn">Save image</button>
       <button type="button" class="btn-secondary" id="shareBtn">Share</button>
     `;
@@ -12584,12 +12598,11 @@ $("#saveConfirm").onclick = async () => {
     $("#saveOverlay").classList.remove("on", "dialog-mode");
     showToast("Already saved");
     haptic(8);
-    if (_closeOverlayAfterSave) {
-      _closeOverlayAfterSave = false;
-      $("#overlay").classList.remove("on");
-      currentSavedHand = null;
-      if (typeof openMyHands === "function") openMyHands();
-    }
+    // Saving is a completed action — close the hand and land on My hands.
+    _closeOverlayAfterSave = false;
+    $("#overlay").classList.remove("on");
+    currentSavedHand = null;
+    if (typeof openMyHands === "function") openMyHands();
     return;
   }
   const all = loadHands();
@@ -12616,14 +12629,12 @@ $("#saveConfirm").onclick = async () => {
   $("#saveOverlay").classList.remove("on", "dialog-mode");
   showToast("Saved to My hands");
   haptic(12);
-  // If we got here via the X-close "save first" flow, finish the close +
-  // navigate back to wherever they came from (Home / My Hands).
-  if (_closeOverlayAfterSave) {
-    _closeOverlayAfterSave = false;
-    $("#overlay").classList.remove("on");
-    currentSavedHand = null;
-    if (typeof openMyHands === "function") openMyHands();
-  }
+  // Saving completes the flow: always close the hand viewer and land the
+  // user on My hands (previously only the X-close "save first" path did this).
+  _closeOverlayAfterSave = false;
+  $("#overlay").classList.remove("on");
+  currentSavedHand = null;
+  if (typeof openMyHands === "function") openMyHands();
 };
 
 /* Output sheet action handlers (extracted so footer rebuilds can re-bind cleanly) */
