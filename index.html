@@ -3605,7 +3605,7 @@ function fmtCompactNum(n) {
 
 // Build/version marker — bump on each deploy so we can confirm the live site is up to date.
 // Shown tiny on the input screen (bottom corner) and on the generated picture.
-const APP_VERSION = "v1.6.3";
+const APP_VERSION = "v1.6.4";
 
 // ============================================================================
 // CASILLAS / PRO FEATURE FLAG — hide every pro-review surface for input-only
@@ -9224,8 +9224,31 @@ function _gsApplyVisibility(gameType, unit) {
   }
 }
 
+// First-hand force mode: when a new hand starts with no saved settings, the
+// settings sheet is a REQUIRED step — the X is hidden (consume-once flag) so
+// the user can't back out onto the dead form. Set right before openGameSettings.
+let _gsForceFirstHand = false;
+
 function openGameSettings(overrideOnly) {
   _gsOverrideOnly = !!overrideOnly;
+  // Forced first-hand mode: hide the X and show a one-time explainer note.
+  const _forced = _gsForceFirstHand;
+  _gsForceFirstHand = false;   // consume — normal opens get the X back
+  const xBtn = document.getElementById("gsClose");
+  if (xBtn) xBtn.style.display = _forced ? "none" : "";
+  let note = document.getElementById("gsFirstNote");
+  if (_forced) {
+    if (!note) {
+      note = document.createElement("div");
+      note.id = "gsFirstNote";
+      note.style.cssText = "margin:0 0 14px;padding:11px 14px;border-radius:12px;background:rgba(62,197,255,0.08);border:1px solid rgba(62,197,255,0.25);color:var(--ink);font-size:14px;line-height:1.45;";
+      note.innerHTML = "<b>Quick one-time setup.</b> Choose your game to start the hand — saved as your default, changeable any time from the menu.";
+      const body = document.querySelector("#gameSettingsOverlay .hi-body");
+      if (body) body.insertBefore(note, body.firstChild);
+    }
+  } else if (note) {
+    note.remove();
+  }
   // Read current values: if overrideOnly we prefer live form state; else read settings.
   const settings = loadGameSettings() || {};
   const cur = overrideOnly ? {
@@ -12823,10 +12846,15 @@ setTimeout(() => {
         // dead screen of locked streets (FTUE bug, fixed v1.6.3). Open Game
         // Settings as step 0; saving chains straight back into the new-hand
         // flow (same flag the walkthrough uses) which then opens Hero input.
-        console.log("[showdown] no saved game settings — first hand: opening Settings, chaining to Hero");
+        console.log("[showdown] no saved game settings — first hand: forcing Settings, chaining to Hero");
         try { sessionStorage.setItem("walkthrough_settings_save", "1"); } catch (_) {}
         setTimeout(() => {
-          try { if (typeof openGameSettings === "function") openGameSettings(false); }
+          try {
+            if (typeof openGameSettings === "function") {
+              _gsForceFirstHand = true;   // required step: no X-close on this open
+              openGameSettings(false);
+            }
+          }
           catch (e) { console.warn("[showdown] openGameSettings failed:", e); }
         }, 150);
       }
